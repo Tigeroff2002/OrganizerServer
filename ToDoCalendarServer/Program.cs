@@ -2,7 +2,11 @@ using ToDoCalendarServer;
 
 await Host.CreateDefaultBuilder(args)
     .ConfigureWebHostDefaults(webBuilder =>
-        webBuilder.UseStartup<Startup>())
+        webBuilder
+        .UseIISIntegration()
+        .UseStartup<Startup>()
+        .CaptureStartupErrors(true)
+        .UseSetting("detailedErrors", "true"))
     .Build()
     .RunAsync()
     .ConfigureAwait(false);

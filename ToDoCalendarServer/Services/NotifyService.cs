@@ -15,11 +15,7 @@ public class NotifyService : BackgroundService
     }
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
-        => Task.Run(
-            async () => 
-                await _notifiesHandler
-                .HandleAsync(stoppingToken)
-                .ConfigureAwait(false));
+        => Task.CompletedTask;
 
     private readonly ILogger<NotifyService> _logger;
     private readonly INotificationsHandler _notifiesHandler;
