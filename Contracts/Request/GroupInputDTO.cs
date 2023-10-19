@@ -15,5 +15,5 @@ public class GroupInputDTO
     public required GroupType Type { get; init; }
 
     [JsonProperty("participants", Required = Required.Default)]
-    public List<User> Participants { get; set; } = default!;
+    public List<int> Participants { get; set; } = default!;
 }

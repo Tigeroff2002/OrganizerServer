@@ -16,9 +16,6 @@ public sealed class UsersRepository
         _provider = provider ?? throw new ArgumentNullException(nameof(provider));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
-        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
-
         _logger.LogInformation("Users repository was created just now");
     }
 
@@ -28,12 +25,20 @@ public sealed class UsersRepository
 
         token.ThrowIfCancellationRequested();
 
+        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
+
         await _repositoryContext.Users.AddAsync(user, token);
+
+        SaveChanges();
     }
 
     public async Task<User?> GetUserByIdAsync(int userId, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
+
+        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
         return await _repositoryContext.Users.FindAsync(
             new object?[]
@@ -51,6 +56,9 @@ public sealed class UsersRepository
             throw new ArgumentException();
         }
 
+        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
+
         return await _repositoryContext.Users
             .FirstOrDefaultAsync(x => x.Email.Equals(email));
     }
@@ -59,12 +67,18 @@ public sealed class UsersRepository
     {
         token.ThrowIfCancellationRequested();
 
+        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
+
         return _repositoryContext.Users.ToListAsync(token);
     }
 
     public async Task DeleteAsync(int id, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
+
+        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
         var user = await _repositoryContext.Users.FindAsync(
             new object?[]
@@ -76,6 +90,8 @@ public sealed class UsersRepository
         {
             _repositoryContext.Users.Entry(user).State = EntityState.Deleted;
         }
+
+        SaveChanges();
     }
 
     public async Task UpdateAsync(User user, CancellationToken token)
@@ -83,6 +99,9 @@ public sealed class UsersRepository
         ArgumentNullException.ThrowIfNull(user);
 
         token.ThrowIfCancellationRequested();
+
+        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
         var localUser = await _repositoryContext.Users.FindAsync(
             new object?[]
@@ -94,6 +113,8 @@ public sealed class UsersRepository
         {
             _repositoryContext.Users.Entry(localUser).CurrentValues.SetValues(user);
         }
+
+        SaveChanges();
     }
 
     public void SaveChanges()
@@ -104,6 +125,6 @@ public sealed class UsersRepository
     }
 
     private readonly IServiceProvider _provider;
-    private readonly IRepositoryContext _repositoryContext;
+    private IRepositoryContext _repositoryContext;
     private readonly ILogger _logger;
 }

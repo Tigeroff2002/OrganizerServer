@@ -8,15 +8,15 @@ public class UserTask
     [Key]
     public int Id { get; set; }
 
-    public string Caption { get; }
+    public string Caption { get; set; }
 
-    public string Description { get; }
+    public string Description { get; set; }
 
-    public TaskType TaskType { get; }
+    public TaskType TaskType { get; set; }
 
-    public virtual User Reporter { get; }
+    public virtual User Reporter { get; set; }
 
-    public virtual User Implementer { get; }
+    public virtual User Implementer { get; set; }
 
     public UserTask() { }
 

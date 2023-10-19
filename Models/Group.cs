@@ -6,11 +6,11 @@ namespace Models;
 public class Group
 {
     [Key]
-    public int Id { get; }
+    public int Id { get; set; }
 
-    public string GroupName { get; }
+    public string GroupName { get; set; }
 
-    public GroupType Type { get; }
+    public GroupType Type { get; set; }
 
     public virtual List<User> Participants { get; set; }
 

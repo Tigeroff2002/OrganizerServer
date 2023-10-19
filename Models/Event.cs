@@ -14,11 +14,11 @@ public class Event
 
     public DateTimeOffset ScheduledStart { get; }
 
-    public TimeSpan Duration { get; }
+    public TimeSpan Duration { get; set; }
 
-    public EventType EventType { get; }
+    public EventType EventType { get; set; }
 
-    public ActivityKind ActivityKind { get; }
+    public ActivityKind ActivityKind { get; set; }
 
     public virtual User Manager { get; set; }
 

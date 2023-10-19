@@ -5,13 +5,15 @@ namespace Logic.Abstractions;
 
 public interface IUsersDataHandler
 {
-    public Task<bool> TryRegisterUser(
+    public Task<Response> TryRegisterUser(
         UserRegistrationData registrationData,
         CancellationToken token);
 
-    public Task<bool> TryLoginUser(
+    public Task<Response> TryLoginUser(
         UserLoginData loginData,
         CancellationToken token);
 
-    public Task<User?> GetUserInfo(UserInfoById userInfoById, CancellationToken token);
+    public Task<User?> GetUserInfo(
+        UserInfoById userInfoById,
+        CancellationToken token);
 }

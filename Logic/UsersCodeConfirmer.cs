@@ -33,11 +33,13 @@ public sealed class UsersCodeConfirmer
         var smtpClient = new SmtpClient(_configuration.Host)
         {
             Port = int.Parse(_configuration.Port),
+            UseDefaultCredentials = false,
             Credentials =
                 new NetworkCredential(
                     _configuration.Username,
                     _configuration.Password),
-            EnableSsl = true
+            DeliveryMethod = SmtpDeliveryMethod.Network,
+            EnableSsl = false
         };
 
         _logger.LogInformation(
@@ -54,14 +56,16 @@ public sealed class UsersCodeConfirmer
         body.Append("Bellow is your registration code. You need to write to your mobile app...\n");
         body.Append($"Your 6-digit confirmation code: {code}");
 
-        var message = 
-            new MailMessage(
-                _configuration.Host, 
-                userEmail,
-                subject,
-                body.ToString());
+        _logger.LogInformation("Server email adress is {Host}", _configuration.Host);
 
-        await smtpClient.SendMailAsync(message, token);
+
+        var message = new MailMessage();
+        message.From = new MailAddress(_configuration.Host);
+        message.To.Add(userEmail);
+        message.Subject = subject;
+        message.Body = body.ToString();
+
+        //await smtpClient.SendMailAsync(message, token);
 
         return true;
     }

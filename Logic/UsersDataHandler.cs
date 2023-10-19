@@ -22,7 +22,7 @@ public sealed class UsersDataHandler
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<bool> TryRegisterUser(
+    public async Task<Response> TryRegisterUser(
         UserRegistrationData registrationData,
         CancellationToken token)
     {
@@ -42,7 +42,11 @@ public sealed class UsersDataHandler
                 "User with email {Email} was already in DB",
                 email);
 
-            return await Task.FromResult(false);
+            var response1 = new Response();
+            response1.Result = false;
+            response1.OutInfo = $"User with email {email} was already in DB";
+
+            return await Task.FromResult(response1);
         }
 
         var confirmResult = 
@@ -53,7 +57,11 @@ public sealed class UsersDataHandler
             _logger.LogInformation(
                 "Wrong user code confirmation received");
 
-            return await Task.FromResult(false);
+            var response2 = new Response();
+            response2.Result = false;
+            response2.OutInfo = "Wrong user code confirmation received";
+
+            return await Task.FromResult(response2);
         }
 
         var user = new User();
@@ -70,12 +78,18 @@ public sealed class UsersDataHandler
 
         user.AuthToken = authToken;
 
+        _logger.LogInformation("Registrating new user {Email}", user.Email);
+
         await _usersRepository.AddAsync(user, token);
 
-        return await Task.FromResult(true);
+        var response = new Response();
+        response.Result = true;
+        response.OutInfo = $"Registrating new user {user.Email}";
+
+        return await Task.FromResult(response);
     }
 
-    public async Task<bool> TryLoginUser(
+    public async Task<Response> TryLoginUser(
         UserLoginData loginData,
         CancellationToken token)
     {
@@ -95,7 +109,22 @@ public sealed class UsersDataHandler
                 "User with email {Email} was not already in DB",
                 email);
 
-            return await Task.FromResult(false);
+            var response1 = new Response();
+            response1.Result = false;
+            response1.OutInfo = $"User with email {email} was not already in DB";
+
+            return await Task.FromResult(response1);
+        }
+
+        if (existedUser.Password != loginData.Password)
+        {
+            _logger.LogInformation("Password not equals");
+
+            var response2 = new Response();
+            response2.Result = false;
+            response2.OutInfo = "Password not equals";
+
+            return await Task.FromResult(response2);
         }
 
         var authToken = GenerateNewAuthToken();
@@ -104,7 +133,11 @@ public sealed class UsersDataHandler
 
         await _usersRepository.UpdateAsync(existedUser, token);
 
-        return await Task.FromResult(true);
+        var response = new Response();
+        response.Result = true;
+        response.OutInfo = $"Login existed user {email}";
+
+        return await Task.FromResult(response);
     }
 
     public async Task<User?> GetUserInfo(UserInfoById userInfoById, CancellationToken token)

@@ -49,7 +49,9 @@ public sealed class UserController : ControllerBase
         var result = 
             await _usersDataHandler.TryRegisterUser(userRegistrationData, token);
 
-        return result ? Ok() : BadRequest();
+        var json = JsonConvert.SerializeObject(result);
+
+        return result.Result ? Ok(json) : BadRequest(json);
     }
 
     [HttpPost]
@@ -63,13 +65,15 @@ public sealed class UserController : ControllerBase
         var result =
             await _usersDataHandler.TryLoginUser(userLoginData, token);
 
-        return result ? Ok() : BadRequest();
+        var json = JsonConvert.SerializeObject(result);
+
+        return result.Result ? Ok(json) : BadRequest(json);
     }
 
     [HttpGet]
     [Route("get_info")]
     [Authorize]
-    public async Task<string> GetInfoAsync(CancellationToken token)
+    public async Task<IActionResult> GetInfoAsync(CancellationToken token)
     {
         var body = await ReadRequestBodyAsync();
 
@@ -79,17 +83,23 @@ public sealed class UserController : ControllerBase
 
         if (user == null)
         {
-            var notFoundResponse =
-                new UserBadRequest
-                {
-                    UserId = userInfoByIdRequest.UserId,
-                    Message = "This user was not found in DB"
-                };
+            var response1 = new Response();
+            response1.Result = false;
+            response1.OutInfo = $"No user with id {userInfoByIdRequest.UserId} in system";
 
-            return JsonConvert.SerializeObject(notFoundResponse);
+            var json = JsonConvert.SerializeObject(response1);
+
+            return Ok(JsonConvert.SerializeObject(json));
         }
 
-        return _userInfoSerializer.Serialize(user);
+        var response = new GetResponse();
+        response.Result = true;
+        response.OutInfo = $"User with id {userInfoByIdRequest.UserId} was found";
+        response.RequestedInfo = _userInfoSerializer.Serialize(user);
+
+        var get_json = JsonConvert.SerializeObject(response);
+
+        return Ok(get_json);
     }
 
     private async Task<string> ReadRequestBodyAsync()

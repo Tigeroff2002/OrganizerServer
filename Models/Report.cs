@@ -7,13 +7,13 @@ public class Report
     [Key]
     public int Id { get; set; }
 
-    public string Caption { get; }
+    public string Caption { get; set; }
 
-    public string Description { get; }
+    public string Description { get; set; }
 
-    public DateTimeOffset BeginMoment { get;}
+    public DateTimeOffset BeginMoment { get; set; }
 
-    public DateTimeOffset EndMoment { get; }
+    public DateTimeOffset EndMoment { get; set; }
 
     public virtual User User { get; set; }
 

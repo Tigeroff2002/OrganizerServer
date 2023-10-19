@@ -16,9 +16,6 @@ public sealed class ReportsRepository
         _provider = provider ?? throw new ArgumentNullException(nameof(provider));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
-        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
-
         _logger.LogInformation("Reports repository was created just now");
     }
 
@@ -28,12 +25,20 @@ public sealed class ReportsRepository
 
         token.ThrowIfCancellationRequested();
 
+        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
+
         await _repositoryContext.Reports.AddAsync(report, token);
+
+        SaveChanges();
     }
 
     public async Task<Report?> GetReportByIdAsync(int reportId, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
+
+        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
         return await _repositoryContext.Reports.FindAsync(
             new object?[]
@@ -46,12 +51,18 @@ public sealed class ReportsRepository
     {
         token.ThrowIfCancellationRequested();
 
+        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
+
         return _repositoryContext.Reports.ToListAsync(token);
     }
 
     public async Task DeleteAsync(int reportId, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
+
+        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
         var report = await _repositoryContext.Reports.FindAsync(
             new object?[]
@@ -63,6 +74,8 @@ public sealed class ReportsRepository
         {
             _repositoryContext.Reports.Entry(report).State = EntityState.Deleted;
         }
+
+        SaveChanges();
     }
 
     public async Task UpdateAsync(Report report, CancellationToken token)
@@ -70,6 +83,9 @@ public sealed class ReportsRepository
         ArgumentNullException.ThrowIfNull(report);
 
         token.ThrowIfCancellationRequested();
+
+        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
         var localReport = await _repositoryContext.Reports.FindAsync(
             new object?[]
@@ -81,6 +97,8 @@ public sealed class ReportsRepository
         {
             _repositoryContext.Reports.Entry(localReport).CurrentValues.SetValues(report);
         }
+
+        SaveChanges();
     }
 
     public void SaveChanges()
@@ -91,6 +109,6 @@ public sealed class ReportsRepository
     }
 
     private readonly IServiceProvider _provider;
-    private readonly IRepositoryContext _repositoryContext;
+    private IRepositoryContext _repositoryContext;
     private readonly ILogger _logger;
 }

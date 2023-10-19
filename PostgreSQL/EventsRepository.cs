@@ -16,9 +16,6 @@ public sealed class EventsRepository
         _provider = provider ?? throw new ArgumentNullException(nameof(provider));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
-        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
-
         _logger.LogInformation("Events repository was created just now");
     }
 
@@ -28,12 +25,20 @@ public sealed class EventsRepository
 
         token.ThrowIfCancellationRequested();
 
+        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
+
         await _repositoryContext.Events.AddAsync(@event, token);
+
+        SaveChanges();
     }
 
     public async Task<Event?> GetEventByIdAsync(int eventId, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
+
+        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
         return await _repositoryContext.Events.FindAsync(
             new object?[]
@@ -46,12 +51,18 @@ public sealed class EventsRepository
     {
         token.ThrowIfCancellationRequested();
 
+        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
+
         return _repositoryContext.Events.ToListAsync(token);
     }
 
     public async Task DeleteAsync(int eventId, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
+
+        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
         var @event = await _repositoryContext.Events.FindAsync(
             new object?[]
@@ -63,6 +74,8 @@ public sealed class EventsRepository
         {
             _repositoryContext.Events.Entry(@event).State = EntityState.Deleted;
         }
+
+        SaveChanges();
     }
 
     public async Task UpdateAsync(Event @event, CancellationToken token)
@@ -70,6 +83,9 @@ public sealed class EventsRepository
         ArgumentNullException.ThrowIfNull(@event);
 
         token.ThrowIfCancellationRequested();
+
+        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
         var localEvent = await _repositoryContext.Events.FindAsync(
             new object?[]
@@ -81,6 +97,8 @@ public sealed class EventsRepository
         {
             _repositoryContext.Events.Entry(localEvent).CurrentValues.SetValues(@event);
         }
+
+        SaveChanges();
     }
 
     public void SaveChanges()
@@ -91,6 +109,6 @@ public sealed class EventsRepository
     }
 
     private readonly IServiceProvider _provider;
-    private readonly IRepositoryContext _repositoryContext;
+    private IRepositoryContext _repositoryContext;
     private readonly ILogger _logger;
 }
