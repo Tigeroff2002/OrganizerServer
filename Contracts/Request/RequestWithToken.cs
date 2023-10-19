@@ -2,8 +2,11 @@
 
 namespace Contracts.Request;
 
-public abstract class RequestWithToken
+public class RequestWithToken
 {
-    [JsonProperty("token", Required = Required.Always)]
+    [JsonProperty("user_id", Required = Required.Default)]
+    public required int UserId { get; init; }
+
+    [JsonProperty("token", Required = Required.Default)]
     public required string Token { get; init; }
 }

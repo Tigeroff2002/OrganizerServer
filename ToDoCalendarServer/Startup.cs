@@ -35,6 +35,8 @@ public class Startup
             .AddStorage(Configuration)
             .AddHealthChecks();
 
+        _ = services.AddAuthBuilder();
+
         _ = services.AddHostedServices();
     }
 

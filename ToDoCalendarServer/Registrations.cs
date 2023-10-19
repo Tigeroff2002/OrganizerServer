@@ -10,6 +10,8 @@ using Logic.Transport.Abstractions;
 using Models.BusinessModels;
 using Logic.Transport;
 using Models;
+using Logic.Authentification;
+using Microsoft.AspNetCore.Authentication;
 
 namespace ToDoCalendarServer;
 
@@ -58,4 +60,15 @@ public static class Registrations
         => services
             .Configure<SmtpConfiguration>(
                 configuration.GetSection(nameof(SmtpConfiguration)));
+
+    public static AuthenticationBuilder AddAuthBuilder(
+        this IServiceCollection services)
+    {
+        return services.AddAuthentication(o =>
+        {
+            o.DefaultScheme = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme;
+        })
+        .AddScheme<TokenAuthentificationOptions, AuthentificationTokensHandler>(
+            AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme, o => { });
+    }
 }

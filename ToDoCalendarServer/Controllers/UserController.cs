@@ -72,7 +72,7 @@ public sealed class UserController : ControllerBase
 
     [HttpGet]
     [Route("get_info")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> GetInfoAsync(CancellationToken token)
     {
         var body = await ReadRequestBodyAsync();
