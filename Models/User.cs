@@ -1,7 +1,10 @@
-﻿namespace Models
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Models
 {
     public class User
     {
+        [Key]
         public int Id { get; set; }
 
         public string UserName { get; set; }
@@ -19,6 +22,8 @@
         public virtual List<UserTask> TasksForImplementation { get; set; }
 
         public virtual List<Event> Events { get; set; }
+
+        public virtual List<Event> ManagedEvents { get; set; }
 
         public virtual List<Report> Reports { get; set; }
 

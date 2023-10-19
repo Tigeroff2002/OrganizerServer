@@ -30,7 +30,7 @@ public class CalendarDataContext : DbContext
     public CalendarDataContext(DbContextOptions<CalendarDataContext> options)
         : base(options)
     {
-        Database.EnsureCreated();
+        //Database.EnsureCreated();
 
         AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
         AppContext.SetSwitch("Npgsql.DisableDateTimeInfinityConversions", true);
@@ -106,12 +106,10 @@ public class CalendarDataContext : DbContext
         _ = modelBuilder.Entity<Group>()
             .Property(x => x.Type);
 
-        /*
         _ = modelBuilder.Entity<Group>()
             .HasMany(x => x.Participants)
             .WithMany(x => x.Groups)
             .UsingEntity("users_groups_map");
-         */
     }
 
     public static void CreateEventsModels(ModelBuilder modelBuilder)
@@ -138,20 +136,13 @@ public class CalendarDataContext : DbContext
             .Property(x => x.ActivityKind);
 
         _ = modelBuilder.Entity<Event>()
-            .Property(x => x.ManagerId);
-
-        _ = modelBuilder.Entity<Event>()
             .HasOne(x => x.Manager)
-            .WithMany(x => x.Events)
-            .HasForeignKey(x => x.ManagerId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .WithMany(x => x.ManagedEvents);
 
-        /*
         _ = modelBuilder.Entity<Event>()
             .HasMany(x => x.Guests)
             .WithMany(x => x.Events)
             .UsingEntity("users_events_calendar");
-        */
     }
 
     public static void CreateTasksModels(ModelBuilder modelBuilder)
@@ -167,24 +158,6 @@ public class CalendarDataContext : DbContext
 
         _ = modelBuilder.Entity<UserTask>()
             .Property(x => x.TaskType);
-
-        _ = modelBuilder.Entity<UserTask>()
-            .Property(x => x.ReporterId);
-
-        _ = modelBuilder.Entity<UserTask>()
-            .HasOne(x => x.Reporter)
-            .WithMany()
-            .HasForeignKey(x => x.ReporterId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        _ = modelBuilder.Entity<UserTask>()
-            .Property(x => x.ImplementerId);
-
-        _ = modelBuilder.Entity<UserTask>()
-            .HasOne(x => x.Implementer)
-            .WithMany()
-            .HasForeignKey(x => x.ImplementerId)
-            .OnDelete(DeleteBehavior.Cascade);
     }
 
     private static void CreateReportsModels(ModelBuilder modelBuilder)
@@ -203,14 +176,5 @@ public class CalendarDataContext : DbContext
 
         _ = modelBuilder.Entity<Report>()
             .Property(x => x.EndMoment);
-
-        _ = modelBuilder.Entity<Report>()
-            .Property(x => x.UserId);
-
-        _ = modelBuilder.Entity<Report>()
-            .HasOne(x => x.User)
-            .WithMany()
-            .HasForeignKey(x => x.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
     }
 }

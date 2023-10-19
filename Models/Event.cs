@@ -1,9 +1,11 @@
 ﻿using Models.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace Models;
 
 public class Event
 {
+    [Key]
     public int Id { get; set; }
 
     public string Caption { get; }
@@ -20,9 +22,9 @@ public class Event
 
     public virtual User Manager { get; set; }
 
-    public int ManagerId { get; }
-
     public virtual List<User> Guests { get; set; }
+
+    public Event() { }
 
     public Event(
         int id,

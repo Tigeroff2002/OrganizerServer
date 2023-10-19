@@ -1,7 +1,10 @@
-﻿namespace Models;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Models;
 
 public class Report
 {
+    [Key]
     public int Id { get; set; }
 
     public string Caption { get; }
@@ -14,9 +17,9 @@ public class Report
 
     public virtual User User { get; set; }
 
-    public int UserId { get; }
-
     public virtual List<Event> Events { get; set; }
+
+    public Report() { }
 
     public Report(
         int id,

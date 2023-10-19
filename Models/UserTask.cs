@@ -1,9 +1,11 @@
 ﻿using Models.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace Models;
 
 public class UserTask
 {
+    [Key]
     public int Id { get; set; }
 
     public string Caption { get; }
@@ -14,11 +16,9 @@ public class UserTask
 
     public virtual User Reporter { get; }
 
-    public int ReporterId { get; }
-
     public virtual User Implementer { get; }
 
-    public int ImplementerId { get; }   
+    public UserTask() { }
 
     public UserTask(
         int id,
