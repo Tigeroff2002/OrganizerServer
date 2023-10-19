@@ -3,8 +3,8 @@ using Newtonsoft.Json;
 
 namespace Contracts.Request.RequestById; 
 
-public class GroupDetailsRequest
+public class GroupDetailsRequest : RequestWithToken
 {
-    [JsonProperty("group_id", Required = Required.Always, Order = 1)]
+    [JsonProperty("group_id", Required = Required.Always)]
     public required int GroupId { get; init; }
 }

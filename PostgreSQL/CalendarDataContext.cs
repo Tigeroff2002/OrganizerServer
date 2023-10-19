@@ -105,11 +105,6 @@ public class CalendarDataContext : DbContext
 
         _ = modelBuilder.Entity<Group>()
             .Property(x => x.Type);
-
-        _ = modelBuilder.Entity<Group>()
-            .HasMany(x => x.Participants)
-            .WithMany(x => x.Groups)
-            .UsingEntity("users_groups_map");
     }
 
     public static void CreateEventsModels(ModelBuilder modelBuilder)

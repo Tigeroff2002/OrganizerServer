@@ -2,7 +2,7 @@
 
 namespace Contracts.Request;
 
-public sealed class GroupAddParticipants
+public sealed class GroupAddParticipants : RequestWithToken
 {
     [JsonProperty("group_id", Required = Required.Always)]
     public required int GroupId { get; init; }

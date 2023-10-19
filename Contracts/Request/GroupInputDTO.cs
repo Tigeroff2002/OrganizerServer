@@ -5,7 +5,7 @@ using Newtonsoft.Json.Converters;
 
 namespace Contracts.Request; 
 
-public class GroupInputDTO
+public class GroupInputDTO : RequestWithToken
 {
     [JsonProperty("group_name", Required = Required.Always)]
     public required string GroupName { get; init; }
