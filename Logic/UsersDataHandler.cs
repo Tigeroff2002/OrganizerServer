@@ -69,9 +69,9 @@ public sealed class UsersDataHandler
         user.UserName = registrationData.UserName;
         user.Password = registrationData.Password;
         user.PhoneNumber = registrationData.PhoneNumber;
-        user.Groups = new List<Group>();
+        user.UserGroupMaps = new List<UserGroupMap>();
         user.TasksForImplementation = new List<UserTask>();
-        user.Events = new List<Event>();
+        user.UserEventMaps = new List<UserEventMap>();
         user.Reports = new List<Report>();
 
         string authToken = GenerateNewAuthToken();

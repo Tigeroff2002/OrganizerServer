@@ -35,7 +35,7 @@ public sealed class GroupController : ControllerBase
 
         Debug.Assert(groupToCreate != null);
 
-        var listUsers = new List<User>();
+        var listUserGroupMaps = new List<UserGroupMap>();
 
         if (groupToCreate.Participants != null)
         {
@@ -47,7 +47,11 @@ public sealed class GroupController : ControllerBase
 
                 if (currentUser != null)
                 {
-                    listUsers.Add(currentUser);
+                    var userGroupMap = new UserGroupMap();
+                    userGroupMap.UserId = userId;
+                    userGroupMap.User = currentUser;
+                    userGrou
+                    listUserGroupMaps.Add(currentUser);
                 }
             }
         }
