@@ -53,9 +53,6 @@ public class CalendarDataContext : DbContext
         CreateTasksModels(modelBuilder);
         CreateReportsModels(modelBuilder);
 
-        CreateUserGroupMapsModels(modelBuilder);
-        CreateUserEventsMapsModels(modelBuilder);
-
         base.OnModelCreating(modelBuilder);
     }
 
@@ -80,12 +77,22 @@ public class CalendarDataContext : DbContext
             .Property(x => x.AuthToken);
 
         _ = modelBuilder.Entity<User>()
+            .HasMany(x => x.Groups)
+            .WithMany(x => x.Participants)
+            .UsingEntity("users_groups_map");
+
+        _ = modelBuilder.Entity<User>()
             .HasMany(x => x.TasksForImplementation)
             .WithOne(x => x.Implementer);
 
         _ = modelBuilder.Entity<User>()
             .HasMany(x => x.Reports)
             .WithOne(x => x.User);
+
+        _ = modelBuilder.Entity<User>()
+            .HasMany(x => x.Events)
+            .WithMany(x => x.Guests)
+            .UsingEntity("users_events_calendar");
     }
 
     public static void CreateGroupsModels(ModelBuilder modelBuilder)
@@ -126,6 +133,11 @@ public class CalendarDataContext : DbContext
         _ = modelBuilder.Entity<Event>()
             .HasOne(x => x.Manager)
             .WithMany(x => x.ManagedEvents);
+
+        _ = modelBuilder.Entity<Event>()
+            .HasMany(x => x.Guests)
+            .WithMany(x => x.Events)
+            .UsingEntity("users_events_calendar");
     }
 
     public static void CreateTasksModels(ModelBuilder modelBuilder)
@@ -159,39 +171,5 @@ public class CalendarDataContext : DbContext
 
         _ = modelBuilder.Entity<Report>()
             .Property(x => x.EndMoment);
-    }
-
-    private static void CreateUserGroupMapsModels(ModelBuilder modelBuilder)
-    {
-        _ = modelBuilder.Entity<UserGroupMap>()
-            .HasKey(
-                map => new { map.UserId, map.GroupId });
-
-        _ = modelBuilder.Entity<UserGroupMap>()
-            .HasOne<User>(x => x.User)
-            .WithMany(x => x.UserGroupMaps)
-            .HasForeignKey(x => x.UserId);
-
-        _ = modelBuilder.Entity<UserGroupMap>()
-            .HasOne<Group>(x => x.Group)
-            .WithMany(x => x.UserGroupMaps)
-            .HasForeignKey(x => x.GroupId);
-    }
-
-    private static void CreateUserEventsMapsModels(ModelBuilder modelBuilder)
-    {
-        _ = modelBuilder.Entity<UserEventMap>()
-            .HasKey(
-                map => new { map.UserId, map.EventId });
-
-        _ = modelBuilder.Entity<UserEventMap>()
-            .HasOne<User>(x => x.User)
-            .WithMany(x => x.UserEventMaps)
-            .HasForeignKey(x => x.UserId);
-
-        _ = modelBuilder.Entity<UserEventMap>()
-            .HasOne<Event>(x => x.Event)
-            .WithMany(x => x.UserEventMaps)
-            .HasForeignKey(x => x.EventId);
     }
 }

@@ -17,11 +17,11 @@ namespace Models
 
         public string AuthToken { get; set; }
 
-        public virtual List<UserGroupMap> UserGroupMaps { get; set; }
+        public virtual List<Group> Groups { get; set; }
 
         public virtual List<UserTask> TasksForImplementation { get; set; }
 
-        public virtual List<UserEventMap> UserEventMaps { get; set; }
+        public virtual List<Event> Events { get; set; }
 
         public virtual List<Event> ManagedEvents { get; set; }
 
