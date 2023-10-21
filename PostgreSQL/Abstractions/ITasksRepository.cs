@@ -12,5 +12,5 @@ public interface ITasksRepository : IRepository
 
     Task DeleteAsync(int taskId, CancellationToken token);
 
-    Task UpdateAsync(Task task, CancellationToken token);
+    Task UpdateAsync(UserTask task, CancellationToken token);
 }

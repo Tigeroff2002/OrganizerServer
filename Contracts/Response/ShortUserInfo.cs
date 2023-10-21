@@ -1,0 +1,13 @@
+﻿using Newtonsoft.Json;
+
+namespace Contracts.Response;
+
+public class ShortUserInfo
+{
+
+    [JsonProperty("user_name", Required = Required.Always)]
+    public required string UserName { get; init; }
+
+    [JsonProperty("user_email", Required = Required.Always)]
+    public required string UserEmail { get; init; }
+}

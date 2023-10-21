@@ -19,6 +19,8 @@ namespace Models
 
         public virtual List<Group> Groups { get; set; }
 
+        public virtual List<UserTask> ReportedTasks { get; set; }
+
         public virtual List<UserTask> TasksForImplementation { get; set; }
 
         public virtual List<Event> Events { get; set; }

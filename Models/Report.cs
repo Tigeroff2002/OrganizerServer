@@ -20,14 +20,4 @@ public class Report
     public virtual List<Event> Events { get; set; }
 
     public Report() { }
-
-    public Report(
-        int id,
-        string caption,
-        string description, 
-        DateTimeOffset beginMoment,
-        DateTimeOffset endMoment)
-    {
-
-    }
 }

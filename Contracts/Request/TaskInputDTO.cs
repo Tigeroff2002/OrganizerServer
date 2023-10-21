@@ -5,7 +5,7 @@ using Contracts.Request;
 
 namespace Contracts;
 
-public sealed class TaskInputDTO : RequestWithToken
+public class TaskInputDTO : RequestWithToken
 {
     [JsonProperty("caption", Required = Required.Always)]
     public required string TaskCaption { get; init; }
@@ -17,8 +17,9 @@ public sealed class TaskInputDTO : RequestWithToken
     [JsonProperty("task_type", Required = Required.Always)]
     public required TaskType TaskType { get; init; }
 
-    [JsonProperty("reporter_id", Required = Required.Always, Order = 1)]
-    public required int ReporterId { get; init; }
+    [JsonConverter(typeof(StringEnumConverter))]
+    [JsonProperty("task_type", Required = Required.Default)]
+    public required TaskCurrentStatus TaskStatus { get; init; } = TaskCurrentStatus.ToDo;
 
     [JsonProperty("implementer_id", Required = Required.Always)]
     public required int ImplementerId { get; init; }

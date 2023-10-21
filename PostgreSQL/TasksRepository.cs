@@ -70,7 +70,7 @@ public sealed class TasksRepository
         SaveChanges();
     }
 
-    public async Task UpdateAsync(Task task, CancellationToken token)
+    public async Task UpdateAsync(UserTask task, CancellationToken token)
     {
         ArgumentNullException.ThrowIfNull(task);
 

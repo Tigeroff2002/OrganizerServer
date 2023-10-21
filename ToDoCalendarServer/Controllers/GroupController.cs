@@ -1,5 +1,6 @@
 ﻿using Contracts.Request;
 using Contracts.Request.RequestById;
+using Contracts.Response;
 using Logic.Abstractions;
 using Microsoft.AspNetCore.Mvc;
 using Models;
@@ -57,7 +58,7 @@ public sealed class GroupController : ControllerBase
         if (selfUser == null)
         {
             var response1 = new Response();
-            response1.Result = true;
+            response1.Result = false;
             response1.OutInfo = $"Group has not been created cause current user was not found";
 
             return BadRequest(JsonConvert.SerializeObject(response1));
@@ -115,7 +116,7 @@ public sealed class GroupController : ControllerBase
                     .FirstOrDefault(x => x.Id == groupAddParticipants.UserId) == null)
             {
                 var response1 = new Response();
-                response1.Result = true;
+                response1.Result = false;
                 response1.OutInfo = $"Group has not been modified cause user not relate to that";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
@@ -168,7 +169,7 @@ public sealed class GroupController : ControllerBase
         if (groupDeleteParticipant.UserId != groupDeleteParticipant.Participant_Id)
         {
             var response1 = new Response();
-            response1.Result = true;
+            response1.Result = false;
             response1.OutInfo = $"Group has not been modified cause user not deleting yourself";
 
             return BadRequest(JsonConvert.SerializeObject(response1));
@@ -200,7 +201,7 @@ public sealed class GroupController : ControllerBase
         }
 
         var response2 = new Response();
-        response2.Result = true;
+        response2.Result = false;
         response2.OutInfo = $"No such group with id {groupDeleteParticipant.GroupId}";
 
         return BadRequest(JsonConvert.SerializeObject(response2));
@@ -237,27 +238,38 @@ public sealed class GroupController : ControllerBase
             }
             */
 
-            var listOfUsers = new List<int>();
+            var listOfUsersInfo = new List<ShortUserInfo>();
 
             foreach(var user in existedGroup.Participants)
             {
-                listOfUsers.Add(user.Id);
+                var shortUserInfo = new ShortUserInfo
+                {
+                    UserName = user.UserName,
+                    UserEmail = user.Email
+                };
+
+                listOfUsersInfo.Add(shortUserInfo);
             }
 
-            var groupInfo = new GroupInputDTO
+            var groupInfo = new GroupInfoResponse
             {
                 GroupName = existedGroup.GroupName,
                 Type = existedGroup.Type,
-                Participants = listOfUsers
+                Participants = listOfUsersInfo
             };
 
-            var json = JsonConvert.SerializeObject(groupInfo);
+            var getReponse = new GetResponse();
+            getReponse.Result = true;
+            getReponse.OutInfo = $"Info about group with id {groupByIdRequest.GroupId} was found";
+            getReponse.RequestedInfo = groupInfo;
+
+            var json = JsonConvert.SerializeObject(getReponse);
 
             return Ok(json);
         }
 
         var response2 = new Response();
-        response2.Result = true;
+        response2.Result = false;
         response2.OutInfo = $"No such group with id {groupByIdRequest.GroupId}";
 
         return BadRequest(JsonConvert.SerializeObject(response2));

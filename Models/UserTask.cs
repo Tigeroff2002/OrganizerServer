@@ -14,21 +14,11 @@ public class UserTask
 
     public TaskType TaskType { get; set; }
 
+    public TaskCurrentStatus TaskStatus { get; set; }
+
     public virtual User Reporter { get; set; }
 
     public virtual User Implementer { get; set; }
 
     public UserTask() { }
-
-    public UserTask(
-        int id,
-        string caption, 
-        string description,
-        TaskType taskType)
-    {
-        Id = id;
-        Caption = caption;
-        Description = description;
-        TaskType = taskType;
-    }
 }

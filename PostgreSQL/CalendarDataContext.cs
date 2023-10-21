@@ -82,6 +82,10 @@ public class CalendarDataContext : DbContext
             .UsingEntity("users_groups_map");
 
         _ = modelBuilder.Entity<User>()
+            .HasMany(x => x.ReportedTasks)
+            .WithOne(x => x.Reporter);
+
+        _ = modelBuilder.Entity<User>()
             .HasMany(x => x.TasksForImplementation)
             .WithOne(x => x.Implementer);
 
@@ -153,6 +157,9 @@ public class CalendarDataContext : DbContext
 
         _ = modelBuilder.Entity<UserTask>()
             .Property(x => x.TaskType);
+
+        _ = modelBuilder.Entity<UserTask>()
+            .Property(x => x.TaskStatus);
     }
 
     private static void CreateReportsModels(ModelBuilder modelBuilder)

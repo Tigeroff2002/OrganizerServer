@@ -25,20 +25,4 @@ public class Event
     public virtual List<User> Guests { get; set; }
 
     public Event() { }
-
-    public Event(
-        int id,
-        string caption,
-        string description,
-        DateTimeOffset scheduledStart, 
-        TimeSpan duration, 
-        EventType eventType)
-    {
-        Id = id;
-        Caption = caption;
-        Description = description;
-        ScheduledStart = scheduledStart;
-        Duration = duration;
-        EventType = eventType;
-    }
 }
