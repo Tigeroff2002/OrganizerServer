@@ -168,10 +168,10 @@ public class CalendarDataContext : DbContext
             .HasKey(x => x.Id);
 
         _ = modelBuilder.Entity<Report>()
-            .Property(x => x.Caption);
+            .Property(x => x.Description);
 
         _ = modelBuilder.Entity<Report>()
-            .Property(x => x.Description);
+            .Property(x => x.ReportType);
 
         _ = modelBuilder.Entity<Report>()
             .Property(x => x.BeginMoment);

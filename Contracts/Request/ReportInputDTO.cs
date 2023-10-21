@@ -1,20 +1,11 @@
 ﻿using Models.Enums;
-using Newtonsoft.Json.Converters;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
-namespace Contracts.Response;
+namespace Contracts.Request;
 
-public sealed class ReportInfoResponse
+public class ReportInputDTO : RequestWithToken
 {
-    [JsonProperty("user_name", Required = Required.Always)]
-    public required string UserName { get; init; }
-
-    [JsonProperty("user_email", Required = Required.Always)]
-    public required string UserEmail { get; init; }
-
-    [JsonProperty("description", Required = Required.Always)]
-    public required string ReportDescription { get; init; }
-
     [JsonConverter(typeof(StringEnumConverter))]
     [JsonProperty("report_type", Required = Required.Always)]
     public required ReportType ReportType { get; init; }

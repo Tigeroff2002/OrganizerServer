@@ -69,10 +69,14 @@ public sealed class TaskController : ControllerBase
             Implementer = implementer
         };
 
+        await _tasksRepository.AddAsync(task, token);
+
+        var taskId = task.Id;
+
         var response = new Response();
         response.Result = true;
         response.OutInfo = 
-            $"New task with id = {task.Id}" +
+            $"New task with id = {taskId}" +
             $" for user '{implementer.UserName}' implementation was created";
 
         var json = JsonConvert.SerializeObject(response);
@@ -100,7 +104,7 @@ public sealed class TaskController : ControllerBase
             if (existedTask.Reporter.Id != taskUpdateParams.UserId)
             {
                 var response1 = new Response();
-                response1.Result = true;
+                response1.Result = false;
                 response1.OutInfo = $"Task has not been modified cause user not relate to thats reporter";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
@@ -144,7 +148,7 @@ public sealed class TaskController : ControllerBase
 
     [HttpDelete]
     [Route("delete_task")]
-    public async Task<IActionResult> DeleteParticipant(CancellationToken token)
+    public async Task<IActionResult> DeleteTaskByReporter(CancellationToken token)
     {
         var body = await ReadRequestBodyAsync();
 
@@ -162,10 +166,12 @@ public sealed class TaskController : ControllerBase
             {
                 var response1 = new Response();
                 response1.Result = false;
-                response1.OutInfo = $"Task has not been modified cause user is not its reporter";
+                response1.OutInfo = $"Task has not been deleted cause user is not its reporter";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
+
+            await _tasksRepository.DeleteAsync(taskId, token);
 
             var response = new Response();
             response.Result = true;
@@ -181,7 +187,7 @@ public sealed class TaskController : ControllerBase
 
     [HttpGet]
     [Route("get_task_info")]
-    public async Task<IActionResult> GetGroupInfo(CancellationToken token)
+    public async Task<IActionResult> GetTaskInfo(CancellationToken token)
     {
         var body = await ReadRequestBodyAsync();
 
