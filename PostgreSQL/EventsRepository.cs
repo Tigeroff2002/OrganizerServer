@@ -40,11 +40,7 @@ public sealed class EventsRepository
         using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
         _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
-        return await _repositoryContext.Events.FindAsync(
-            new object?[]
-            {
-                eventId
-            }, token);
+        return await _repositoryContext.Events.FirstOrDefaultAsync(x => x.Id == eventId);
     }
 
     public Task<List<Event>> GetAllEventsAsync(CancellationToken token)
@@ -64,11 +60,7 @@ public sealed class EventsRepository
         using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
         _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
-        var @event = await _repositoryContext.Events.FindAsync(
-            new object?[]
-            {
-                eventId
-            }, token);
+        var @event = await _repositoryContext.Events.FirstOrDefaultAsync(x => x.Id == eventId);
 
         if (@event != null)
         {
@@ -87,16 +79,14 @@ public sealed class EventsRepository
         using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
         _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
-        var localEvent = await _repositoryContext.Events.FindAsync(
-            new object?[]
-            {
-                @event.Id
-            }, token);
+        var localEvent = await _repositoryContext.Events.FirstOrDefaultAsync(x => x.Id == @event.Id);
 
         if (localEvent != null)
         {
             _repositoryContext.Events.Entry(localEvent).CurrentValues.SetValues(@event);
         }
+
+        localEvent = @event.Map<Event>();
 
         SaveChanges();
     }

@@ -40,11 +40,7 @@ public sealed class ReportsRepository
         using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
         _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
-        return await _repositoryContext.Reports.FindAsync(
-            new object?[]
-            {
-                reportId
-            }, token);
+        return await _repositoryContext.Reports.FirstOrDefaultAsync(x => x.Id == reportId);
     }
 
     public Task<List<Report>> GetAllReportsAsync(CancellationToken token)
@@ -64,11 +60,7 @@ public sealed class ReportsRepository
         using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
         _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
-        var report = await _repositoryContext.Reports.FindAsync(
-            new object?[]
-            {
-                reportId
-            }, token);
+        var report = await _repositoryContext.Reports.FirstOrDefaultAsync(x => x.Id == reportId);
 
         if (report != null)
         {
@@ -87,16 +79,14 @@ public sealed class ReportsRepository
         using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
         _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
-        var localReport = await _repositoryContext.Reports.FindAsync(
-            new object?[]
-            {
-                report.Id
-            }, token);
+        var localReport = await _repositoryContext.Reports.FirstOrDefaultAsync(x => x.Id == report.Id);
 
         if (localReport != null)
         {
             _repositoryContext.Reports.Entry(localReport).CurrentValues.SetValues(report);
         }
+
+        localReport = report.Map<Report>();
 
         SaveChanges();
     }

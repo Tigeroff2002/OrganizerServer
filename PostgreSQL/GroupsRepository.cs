@@ -43,11 +43,7 @@ public sealed class GroupsRepository
         using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
         _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
-        return await _repositoryContext.Groups.FindAsync(
-            new object?[]
-            {
-                groupId
-            }, token);
+        return await _repositoryContext.Groups.FirstOrDefaultAsync(x => x.Id == groupId);
     }
 
     public Task<List<Group>> GetAllGroupsAsync(CancellationToken token)
@@ -67,11 +63,7 @@ public sealed class GroupsRepository
         using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
         _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
-        var group = await _repositoryContext.Groups.FindAsync(
-            new object?[]
-            {
-                groupId
-            }, token);
+        var group = await _repositoryContext.Groups.FirstOrDefaultAsync(x => x.Id == groupId);
 
         if (group != null)
         {
@@ -81,7 +73,7 @@ public sealed class GroupsRepository
         SaveChanges();
     }
 
-    public async Task UpdateAsync(Group group, CancellationToken token)
+    public async Task UpdateAsync(Models.Group group, CancellationToken token)
     {
         ArgumentNullException.ThrowIfNull(group);
 
@@ -90,16 +82,16 @@ public sealed class GroupsRepository
         using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
         _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
-        var localGroup = await _repositoryContext.Groups.FindAsync(
-            new object?[]
-            {
-                group.Id
-            }, token);
+        var localGroup = await _repositoryContext.Groups.FirstOrDefaultAsync(x => x.Id == group.Id);
 
         if (localGroup != null)
         {
             _repositoryContext.Groups.Entry(localGroup).CurrentValues.SetValues(group);
         }
+
+        localGroup!.Participants = group.Participants;
+
+        _logger.LogDebug($"Properties of group with id {localGroup!.Id} were modified");
 
         SaveChanges();
     }

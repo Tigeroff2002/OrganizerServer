@@ -40,11 +40,7 @@ public sealed class UsersRepository
         using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
         _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
-        return await _repositoryContext.Users.FindAsync(
-            new object?[]
-            {
-                userId
-            }, token);
+        return await _repositoryContext.Users.FirstOrDefaultAsync(x => x.Id == userId);
     }
 
     public async Task<User?> GetUserByEmailAsync(string email, CancellationToken token)
@@ -80,11 +76,7 @@ public sealed class UsersRepository
         using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
         _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
-        var user = await _repositoryContext.Users.FindAsync(
-            new object?[]
-            {
-                id
-            }, token);
+        var user = await _repositoryContext.Users.FirstOrDefaultAsync(x => x.Id == id);
 
         if (user != null)
         {
@@ -103,16 +95,14 @@ public sealed class UsersRepository
         using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
         _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
-        var localUser = await _repositoryContext.Users.FindAsync(
-            new object?[]
-            {
-                user.Id
-            }, token);
+        var localUser = await _repositoryContext.Users.FirstOrDefaultAsync(x => x.Id == user.Id);
 
         if (localUser != null)
         {
             _repositoryContext.Users.Entry(localUser).CurrentValues.SetValues(user);
         }
+
+        localUser = user.Map<User>();
 
         SaveChanges();
     }

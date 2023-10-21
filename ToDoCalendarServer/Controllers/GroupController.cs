@@ -69,14 +69,22 @@ public sealed class GroupController : ControllerBase
         {
             GroupName = groupToCreate.GroupName,
             Type = groupToCreate.Type,
-            Participants = listUsers
+            Participants = new List<User>()
         };
 
         await _groupsRepository.AddAsync(group, token);
 
+        var groupId = group.Id;
+
+        group.Participants = listUsers;
+
+        await _groupsRepository.UpdateAsync(group, token);
+
+        var newGroup = _groupsRepository.GetGroupByIdAsync(groupId, token);
+
         var response = new Response();
         response.Result = true;
-        response.OutInfo = $"New group with name {group.GroupName} was created";
+        response.OutInfo = $"New group with id = {groupId} and name {group.GroupName} was created";
 
         var json = JsonConvert.SerializeObject(response);
 
@@ -98,6 +106,11 @@ public sealed class GroupController : ControllerBase
 
         if (existedGroup != null)
         {
+            if (existedGroup.Participants == null)
+            {
+                existedGroup.Participants = new List<User>();
+            }
+
             if (existedGroup.Participants
                     .FirstOrDefault(x => x.Id == groupAddParticipants.UserId) == null)
             {
@@ -168,6 +181,11 @@ public sealed class GroupController : ControllerBase
 
         if (existedGroup != null && existedUser != null)
         {
+            if (existedGroup.Participants == null)
+            {
+                existedGroup.Participants = new List<User>();
+            }
+
             existedGroup.Participants = 
                 existedGroup.Participants.Where(x => x.Id != groupDeleteParticipant.Participant_Id).ToList();
 
@@ -202,6 +220,12 @@ public sealed class GroupController : ControllerBase
 
         if (existedGroup != null)
         {
+            if (existedGroup.Participants == null)
+            {
+                existedGroup.Participants = new List<User>();
+            }
+
+            /*
             if (existedGroup.Participants
                     .FirstOrDefault(x => x.Id == groupByIdRequest.UserId) == null)
             {
@@ -211,6 +235,7 @@ public sealed class GroupController : ControllerBase
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
+            */
 
             var listOfUsers = new List<int>();
 

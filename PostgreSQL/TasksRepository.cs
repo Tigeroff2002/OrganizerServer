@@ -40,11 +40,7 @@ public sealed class TasksRepository
         using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
         _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
-        return await _repositoryContext.Tasks.FindAsync(
-            new object?[]
-            {
-                taskId
-            }, token);
+        return await _repositoryContext.Tasks.FirstOrDefaultAsync(x => x.Id == taskId);
     }
 
     public Task<List<UserTask>> GetAllTasksAsync(CancellationToken token)
@@ -64,11 +60,7 @@ public sealed class TasksRepository
         using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
         _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
-        var task = await _repositoryContext.Tasks.FindAsync(
-            new object?[]
-            {
-                taskId
-            }, token);
+        var task = await _repositoryContext.Tasks.FirstOrDefaultAsync(x => x.Id == taskId);
 
         if (task != null)
         {
@@ -87,16 +79,14 @@ public sealed class TasksRepository
         using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
         _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
-        var localTask = await _repositoryContext.Tasks.FindAsync(
-            new object?[]
-            {
-                task.Id
-            }, token);
+        var localTask = await _repositoryContext.Tasks.FirstOrDefaultAsync(x => x.Id == task.Id);
 
         if (localTask != null)
         {
             _repositoryContext.Tasks.Entry(localTask).CurrentValues.SetValues(task);
         }
+
+        localTask = task.Map<UserTask>();
 
         SaveChanges();
     }
