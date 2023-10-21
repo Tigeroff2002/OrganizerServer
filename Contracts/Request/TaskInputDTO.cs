@@ -18,7 +18,7 @@ public class TaskInputDTO : RequestWithToken
     public required TaskType TaskType { get; init; }
 
     [JsonConverter(typeof(StringEnumConverter))]
-    [JsonProperty("task_type", Required = Required.Default)]
+    [JsonProperty("task_status", Required = Required.Default)]
     public required TaskCurrentStatus TaskStatus { get; init; } = TaskCurrentStatus.ToDo;
 
     [JsonProperty("implementer_id", Required = Required.Always)]
