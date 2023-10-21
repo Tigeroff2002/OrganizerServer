@@ -5,7 +5,7 @@ using Contracts.Request;
 
 namespace Contracts;
 
-public sealed class EventInputDTO : RequestWithToken
+public class EventInputDTO : RequestWithToken
 {
     [JsonProperty("caption", Required = Required.Always)]
     public required string Caption { get; init; }
@@ -26,9 +26,6 @@ public sealed class EventInputDTO : RequestWithToken
     [JsonConverter(typeof(StringEnumConverter))]
     [JsonProperty("activity_kind", Required = Required.Always)]
     public required ActivityKind ActivityKind { get; init; }
-
-    [JsonProperty("manager_id", Required = Required.Always, Order = 1)]
-    public required int ManagerId { get; init; }
 
     [JsonProperty("guests_ids", Required = Required.Default)]
     public List<int> GuestsIds { get; set; } = default!;
