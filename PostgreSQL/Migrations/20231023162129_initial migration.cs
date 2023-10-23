@@ -8,15 +8,17 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace PostgreSQL.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialMigration : Migration
+    public partial class initialmigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AlterDatabase()
-                .Annotation("Npgsql:Enum:activity_kind", "personal,educational,working")
+                .Annotation("Npgsql:Enum:event_status", "not_started,live,finished,cancelled")
                 .Annotation("Npgsql:Enum:event_type", "personal,one_to_one,stand_up,meeting")
                 .Annotation("Npgsql:Enum:group_type", "educational,job")
+                .Annotation("Npgsql:Enum:report_type", "events_report,tasks_report")
+                .Annotation("Npgsql:Enum:task_current_status", "to_do,in_progress,review,done")
                 .Annotation("Npgsql:Enum:task_type", "abstract_goal,meeting_presense,job_complete");
 
             migrationBuilder.CreateTable(
@@ -51,13 +53,45 @@ namespace PostgreSQL.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "reports",
+                name: "events",
                 columns: table => new
                 {
                     id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     caption = table.Column<string>(type: "text", nullable: false),
                     description = table.Column<string>(type: "text", nullable: false),
+                    scheduled_start = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    duration = table.Column<TimeSpan>(type: "interval", nullable: false),
+                    event_type = table.Column<EventType>(type: "event_type", nullable: false),
+                    status = table.Column<EventStatus>(type: "event_status", nullable: false),
+                    related_group_id = table.Column<int>(type: "integer", nullable: false),
+                    manager_id = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_events", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_events_groups_related_group_id",
+                        column: x => x.related_group_id,
+                        principalTable: "groups",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "fk_events_users_manager_id",
+                        column: x => x.manager_id,
+                        principalTable: "users",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "reports",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    description = table.Column<string>(type: "text", nullable: false),
+                    report_type = table.Column<ReportType>(type: "report_type", nullable: false),
                     begin_moment = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     end_moment = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     user_id = table.Column<int>(type: "integer", nullable: false)
@@ -82,16 +116,25 @@ namespace PostgreSQL.Migrations
                     caption = table.Column<string>(type: "text", nullable: false),
                     description = table.Column<string>(type: "text", nullable: false),
                     task_type = table.Column<TaskType>(type: "task_type", nullable: false),
-                    implementer_id = table.Column<int>(type: "integer", nullable: true)
+                    task_status = table.Column<TaskCurrentStatus>(type: "task_current_status", nullable: false),
+                    reporter_id = table.Column<int>(type: "integer", nullable: false),
+                    implementer_id = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("pk_tasks", x => x.id);
                     table.ForeignKey(
-                        name: "fk_tasks_users_user_id",
+                        name: "fk_tasks_users_implementer_id",
                         column: x => x.implementer_id,
                         principalTable: "users",
-                        principalColumn: "id");
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "fk_tasks_users_user_id",
+                        column: x => x.reporter_id,
+                        principalTable: "users",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -105,7 +148,7 @@ namespace PostgreSQL.Migrations
                 {
                     table.PrimaryKey("pk_users_groups_map", x => new { x.groups_id, x.participants_id });
                     table.ForeignKey(
-                        name: "fk_users_groups_map_groups_groups_temp_id",
+                        name: "fk_users_groups_map_groups_groups_id",
                         column: x => x.groups_id,
                         principalTable: "groups",
                         principalColumn: "id",
@@ -113,36 +156,6 @@ namespace PostgreSQL.Migrations
                     table.ForeignKey(
                         name: "fk_users_groups_map_users_participants_id",
                         column: x => x.participants_id,
-                        principalTable: "users",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "events",
-                columns: table => new
-                {
-                    id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    caption = table.Column<string>(type: "text", nullable: false),
-                    description = table.Column<string>(type: "text", nullable: false),
-                    scheduled_start = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    duration = table.Column<TimeSpan>(type: "interval", nullable: false),
-                    event_type = table.Column<EventType>(type: "event_type", nullable: false),
-                    manager_id = table.Column<int>(type: "integer", nullable: false),
-                    report_id = table.Column<int>(type: "integer", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("pk_events", x => x.id);
-                    table.ForeignKey(
-                        name: "fk_events_reports_report_id",
-                        column: x => x.report_id,
-                        principalTable: "reports",
-                        principalColumn: "id");
-                    table.ForeignKey(
-                        name: "fk_events_users_manager_id",
-                        column: x => x.manager_id,
                         principalTable: "users",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
@@ -178,9 +191,9 @@ namespace PostgreSQL.Migrations
                 column: "manager_id");
 
             migrationBuilder.CreateIndex(
-                name: "ix_events_report_id",
+                name: "ix_events_related_group_id",
                 table: "events",
-                column: "report_id");
+                column: "related_group_id");
 
             migrationBuilder.CreateIndex(
                 name: "ix_reports_user_id",
@@ -191,6 +204,11 @@ namespace PostgreSQL.Migrations
                 name: "ix_tasks_implementer_id",
                 table: "tasks",
                 column: "implementer_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_tasks_reporter_id",
+                table: "tasks",
+                column: "reporter_id");
 
             migrationBuilder.CreateIndex(
                 name: "ix_users_events_calendar_guests_id",
@@ -207,6 +225,9 @@ namespace PostgreSQL.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "reports");
+
+            migrationBuilder.DropTable(
                 name: "tasks");
 
             migrationBuilder.DropTable(
@@ -220,9 +241,6 @@ namespace PostgreSQL.Migrations
 
             migrationBuilder.DropTable(
                 name: "groups");
-
-            migrationBuilder.DropTable(
-                name: "reports");
 
             migrationBuilder.DropTable(
                 name: "users");

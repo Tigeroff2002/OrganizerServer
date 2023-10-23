@@ -13,8 +13,8 @@ using PostgreSQL;
 namespace PostgreSQL.Migrations
 {
     [DbContext(typeof(CalendarDataContext))]
-    [Migration("20231021203704_reported tasks for users and task status fields")]
-    partial class reportedtasksforusersandtaskstatusfields
+    [Migration("20231023162129_initial migration")]
+    partial class initialmigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,9 +24,11 @@ namespace PostgreSQL.Migrations
                 .HasAnnotation("ProductVersion", "7.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "activity_kind", new[] { "personal", "educational", "working" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "event_status", new[] { "not_started", "live", "finished", "cancelled" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "event_type", new[] { "personal", "one_to_one", "stand_up", "meeting" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "group_type", new[] { "educational", "job" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "report_type", new[] { "events_report", "tasks_report" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "task_current_status", new[] { "to_do", "in_progress", "review", "done" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "task_type", new[] { "abstract_goal", "meeting_presense", "job_complete" });
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
@@ -61,13 +63,17 @@ namespace PostgreSQL.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("manager_id");
 
-                    b.Property<int?>("ReportId")
+                    b.Property<int>("RelatedGroupId")
                         .HasColumnType("integer")
-                        .HasColumnName("report_id");
+                        .HasColumnName("related_group_id");
 
                     b.Property<DateTimeOffset>("ScheduledStart")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("scheduled_start");
+
+                    b.Property<EventStatus>("Status")
+                        .HasColumnType("event_status")
+                        .HasColumnName("status");
 
                     b.HasKey("Id")
                         .HasName("pk_events");
@@ -75,8 +81,8 @@ namespace PostgreSQL.Migrations
                     b.HasIndex("ManagerId")
                         .HasDatabaseName("ix_events_manager_id");
 
-                    b.HasIndex("ReportId")
-                        .HasDatabaseName("ix_events_report_id");
+                    b.HasIndex("RelatedGroupId")
+                        .HasDatabaseName("ix_events_related_group_id");
 
                     b.ToTable("events", (string)null);
                 });
@@ -118,11 +124,6 @@ namespace PostgreSQL.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("begin_moment");
 
-                    b.Property<string>("Caption")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("caption");
-
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text")
@@ -131,6 +132,10 @@ namespace PostgreSQL.Migrations
                     b.Property<DateTimeOffset>("EndMoment")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("end_moment");
+
+                    b.Property<ReportType>("ReportType")
+                        .HasColumnType("report_type")
+                        .HasColumnName("report_type");
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer")
@@ -212,8 +217,8 @@ namespace PostgreSQL.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("reporter_id");
 
-                    b.Property<int>("TaskStatus")
-                        .HasColumnType("integer")
+                    b.Property<TaskCurrentStatus>("TaskStatus")
+                        .HasColumnType("task_current_status")
                         .HasColumnName("task_status");
 
                     b.Property<TaskType>("TaskType")
@@ -279,12 +284,16 @@ namespace PostgreSQL.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_events_users_manager_id");
 
-                    b.HasOne("Models.Report", null)
-                        .WithMany("Events")
-                        .HasForeignKey("ReportId")
-                        .HasConstraintName("fk_events_reports_report_id");
+                    b.HasOne("Models.Group", "RelatedGroup")
+                        .WithMany("RelatedEvents")
+                        .HasForeignKey("RelatedGroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_events_groups_related_group_id");
 
                     b.Navigation("Manager");
+
+                    b.Navigation("RelatedGroup");
                 });
 
             modelBuilder.Entity("Models.Report", b =>
@@ -354,9 +363,9 @@ namespace PostgreSQL.Migrations
                         .HasConstraintName("fk_users_groups_map_users_participants_id");
                 });
 
-            modelBuilder.Entity("Models.Report", b =>
+            modelBuilder.Entity("Models.Group", b =>
                 {
-                    b.Navigation("Events");
+                    b.Navigation("RelatedEvents");
                 });
 
             modelBuilder.Entity("Models.User", b =>
