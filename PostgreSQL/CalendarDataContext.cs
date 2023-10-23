@@ -139,7 +139,8 @@ public class CalendarDataContext : DbContext
             .Property(x => x.Status);
 
         _ = modelBuilder.Entity<Event>()
-            .Property(x => x.RelatedGroup);
+            .HasOne(x => x.RelatedGroup)
+            .WithMany(x => x.RelatedEvents);
 
         _ = modelBuilder.Entity<Event>()
             .HasOne(x => x.Manager)

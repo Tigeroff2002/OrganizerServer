@@ -14,6 +14,8 @@ public class Group
 
     public virtual List<User> Participants { get; set; }
 
+    public virtual List<Event> RelatedEvents { get; set; }
+
     public Group() { }
 
     public Group(
