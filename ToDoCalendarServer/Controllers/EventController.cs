@@ -1,9 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Contracts;
+using Contracts.Response;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Models;
 using Models.BusinessModels;
 using Newtonsoft.Json;
 using PostgreSQL.Abstractions;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace ToDoCalendarServer.Controllers;
 
@@ -13,10 +17,14 @@ public sealed class EventController : ControllerBase
 {
     public EventController(
         IEventsRepository eventsRepository,
+        IGroupsRepository groupsRepository,
         IUsersRepository usersRepository)
     {
         _eventsRepository = eventsRepository
             ?? throw new ArgumentNullException(nameof(eventsRepository));
+
+        _groupsRepository = groupsRepository 
+            ?? throw new ArgumentNullException(nameof(groupsRepository));
 
         _usersRepository = usersRepository
             ?? throw new ArgumentNullException(nameof(usersRepository));
@@ -28,17 +36,45 @@ public sealed class EventController : ControllerBase
     {
         var body = await ReadRequestBodyAsync();
 
-        var groupToCreate = JsonConvert.DeserializeObject<GroupInputDTO>(body);
+        var eventToCreate = JsonConvert.DeserializeObject<EventInputDTO>(body);
 
-        Debug.Assert(groupToCreate != null);
+        Debug.Assert(eventToCreate != null);
+
+        var managerId = eventToCreate.UserId;
+        var groupId = eventToCreate.GroupId;
+
+        var manager = await _usersRepository.GetUserByIdAsync(managerId, token);
+
+        if (manager == null)
+        {
+            var response1 = new Response();
+            response1.Result = false;
+            response1.OutInfo = $"Event has not been scheduled cause current user was not found";
+
+            return BadRequest(JsonConvert.SerializeObject(response1));
+        }
+
+        var group = await _groupsRepository.GetGroupByIdAsync(groupId, token);
+
+        if (group == null)
+        {
+            if (eventToCreate.EventType != Models.Enums.EventType.Personal)
+            {
+                var response1 = new Response();
+                response1.Result = false;
+                response1.OutInfo = $"Event has not been scheduled cause related group was not found";
+
+                return BadRequest(JsonConvert.SerializeObject(response1));
+            }
+        }
 
         var listUsers = new List<User>();
 
-        if (groupToCreate.Participants != null)
+        if (eventToCreate.GuestsIds != null)
         {
             var existedUsers = await _usersRepository.GetAllUsersAsync(token);
 
-            foreach (var userId in groupToCreate.Participants)
+            foreach (var userId in eventToCreate.GuestsIds)
             {
                 var currentUser = existedUsers.FirstOrDefault(x => x.Id == userId);
 
@@ -49,39 +85,33 @@ public sealed class EventController : ControllerBase
             }
         }
 
-        var selfUser = await _usersRepository.GetUserByIdAsync(groupToCreate.UserId, token);
+        listUsers.Add(manager);
 
-        if (selfUser == null)
+        var @event = new Event
         {
-            var response1 = new Response();
-            response1.Result = false;
-            response1.OutInfo = $"Group has not been created cause current user was not found";
-
-            return BadRequest(JsonConvert.SerializeObject(response1));
-        }
-
-        listUsers.Add(selfUser);
-
-        var group = new Group()
-        {
-            GroupName = groupToCreate.GroupName,
-            Type = groupToCreate.Type,
-            Participants = new List<User>()
+            Caption = eventToCreate.Caption,
+            Description = eventToCreate.Description,
+            ScheduledStart = eventToCreate.ScheduledStart,
+            Duration = eventToCreate.Duration,
+            EventType = eventToCreate.EventType,
+            Status = eventToCreate.EventStatus
         };
 
-        await _groupsRepository.AddAsync(group, token);
+        await _eventsRepository.AddAsync(@event, token);
 
-        var groupId = group.Id;
+        var eventId = @event.Id;
 
-        group.Participants = listUsers;
+        @event.Manager = manager;
+        @event.RelatedGroup = group!;
+        @event.Guests = listUsers;
 
-        await _groupsRepository.UpdateAsync(group, token);
-
-        var newGroup = _groupsRepository.GetGroupByIdAsync(groupId, token);
+        await _eventsRepository.UpdateAsync(@event, token);
 
         var response = new Response();
         response.Result = true;
-        response.OutInfo = $"New group with id = {groupId} and name {group.GroupName} was created";
+        response.OutInfo = group != null
+            ? $"New event with id = {eventId} related to group {groupId} with name {group.GroupName} has been created"
+            : $"New event with id = {eventId} personal for manager with id {managerId} has been created";
 
         var json = JsonConvert.SerializeObject(response);
 
@@ -94,60 +124,85 @@ public sealed class EventController : ControllerBase
     {
         var body = await ReadRequestBodyAsync();
 
-        var groupAddParticipants = JsonConvert.DeserializeObject<GroupAddParticipants>(body);
+        var updateEventParams = JsonConvert.DeserializeObject<EventInputWithIdDTO>(body);
 
-        Debug.Assert(groupAddParticipants != null);
+        Debug.Assert(updateEventParams != null);
 
-        var existedGroup = await _groupsRepository.GetGroupByIdAsync(
-            groupAddParticipants.GroupId, token);
+        var eventId = updateEventParams.EventId;
 
-        if (existedGroup != null)
+        var existedEvent = await _eventsRepository.GetEventByIdAsync(eventId, token);
+
+        if (existedEvent != null)
         {
-            if (existedGroup.Participants == null)
-            {
-                existedGroup.Participants = new List<User>();
-            }
+            var userId = updateEventParams.UserId;
 
-            if (existedGroup.Participants
-                    .FirstOrDefault(x => x.Id == groupAddParticipants.UserId) == null)
+            var user = await _usersRepository.GetUserByIdAsync(userId, token);
+
+            if (user == null)
             {
                 var response1 = new Response();
                 response1.Result = false;
-                response1.OutInfo = $"Group has not been modified cause user not relate to that";
+                response1.OutInfo = $"Event has not been modified cause current user was not found";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
 
-            var listUsers = new List<User>();
-
-            var existedUsers = await _usersRepository.GetAllUsersAsync(token);
-
-            foreach (var userId in groupAddParticipants.Participants)
+            if (existedEvent.Manager.Id != userId)
             {
-                var currentUser = existedUsers.FirstOrDefault(x => x.Id == userId);
+                var response1 = new Response();
+                response1.Result = false;
+                response1.OutInfo = 
+                    $"Event has not been modified cause current user with id {userId}" +
+                    $" is not manager: 'managerId = {existedEvent.Manager.Id}' of this event";
 
-                if (currentUser != null)
+                return BadRequest(JsonConvert.SerializeObject(response1));
+            }
+
+            var listGuests = new List<User>();
+
+            if (updateEventParams.GuestsIds != null)
+            {
+                var existedUsers = await _usersRepository.GetAllUsersAsync(token);
+
+                foreach (var guestId in updateEventParams.GuestsIds)
                 {
-                    listUsers.Add(currentUser);
+                    var currentUser = existedUsers.FirstOrDefault(x => x.Id == userId);
+
+                    if (currentUser != null)
+                    {
+                        listGuests.Add(currentUser);
+                    }
                 }
             }
 
-            existedGroup.Participants.AddRange(listUsers);
+            existedEvent.Caption = updateEventParams.Caption;
+            existedEvent.Description = updateEventParams.Description;
+            existedEvent.ScheduledStart = updateEventParams.ScheduledStart;
+            existedEvent.Duration = updateEventParams.Duration;
+            existedEvent.EventType = updateEventParams.EventType;
+            existedEvent.Status = updateEventParams.EventStatus;
+            existedEvent.Manager = user;
+            existedEvent.Guests.AddRange(listGuests);
 
-            await _groupsRepository.UpdateAsync(existedGroup, token);
+            await _eventsRepository.UpdateAsync(existedEvent, token);
 
             var response = new Response();
             response.Result = true;
-            response.OutInfo = $"New participants to group with id {groupAddParticipants.GroupId} were added";
+            response.OutInfo = existedEvent.RelatedGroup != null
+                ? $"New event with id = {eventId} related" +
+                    $" to group {existedEvent.RelatedGroup.Id}" +
+                    $" with name {existedEvent.RelatedGroup.GroupName} has been created"
+                : $"New event with id = {eventId} personal for manager " +
+                    $"with id {existedEvent.Manager.Id} has been created";
 
             var json = JsonConvert.SerializeObject(response);
 
-            return Ok(json);
+            return Ok(response);
         }
 
         var response2 = new Response();
         response2.Result = true;
-        response2.OutInfo = $"No such group with id {groupAddParticipants.GroupId}";
+        response2.OutInfo = $"No such event with id {eventId}";
 
         return BadRequest(JsonConvert.SerializeObject(response2));
     }
@@ -158,47 +213,55 @@ public sealed class EventController : ControllerBase
     {
         var body = await ReadRequestBodyAsync();
 
-        var groupDeleteParticipant = JsonConvert.DeserializeObject<GroupDeleteParticipant>(body);
+        var eventDeleteParams = JsonConvert.DeserializeObject<EventIdDTO>(body);
 
-        Debug.Assert(groupDeleteParticipant != null);
+        Debug.Assert(eventDeleteParams != null);
 
-        if (groupDeleteParticipant.UserId != groupDeleteParticipant.Participant_Id)
+        var eventId = eventDeleteParams.EventId;
+
+        var existedEvent = await _eventsRepository.GetEventByIdAsync(eventId, token);
+
+        if (existedEvent != null)
         {
-            var response1 = new Response();
-            response1.Result = false;
-            response1.OutInfo = $"Group has not been modified cause user not deleting yourself";
+            var userId = eventDeleteParams.UserId;
+            var managerId = existedEvent.Manager.Id;
 
-            return BadRequest(JsonConvert.SerializeObject(response1));
-        }
+            var user = await _usersRepository.GetUserByIdAsync(userId, token);
 
-        var existedGroup = await _groupsRepository.GetGroupByIdAsync(
-            groupDeleteParticipant.GroupId, token);
-
-        var existedUser = await _usersRepository.GetUserByIdAsync(groupDeleteParticipant.Participant_Id, token);
-
-        if (existedGroup != null && existedUser != null)
-        {
-            if (existedGroup.Participants == null)
+            if (user == null)
             {
-                existedGroup.Participants = new List<User>();
+                var response1 = new Response();
+                response1.Result = false;
+                response1.OutInfo = $"Event has not been modified cause current user was not found";
+
+                return BadRequest(JsonConvert.SerializeObject(response1));
             }
 
-            existedGroup.Participants =
-                existedGroup.Participants.Where(x => x.Id != groupDeleteParticipant.Participant_Id).ToList();
+            if (managerId != userId)
+            {
+                var response1 = new Response();
+                response1.Result = false;
+                response1.OutInfo =
+                    $"Event has not been modified cause current user with id {userId}" +
+                    $" is not manager: 'managerId = {managerId}' of this event";
 
-            await _groupsRepository.UpdateAsync(existedGroup, token);
+                return BadRequest(JsonConvert.SerializeObject(response1));
+            }
+
+            await _eventsRepository.DeleteAsync(eventId, token);
 
             var response = new Response();
             response.Result = true;
-            response.OutInfo = $"Participant with id {groupDeleteParticipant.Participant_Id}" +
-                $" has been deleted from group with id {groupDeleteParticipant.GroupId}";
+            response.OutInfo = $"Event with id = {eventId} has been deleted";
 
             var json = JsonConvert.SerializeObject(response);
+
+            return Ok(response);
         }
 
         var response2 = new Response();
-        response2.Result = false;
-        response2.OutInfo = $"No such group with id {groupDeleteParticipant.GroupId}";
+        response2.Result = true;
+        response2.OutInfo = $"No such event with id {eventId}";
 
         return BadRequest(JsonConvert.SerializeObject(response2));
     }
@@ -209,64 +272,127 @@ public sealed class EventController : ControllerBase
     {
         var body = await ReadRequestBodyAsync();
 
-        var groupByIdRequest = JsonConvert.DeserializeObject<GroupDetailsRequest>(body);
+        var getEventInfoRequest = JsonConvert.DeserializeObject<EventIdDTO>(body);
 
-        Debug.Assert(groupByIdRequest != null);
+        Debug.Assert(getEventInfoRequest != null);
 
-        var existedGroup = await _groupsRepository.GetGroupByIdAsync(groupByIdRequest.GroupId, token);
+        var eventId = getEventInfoRequest.EventId;
 
-        if (existedGroup != null)
+        var existedEvent = await _eventsRepository.GetEventByIdAsync(eventId, token);
+
+        if (existedEvent != null)
         {
-            if (existedGroup.Participants == null)
-            {
-                existedGroup.Participants = new List<User>();
-            }
+            var userId = getEventInfoRequest.UserId;
 
-            /*
-            if (existedGroup.Participants
-                    .FirstOrDefault(x => x.Id == groupByIdRequest.UserId) == null)
+            var user = await _usersRepository.GetUserByIdAsync(userId, token);
+
+            if (user == null)
             {
                 var response1 = new Response();
-                response1.Result = true;
-                response1.OutInfo = $"Group has not been received cause user not relate to that";
+                response1.Result = false;
+                response1.OutInfo = $"Event info has not been received cause current user was not found";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
-            */
 
-            var listOfUsersInfo = new List<ShortUserInfo>();
+            var isAccessedToInfo = existedEvent.Manager.Id == userId;
 
-            foreach (var user in existedGroup.Participants)
+            var groupUsers = existedEvent.RelatedGroup.Participants;
+
+            if (groupUsers.FirstOrDefault(x => x.Id == userId) != null) 
             {
-                var shortUserInfo = new ShortUserInfo
-                {
-                    UserName = user.UserName,
-                    UserEmail = user.Email
-                };
-
-                listOfUsersInfo.Add(shortUserInfo);
+                isAccessedToInfo = true;
             }
 
-            var groupInfo = new GroupInfoResponse
+            if (isAccessedToInfo)
             {
-                GroupName = existedGroup.GroupName,
-                Type = existedGroup.Type,
-                Participants = listOfUsersInfo
+                var response1 = new Response();
+                response1.Result = false;
+                response1.OutInfo =
+                    $"Event info has not been received cause current user with id {userId}" +
+                    $" is not manager: 'managerId = {existedEvent.Manager.Id}'" +
+                    $" or he is not participant of related group for this event";
+
+                return BadRequest(JsonConvert.SerializeObject(response1));
+            }
+
+            var listGuests = new List<ShortUserInfo>();
+
+            if (existedEvent.Guests != null)
+            {
+                foreach(var guest in existedEvent.Guests)
+                {
+                    var userInfo = new ShortUserInfo
+                    {
+                        UserEmail = guest.Email,
+                        UserName = guest.UserName
+                    };
+
+                    listGuests.Add(userInfo);
+                }
+            }
+
+            var manager = new ShortUserInfo
+            {
+                UserEmail = existedEvent.Manager.Email,
+                UserName = existedEvent.Manager.UserName
             };
 
-            var getReponse = new GetResponse();
-            getReponse.Result = true;
-            getReponse.OutInfo = $"Info about group with id {groupByIdRequest.GroupId} was found";
-            getReponse.RequestedInfo = groupInfo;
+            GroupInfoResponse groupInfoResponse = null!;
 
-            var json = JsonConvert.SerializeObject(getReponse);
+            if (existedEvent.RelatedGroup != null)
+            {
+                var participants = new List<ShortUserInfo>();
 
-            return Ok(json);
+                if (existedEvent.RelatedGroup.Participants != null)
+                {
+                    foreach (var participant in existedEvent.RelatedGroup.Participants)
+                    {
+                        var userInfo = new ShortUserInfo
+                        {
+                            UserEmail = participant.Email,
+                            UserName = participant.UserName
+                        };
+
+                        participants.Add(userInfo);
+                    }
+                }
+
+                groupInfoResponse = new GroupInfoResponse
+                {
+                    GroupName = existedEvent.RelatedGroup.GroupName,
+                    Type = existedEvent.RelatedGroup.Type,
+                    Participants = participants
+                };
+            }
+
+            var eventInfo = new EventInfoResponse
+            {
+                Caption = existedEvent.Caption,
+                Description = existedEvent.Description,
+                ScheduledStart = existedEvent.ScheduledStart,
+                Duration = existedEvent.Duration,
+                EventType = existedEvent.EventType,
+                EventStatus = existedEvent.Status,
+                Manager = manager,
+                Group = groupInfoResponse,
+                Guests = listGuests
+            };
+
+            var response = new GetResponse();
+            response.Result = true;
+            response.OutInfo =
+                $"Info about event with id = {eventId} has been received";
+            response.RequestedInfo = eventInfo;
+
+            var json = JsonConvert.SerializeObject(response);
+
+            return Ok(response);
         }
 
         var response2 = new Response();
-        response2.Result = false;
-        response2.OutInfo = $"No such group with id {groupByIdRequest.GroupId}";
+        response2.Result = true;
+        response2.OutInfo = $"No such event with id {eventId}";
 
         return BadRequest(JsonConvert.SerializeObject(response2));
     }
@@ -279,6 +405,7 @@ public sealed class EventController : ControllerBase
     }
 
     private readonly IEventsRepository _eventsRepository;
+    private readonly IGroupsRepository _groupsRepository;
     private readonly IUsersRepository _usersRepository;
 }
 

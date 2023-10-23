@@ -23,9 +23,11 @@ public class CalendarDataContext : DbContext
     static CalendarDataContext()
         => NpgsqlConnection.GlobalTypeMapper
             .MapEnum<EventType>()
-            .MapEnum<ActivityKind>()
+            .MapEnum<EventStatus>()
             .MapEnum<GroupType>()
-            .MapEnum<TaskType>();
+            .MapEnum<TaskType>()
+            .MapEnum<TaskCurrentStatus>()
+            .MapEnum<ReportType>();
 
     public CalendarDataContext(DbContextOptions<CalendarDataContext> options)
         : base(options)
@@ -43,9 +45,11 @@ public class CalendarDataContext : DbContext
     {
         _ = modelBuilder
             .HasPostgresEnum<EventType>()
-            .HasPostgresEnum<ActivityKind>()
+            .HasPostgresEnum<EventStatus>()
             .HasPostgresEnum<GroupType>()
-            .HasPostgresEnum<TaskType>();
+            .HasPostgresEnum<TaskType>()
+            .HasPostgresEnum<TaskCurrentStatus>()
+            .HasPostgresEnum<ReportType>();
 
         CreateUsersModels(modelBuilder);
         CreateGroupsModels(modelBuilder);
@@ -132,7 +136,10 @@ public class CalendarDataContext : DbContext
             .Property(x => x.EventType);
 
         _ = modelBuilder.Entity<Event>()
-            .Property(x => x.ActivityKind);
+            .Property(x => x.Status);
+
+        _ = modelBuilder.Entity<Event>()
+            .Property(x => x.RelatedGroup);
 
         _ = modelBuilder.Entity<Event>()
             .HasOne(x => x.Manager)

@@ -36,10 +36,6 @@ namespace PostgreSQL.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<ActivityKind>("ActivityKind")
-                        .HasColumnType("activity_kind")
-                        .HasColumnName("activity_kind");
-
                     b.Property<string>("Caption")
                         .IsRequired()
                         .HasColumnType("text")

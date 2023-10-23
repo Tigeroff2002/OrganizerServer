@@ -24,8 +24,11 @@ public class EventInputDTO : RequestWithToken
     public required EventType EventType { get; init; }
 
     [JsonConverter(typeof(StringEnumConverter))]
-    [JsonProperty("activity_kind", Required = Required.Always)]
-    public required ActivityKind ActivityKind { get; init; }
+    [JsonProperty("event_status", Required = Required.Always)]
+    public required EventStatus EventStatus { get; init; }
+
+    [JsonProperty("group_id", Required = Required.Default)]
+    public required int GroupId { get; init; }
 
     [JsonProperty("guests_ids", Required = Required.Default)]
     public List<int> GuestsIds { get; set; } = default!;

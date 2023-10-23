@@ -129,7 +129,6 @@ namespace PostgreSQL.Migrations
                     scheduled_start = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     duration = table.Column<TimeSpan>(type: "interval", nullable: false),
                     event_type = table.Column<EventType>(type: "event_type", nullable: false),
-                    activity_kind = table.Column<ActivityKind>(type: "activity_kind", nullable: false),
                     manager_id = table.Column<int>(type: "integer", nullable: false),
                     report_id = table.Column<int>(type: "integer", nullable: true)
                 },
