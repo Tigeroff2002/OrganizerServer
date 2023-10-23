@@ -133,9 +133,11 @@ public sealed class UsersDataHandler
 
         await _usersRepository.UpdateAsync(existedUser, token);
 
+        var userName = existedUser.UserName;
+
         var response = new Response();
         response.Result = true;
-        response.OutInfo = $"Login existed user {email}";
+        response.OutInfo = $"Login existed user {userName} with new auth token {authToken}";
 
         return await Task.FromResult(response);
     }

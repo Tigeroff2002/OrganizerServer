@@ -65,7 +65,7 @@ public sealed class UsersCodeConfirmer
         message.Subject = subject;
         message.Body = body.ToString();
 
-        await smtpClient.SendMailAsync(message, token);
+        //await smtpClient.SendMailAsync(message, token);
 
         return true;
     }
