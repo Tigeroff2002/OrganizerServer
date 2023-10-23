@@ -1,6 +1,9 @@
-﻿namespace Logic.Abstractions;
+﻿using Contracts.Response;
+using Models.BusinessModels;
+
+namespace Logic.Abstractions;
 
 public interface IUsersCodeConfirmer
 {
-    Task<bool> ConfirmAsync(string userEmail, CancellationToken token);
+    Task<Response> ConfirmAsync(ShortUserInfo shortUserInfo, CancellationToken token);
 }

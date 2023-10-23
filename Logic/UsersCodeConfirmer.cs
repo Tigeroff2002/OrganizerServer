@@ -2,9 +2,14 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net;
-using System.Net.Mail;
 using System.Security.Cryptography;
 using System.Text;
+
+using MailKit.Net.Smtp;
+using MimeKit;
+using System.Net.Mail;
+using Contracts.Response;
+using Models.BusinessModels;
 
 namespace Logic;
 
@@ -21,53 +26,95 @@ public sealed class UsersCodeConfirmer
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<bool> ConfirmAsync(string userEmail, CancellationToken token)
+    public async Task<Response> ConfirmAsync(ShortUserInfo shortUserInfo, CancellationToken token)
     {
-        if (string.IsNullOrWhiteSpace(userEmail))
-        {
-            throw new ArgumentException();
-        }
+        ArgumentNullException.ThrowIfNull(shortUserInfo);
 
         token.ThrowIfCancellationRequested();
 
-        var smtpClient = new SmtpClient(_configuration.Host)
+        var email = shortUserInfo.UserEmail;
+
+        if (string.IsNullOrWhiteSpace(email))
         {
-            Port = int.Parse(_configuration.Port),
-            UseDefaultCredentials = false,
-            Credentials =
-                new NetworkCredential(
-                    _configuration.Username,
-                    _configuration.Password),
-            DeliveryMethod = SmtpDeliveryMethod.Network,
-            EnableSsl = false
-        };
+            var response1 = new Response();
+            response1.Result = false;
+            response1.OutInfo = "Provided user email is null, or empty, or consist from whitespaces";
 
-        _logger.LogInformation(
-            "Smtp client has been created with credentials from config");
+            return await Task.FromResult(response1);
+        }
 
-        var code = 
+        if (!IsValidEmail(email))
+        {
+            var response1 = new Response();
+            response1.Result = false;
+            response1.OutInfo = "Provided user email does not match email string requirment";
+
+            return await Task.FromResult(response1);
+        }
+        
+        var smtpClient = new MailKit.Net.Smtp.SmtpClient();
+
+        await smtpClient.ConnectAsync(
+            _configuration.Host,
+            _configuration.Port,
+            useSsl: true,
+            token);
+
+        _logger.LogInformation("Connected to smtp server");
+
+        var code =
             RandomNumberGenerator.GetInt32(10000000).ToString().PadLeft(6, '0');
 
-        var subject = "Registration your new calendar app account";
+        var subject = "Registration new calendar app account";
 
         var body = new StringBuilder();
 
-        body.Append("Hello!\n");
+        body.Append($"Hello, {shortUserInfo.UserName}!\n");
         body.Append("Bellow is your registration code. You need to write to your mobile app...\n");
-        body.Append($"Your 6-digit confirmation code: {code}");
+        body.Append($"Or maybe we can call your to your phone number: {shortUserInfo.UserPhone}\n");
+        body.Append($"Your 6-digit confirmation code: {code}.");
 
-        _logger.LogInformation("Server email adress is {Host}", _configuration.Host);
+        var mailMessage = new MailMessage(
+            new MailAddress(_configuration.FromAdress),
+            new MailAddress(email))
+        {
+            Subject = subject,
+            Body = body.ToString()
+        };
 
+        var response = await smtpClient.SendAsync(
+            MimeMessage.CreateFromMailMessage(mailMessage), token);
 
-        var message = new MailMessage();
-        message.From = new MailAddress(_configuration.Host);
-        message.To.Add(userEmail);
-        message.Subject = subject;
-        message.Body = body.ToString();
+        _logger.LogInformation("Server response: {Response}", response);
 
-        //await smtpClient.SendMailAsync(message, token);
+        await smtpClient.DisconnectAsync(quit: true, token);
 
-        return true;
+        var confirmationResponse = new Response();
+        confirmationResponse.Result = true;
+        confirmationResponse.OutInfo = 
+            $"Code confirmation was performed for user" +
+            $" with email {email} with code: {code}";
+
+        return confirmationResponse;
+    }
+
+    bool IsValidEmail(string email)
+    {
+        var trimmedEmail = email.Trim();
+
+        if (trimmedEmail.EndsWith("."))
+        {
+            return false; // suggested by @TK-421
+        }
+        try
+        {
+            var addr = new MailAddress(email);
+            return addr.Address == trimmedEmail;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private readonly SmtpConfiguration _configuration;

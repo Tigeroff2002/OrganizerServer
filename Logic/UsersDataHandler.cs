@@ -9,6 +9,7 @@ using Models.BusinessModels;
 using Newtonsoft.Json;
 using PostgreSQL.Abstractions;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace Logic;
 
@@ -60,8 +61,21 @@ public sealed class UsersDataHandler
             return await Task.FromResult(response1);
         }
 
-        var confirmResult = 
-            await _usersCodeConfirmer.ConfirmAsync(email, token);
+        var shortUserInfo = new ShortUserInfo
+        {
+            UserEmail = email,
+            UserName = registrationData.UserName,
+            UserPhone = registrationData.PhoneNumber
+        };
+
+        var confirmResponse = 
+            await _usersCodeConfirmer.ConfirmAsync(shortUserInfo, token);
+
+        var builder = new StringBuilder();
+        builder.Append(confirmResponse.OutInfo);
+        builder.Append(".\n");
+
+        var confirmResult = confirmResponse.Result;
 
         if (!confirmResult)
         {
@@ -70,7 +84,9 @@ public sealed class UsersDataHandler
 
             var response2 = new Response();
             response2.Result = false;
-            response2.OutInfo = "Wrong user code confirmation received";
+
+            builder.Append($"Wrong user code confirmation received from user with email {email}.");
+            response2.OutInfo = builder.ToString();
 
             return await Task.FromResult(response2);
         }
@@ -95,7 +111,12 @@ public sealed class UsersDataHandler
 
         var response = new Response();
         response.Result = true;
-        response.OutInfo = $"Registrating new user {user.Email}";
+
+        builder.Append(
+            $"Registrating new user {user.Email}" +
+            $" with creating new auth token {authToken}");
+
+        response.OutInfo = builder.ToString();
 
         return await Task.FromResult(response);
     }

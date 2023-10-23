@@ -2,11 +2,11 @@
 
 public sealed class SmtpConfiguration
 {
-    public string Host { get; init; } = string.Empty;
+    public required string Host { get; init; }
 
-    public required string Port { get; init; }
+    public required int Port { get; init; }
 
-    public required string Username { get; init; }
+    public required string Topic { get; init; }
 
-    public required string Password { get; init; }
+    public required string FromAdress { get; init; }
 }
