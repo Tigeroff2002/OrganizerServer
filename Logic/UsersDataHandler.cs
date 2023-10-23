@@ -1,7 +1,12 @@
-﻿using Logic.Abstractions;
+﻿using Contracts.Request;
+using Contracts.Response;
+using Logic.Abstractions;
+using Logic.Transport;
+using Logic.Transport.Abstractions;
 using Microsoft.Extensions.Logging;
 using Models;
 using Models.BusinessModels;
+using Newtonsoft.Json;
 using PostgreSQL.Abstractions;
 using System.Security.Cryptography;
 
@@ -13,12 +18,18 @@ public sealed class UsersDataHandler
     public UsersDataHandler(
         IUsersRepository usersRepository, 
         IUsersCodeConfirmer usersCodeConfirmer,
+        ISerializer<User> userInfoSerializer,
         ILogger<UsersDataHandler> logger)
     {
         _usersRepository = usersRepository 
             ?? throw new ArgumentNullException(nameof(usersRepository));
+
         _usersCodeConfirmer = usersCodeConfirmer
             ?? throw new ArgumentNullException(nameof(usersCodeConfirmer));
+
+        _userInfoSerializer = userInfoSerializer
+            ?? throw new ArgumentNullException(nameof(userInfoSerializer));
+
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -142,7 +153,7 @@ public sealed class UsersDataHandler
         return await Task.FromResult(response);
     }
 
-    public async Task<User?> GetUserInfo(UserInfoById userInfoById, CancellationToken token)
+    public async Task<GetResponse> GetUserInfo(UserInfoById userInfoById, CancellationToken token)
     {
         ArgumentNullException.ThrowIfNull(userInfoById);
 
@@ -153,17 +164,76 @@ public sealed class UsersDataHandler
 
         if (user == null)
         {
-            return null!;
+            var response1 = new GetResponse();
+            response1.Result = false;
+            response1.OutInfo = $"No such user with id {userInfoById.UserId} in system";
+
+            return await Task.FromResult(response1);
         }
 
-        if (userInfoById.Token != user.AuthToken)
+        var response = new GetResponse();
+        response.Result = true;
+        response.OutInfo = $"Info about user with with id {userInfoById.UserId} has been received";
+        response.RequestedInfo = _userInfoSerializer.Serialize(user);
+
+        return response;
+    }
+
+    public async Task<GetResponse> UpdateUserInfo(
+        UserUpdateInfoDTO userUpdateInfo, 
+        CancellationToken token)
+    {
+        ArgumentNullException.ThrowIfNull(userUpdateInfo);
+
+        var userId = userUpdateInfo.UserId;
+
+        var existedUser = await _usersRepository.GetUserByIdAsync(userId, token);
+
+        if (existedUser == null) 
         {
-            user.AuthToken = userInfoById.Token;
+            var response1 = new GetResponse();
+            response1.Result = false;
+            response1.OutInfo = $"No such user with id {userId} in system";
 
-            await _usersRepository.UpdateAsync(user, token);
+            return await Task.FromResult(response1);
         }
 
-        return user;
+        if (existedUser != null)
+        {
+            existedUser.UserName = userUpdateInfo.UserName;
+            existedUser.Email = userUpdateInfo.Email;
+            existedUser.Password = userUpdateInfo.Password;
+            existedUser.PhoneNumber = userUpdateInfo.PhoneNumber;
+
+            string authToken = GenerateNewAuthToken();
+
+            existedUser.AuthToken = authToken;
+
+            await _usersRepository.UpdateAsync(existedUser, token);
+
+            var response1 = new GetResponse();
+            response1.Result = true;
+            response1.OutInfo = $"Updating info existed user with id = {userId}" +
+                $" and email {existedUser.Email}" +
+                $" with new auth token {authToken}";
+
+            var shortUserInfo = new ShortUserInfo
+            {
+                UserEmail = existedUser.Email,
+                UserName = existedUser.UserName,
+                UserPhone = existedUser.PhoneNumber
+            };
+
+            response1.RequestedInfo = shortUserInfo;
+
+            return await Task.FromResult(response1);
+        }
+
+        var response = new GetResponse();
+        response.Result = true;
+        response.OutInfo = $"No such existed user with id {userId}";
+
+        return await Task.FromResult(response);
     }
 
     private static string GenerateNewAuthToken()
@@ -175,5 +245,6 @@ public sealed class UsersDataHandler
 
     private readonly IUsersRepository _usersRepository;
     private readonly IUsersCodeConfirmer _usersCodeConfirmer;
+    private readonly ISerializer<User> _userInfoSerializer;
     private ILogger _logger;
 }

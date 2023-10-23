@@ -10,4 +10,7 @@ public class ShortUserInfo
 
     [JsonProperty("user_email", Required = Required.Always)]
     public required string UserEmail { get; init; }
+
+    [JsonProperty("phone_number", Required = Required.Always)]
+    public required string UserPhone { get; init; }
 }

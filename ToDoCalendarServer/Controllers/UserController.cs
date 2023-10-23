@@ -1,4 +1,5 @@
-﻿using Contracts.Response;
+﻿using Contracts.Request;
+using Contracts.Response;
 using Logic.Abstractions;
 using Logic.Transport.Abstractions;
 using Microsoft.AspNetCore.Authorization;
@@ -6,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Models;
 using Models.BusinessModels;
 using Newtonsoft.Json;
+using System.Diagnostics;
 
 namespace ToDoCalendarServer.Controllers;
 
@@ -18,8 +20,7 @@ public sealed class UserController : ControllerBase
         IUsersDataHandler usersDataHandler,
         IDeserializer<UserRegistrationData> usersRegistrationDataDeserializer,
         IDeserializer<UserLoginData> usersLoginDataDeserializer,
-        IDeserializer<UserInfoById> userInfoByIdDeserializer,
-        ISerializer<User> userInfoSerializer) 
+        IDeserializer<UserInfoById> userInfoByIdDeserializer) 
     {
         _logger = logger 
             ?? throw new ArgumentNullException(nameof(logger));
@@ -33,8 +34,6 @@ public sealed class UserController : ControllerBase
 
         _userInfoByIdDeserializer = userInfoByIdDeserializer
             ?? throw new ArgumentNullException(nameof(userInfoByIdDeserializer));
-        _userInfoSerializer = userInfoSerializer
-            ?? throw new ArgumentNullException(nameof(userInfoSerializer));
     }
 
     [HttpPost]
@@ -78,24 +77,28 @@ public sealed class UserController : ControllerBase
         var body = await ReadRequestBodyAsync();
 
         var userInfoByIdRequest = _userInfoByIdDeserializer.Deserialize(body);
+        
+        var userInfoResponse = await _usersDataHandler.GetUserInfo(userInfoByIdRequest, token);
 
-        var user = await _usersDataHandler.GetUserInfo(userInfoByIdRequest, token);
+        Debug.Assert(userInfoResponse != null);
 
-        if (user == null)
-        {
-            var response1 = new Response();
-            response1.Result = false;
-            response1.OutInfo = $"No user with id {userInfoByIdRequest.UserId} in system";
+        var get_json = JsonConvert.SerializeObject(userInfoResponse);
 
-            var json = JsonConvert.SerializeObject(response1);
+        return Ok(get_json);
+    }
 
-            return Ok(JsonConvert.SerializeObject(json));
-        }
+    [HttpPut]
+    [Route("update_user_info")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
+    public async Task<IActionResult> UpdateUserInfo(CancellationToken token)
+    {
+        var body = await ReadRequestBodyAsync();
 
-        var response = new GetResponse();
-        response.Result = true;
-        response.OutInfo = $"User with id {userInfoByIdRequest.UserId} was found";
-        response.RequestedInfo = _userInfoSerializer.Serialize(user);
+        var updateUserInfo = JsonConvert.DeserializeObject<UserUpdateInfoDTO>(body);
+
+        Debug.Assert(updateUserInfo != null);
+
+        var response = await _usersDataHandler.UpdateUserInfo(updateUserInfo, token);
 
         var get_json = JsonConvert.SerializeObject(response);
 
@@ -114,5 +117,4 @@ public sealed class UserController : ControllerBase
     private readonly IDeserializer<UserRegistrationData> _usersRegistrationDataDeserializer;
     private readonly IDeserializer<UserLoginData> _usersLoginDataDeserializer;
     private readonly IDeserializer<UserInfoById> _userInfoByIdDeserializer;
-    private readonly ISerializer<User> _userInfoSerializer;
 }

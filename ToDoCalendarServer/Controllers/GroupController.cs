@@ -217,7 +217,10 @@ public sealed class GroupController : ControllerBase
 
         Debug.Assert(groupByIdRequest != null);
 
-        var existedGroup = await _groupsRepository.GetGroupByIdAsync(groupByIdRequest.GroupId, token);
+        var userId = groupByIdRequest.UserId;
+        var groupId = groupByIdRequest.GroupId;
+
+        var existedGroup = await _groupsRepository.GetGroupByIdAsync(groupId, token);
 
         if (existedGroup != null)
         {
@@ -226,17 +229,19 @@ public sealed class GroupController : ControllerBase
                 existedGroup.Participants = new List<User>();
             }
 
-            /*
             if (existedGroup.Participants
-                    .FirstOrDefault(x => x.Id == groupByIdRequest.UserId) == null)
+                    .FirstOrDefault(x => x.Id == userId) == null)
             {
                 var response1 = new Response();
                 response1.Result = true;
-                response1.OutInfo = $"Group has not been received cause user not relate to that";
+                response1.OutInfo = 
+                    $"Info about group with id {groupId} has not been received" +
+                    $" cause user with id {userId} not relate to that";
 
-                return BadRequest(JsonConvert.SerializeObject(response1));
+                var json1 = JsonConvert.SerializeObject(response1);
+
+                return BadRequest(json1);
             }
-            */
 
             var listOfUsersInfo = new List<ShortUserInfo>();
 
@@ -245,7 +250,8 @@ public sealed class GroupController : ControllerBase
                 var shortUserInfo = new ShortUserInfo
                 {
                     UserName = user.UserName,
-                    UserEmail = user.Email
+                    UserEmail = user.Email,
+                    UserPhone = user.PhoneNumber
                 };
 
                 listOfUsersInfo.Add(shortUserInfo);

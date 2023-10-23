@@ -235,13 +235,15 @@ public sealed class TaskController : ControllerBase
             var reporterInfo = new ShortUserInfo
             {
                 UserEmail = reporter.Email,
-                UserName = reporter.UserName
+                UserName = reporter.UserName,
+                UserPhone = reporter.PhoneNumber
             };
 
             var implementerInfo = new ShortUserInfo
             {
                 UserEmail = implementer.Email,
-                UserName = implementer.UserName
+                UserName = implementer.UserName,
+                UserPhone = reporter.PhoneNumber
             };
 
             var taskInfo = new TaskInfoResponse

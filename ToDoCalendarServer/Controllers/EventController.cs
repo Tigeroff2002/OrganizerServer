@@ -325,7 +325,8 @@ public sealed class EventController : ControllerBase
                     var userInfo = new ShortUserInfo
                     {
                         UserEmail = guest.Email,
-                        UserName = guest.UserName
+                        UserName = guest.UserName,
+                        UserPhone = guest.PhoneNumber
                     };
 
                     listGuests.Add(userInfo);
@@ -335,7 +336,8 @@ public sealed class EventController : ControllerBase
             var manager = new ShortUserInfo
             {
                 UserEmail = existedEvent.Manager.Email,
-                UserName = existedEvent.Manager.UserName
+                UserName = existedEvent.Manager.UserName,
+                UserPhone = existedEvent.Manager.PhoneNumber
             };
 
             GroupInfoResponse groupInfoResponse = null!;
@@ -351,7 +353,8 @@ public sealed class EventController : ControllerBase
                         var userInfo = new ShortUserInfo
                         {
                             UserEmail = participant.Email,
-                            UserName = participant.UserName
+                            UserName = participant.UserName,
+                            UserPhone = participant.PhoneNumber
                         };
 
                         participants.Add(userInfo);
