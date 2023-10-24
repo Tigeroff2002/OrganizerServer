@@ -77,9 +77,7 @@ public sealed class GroupController : ControllerBase
                     var map = new GroupingUsersMap
                     {
                         UserId = userId,
-                        User = currentUser,
                         GroupId = groupId,
-                        Group = group
                     };
 
                     await _groupingUsersMapRepository.AddAsync(map, token);
@@ -92,9 +90,7 @@ public sealed class GroupController : ControllerBase
         var selfUserMap = new GroupingUsersMap
         {
             UserId = selfUser.Id,
-            User = selfUser,
             GroupId = groupId,
-            Group = group
         };
 
         await _groupingUsersMapRepository.AddAsync(selfUserMap, token);
@@ -138,8 +134,8 @@ public sealed class GroupController : ControllerBase
                 existedGroup.ParticipantsMap = new List<GroupingUsersMap>();
             }
 
-            var existedMap = existedGroup.ParticipantsMap
-                    .FirstOrDefault(x => x.GroupId == groupId && x.UserId == currentUserId);
+            var existedMap = _groupingUsersMapRepository
+                .GetGroupingUserMapByIdsAsync(groupId, currentUserId, token);
 
             if (existedMap == null)
             {
@@ -193,7 +189,7 @@ public sealed class GroupController : ControllerBase
 
             var response = new Response();
             response.Result = true;
-            response.OutInfo = $"New participants to group with id {groupId} were added";
+            response.OutInfo = $"Group with id {groupId} has been modified";
 
             var json = JsonConvert.SerializeObject(response);
 
@@ -240,8 +236,8 @@ public sealed class GroupController : ControllerBase
                 existedGroup.ParticipantsMap = new List<GroupingUsersMap>();
             }
 
-            var existedUserMap = existedGroup.ParticipantsMap
-                .FirstOrDefault(x => x.GroupId == groupId && x.UserId == existedUser.Id);
+            var existedUserMap = _groupingUsersMapRepository
+                .GetGroupingUserMapByIdsAsync(groupId, existedUser.Id, token);
 
             if (existedUserMap == null)
             {
@@ -298,8 +294,8 @@ public sealed class GroupController : ControllerBase
                 existedGroup.ParticipantsMap = new List<GroupingUsersMap>();
             }
 
-            var existedMap = existedGroup.ParticipantsMap
-                .FirstOrDefault(x => x.GroupId == groupId && x.UserId == userId);
+            var existedMap = _groupingUsersMapRepository
+                .GetGroupingUserMapByIdsAsync(groupId, userId, token);
 
             if (existedMap == null)
             {

@@ -1,5 +1,6 @@
 ﻿using Contracts;
 using Contracts.Response;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -36,6 +37,7 @@ public sealed class EventController : ControllerBase
 
     [HttpPost]
     [Route("schedule_new")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> ScheduleNewEvent(CancellationToken token)
     {
         var body = await ReadRequestBodyAsync();
@@ -149,6 +151,7 @@ public sealed class EventController : ControllerBase
 
     [HttpPut]
     [Route("update_event_params")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> UpdateEventParams(CancellationToken token)
     {
         var body = await ReadRequestBodyAsync();
@@ -278,6 +281,7 @@ public sealed class EventController : ControllerBase
 
     [HttpDelete]
     [Route("delete_event")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> DeleteEvent(CancellationToken token)
     {
         var body = await ReadRequestBodyAsync();
@@ -337,6 +341,7 @@ public sealed class EventController : ControllerBase
 
     [HttpGet]
     [Route("get_event_info")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> GetEventInfo(CancellationToken token)
     {
         var body = await ReadRequestBodyAsync();

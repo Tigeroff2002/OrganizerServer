@@ -42,6 +42,30 @@ public sealed class GroupingUsersMapRepository
         SaveChanges();
     }
 
+    public async Task<GroupingUsersMap?> GetGroupingUserMapByIdsAsync(
+        int groupId,
+        int userId, 
+        CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+
+        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
+
+        return await _repositoryContext.GroupingUsersMaps
+            .FirstOrDefaultAsync(x => x.UserId == userId && x.GroupId == groupId);
+    }
+
+    public async Task<List<GroupingUsersMap>> GetAllMapsAsync(CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+
+        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
+
+        return await _repositoryContext.GroupingUsersMaps.ToListAsync();
+    }
+
     public async Task DeleteAsync(int groupId, int userId, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();

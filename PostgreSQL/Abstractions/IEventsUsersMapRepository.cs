@@ -7,6 +7,13 @@ public interface IEventsUsersMapRepository : IRepository
 {
     Task AddAsync(EventsUsersMap map, CancellationToken token);
 
+    Task<EventsUsersMap?> GetEventUserMapByIdsAsync(
+        int eventId,
+        int userId,
+        CancellationToken token);
+
+    Task<List<EventsUsersMap>> GetAllMapsAsync(CancellationToken token);
+
     Task UpdateDecisionAsync(
         int eventId, 
         int userId, 

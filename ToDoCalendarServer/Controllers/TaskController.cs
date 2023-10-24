@@ -1,6 +1,7 @@
 ﻿using Contracts;
 using Contracts.Request;
 using Contracts.Response;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Models;
 using Models.BusinessModels;
@@ -28,6 +29,7 @@ public sealed class TaskController : ControllerBase
 
     [HttpPost]
     [Route("create")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> CreateTask(CancellationToken token)
     {
         var body = await ReadRequestBodyAsync();
@@ -87,6 +89,7 @@ public sealed class TaskController : ControllerBase
 
     [HttpPut]
     [Route("update_task_params")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> UpdateTaskParams(CancellationToken token)
     {
         var body = await ReadRequestBodyAsync();
@@ -167,6 +170,7 @@ public sealed class TaskController : ControllerBase
 
     [HttpDelete]
     [Route("delete_task")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> DeleteTaskByReporter(CancellationToken token)
     {
         var body = await ReadRequestBodyAsync();
@@ -206,6 +210,7 @@ public sealed class TaskController : ControllerBase
 
     [HttpGet]
     [Route("get_task_info")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> GetTaskInfo(CancellationToken token)
     {
         var body = await ReadRequestBodyAsync();
@@ -225,7 +230,8 @@ public sealed class TaskController : ControllerBase
             {
                 var response1 = new Response();
                 response1.Result = false;
-                response1.OutInfo = $"Cant take info about task cause user is not its reporter or implementer";
+                response1.OutInfo = $"Cant take info about task {taskId} cause user" +
+                    $" is not its reporter or implementer";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }

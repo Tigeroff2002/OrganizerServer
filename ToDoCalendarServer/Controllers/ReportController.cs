@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 using PostgreSQL.Abstractions;
 using System.Diagnostics;
 using Contracts.Request;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ToDoCalendarServer.Controllers;
 
@@ -27,6 +28,7 @@ public sealed class ReportController : ControllerBase
 
     [HttpPost]
     [Route("perform_new")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> CreateReport(CancellationToken token)
     {
         var body = await ReadRequestBodyAsync();
@@ -71,6 +73,7 @@ public sealed class ReportController : ControllerBase
 
     [HttpDelete]
     [Route("delete_report")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> DeleteReport(CancellationToken token)
     {
         var body = await ReadRequestBodyAsync();
@@ -108,6 +111,7 @@ public sealed class ReportController : ControllerBase
 
     [HttpGet]
     [Route("get_report_info")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> GetGroupInfo(CancellationToken token)
     {
         var body = await ReadRequestBodyAsync();

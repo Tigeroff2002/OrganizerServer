@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Models;
 using Models.Enums;
 using PostgreSQL.Abstractions;
+using System.Text.RegularExpressions;
 
 namespace PostgreSQL;
 
@@ -58,6 +59,27 @@ public sealed class EventsUsersMapRepository
         }
 
         SaveChanges();
+    }
+
+    public async Task<EventsUsersMap?> GetEventUserMapByIdsAsync(int eventId, int userId, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+
+        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
+
+        return await _repositoryContext.EventsUsersMaps
+            .FirstOrDefaultAsync(x => x.UserId == userId && x.EventId == eventId);
+    }
+
+    public async Task<List<EventsUsersMap>> GetAllMapsAsync(CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+
+        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
+
+        return await _repositoryContext.EventsUsersMaps.ToListAsync();
     }
 
     public async Task UpdateDecisionAsync(
