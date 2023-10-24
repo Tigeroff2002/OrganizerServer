@@ -68,25 +68,6 @@ public sealed class EventController : ControllerBase
             }
         }
 
-        var listUsers = new List<User>();
-
-        if (eventToCreate.GuestsIds != null)
-        {
-            var existedUsers = await _usersRepository.GetAllUsersAsync(token);
-
-            foreach (var userId in eventToCreate.GuestsIds)
-            {
-                var currentUser = existedUsers.FirstOrDefault(x => x.Id == userId);
-
-                if (currentUser != null)
-                {
-                    listUsers.Add(currentUser);
-                }
-            }
-        }
-
-        listUsers.Add(manager);
-
         var @event = new Event
         {
             Caption = eventToCreate.Caption,
@@ -103,15 +84,55 @@ public sealed class EventController : ControllerBase
 
         @event.Manager = manager;
         @event.RelatedGroup = group!;
-        @event.Guests = listUsers;
+
+        var listGuestsMaps = new List<EventsUsersMap>();
+
+        if (eventToCreate.GuestsIds != null)
+        {
+            var existedUsers = await _usersRepository.GetAllUsersAsync(token);
+
+            foreach (var userId in eventToCreate.GuestsIds)
+            {
+                var currentUser = existedUsers.FirstOrDefault(x => x.Id == userId);
+
+                if (currentUser != null)
+                {
+                    var map = new EventsUsersMap
+                    {
+                        UserId = userId,
+                        User = currentUser,
+                        DecisionType = Models.Enums.DecisionType.Default,
+                        EventId = eventId,
+                        Event = @event
+                    };
+
+                    listGuestsMaps.Add(map);
+                }
+            }
+        }
+
+        var managerMap = new EventsUsersMap
+        {
+            UserId = manager.Id,
+            User = manager,
+            DecisionType = Models.Enums.DecisionType.Apply,
+            EventId = eventId,
+            Event = @event
+        };
+
+        listGuestsMaps.Add(managerMap);
+
+        @event.GuestsMap = listGuestsMaps;
 
         await _eventsRepository.UpdateAsync(@event, token);
 
         var response = new Response();
         response.Result = true;
         response.OutInfo = group != null
-            ? $"New event with id = {eventId} related to group {groupId} with name {group.GroupName} has been created"
-            : $"New event with id = {eventId} personal for manager with id {managerId} has been created";
+            ? $"New event with id = {eventId} related to group {groupId}" +
+                $" with name {group.GroupName} has been created"
+            : $"New event with id = {eventId} personal" +
+                $" for manager with id {managerId} has been created";
 
         var json = JsonConvert.SerializeObject(response);
 
@@ -160,7 +181,7 @@ public sealed class EventController : ControllerBase
 
             if (updateEventParams.GuestsIds != null)
             {
-                var listGuests = new List<User>();
+                var listGuestsMap = new List<EventsUsersMap>();
 
                 var existedUsers = await _usersRepository.GetAllUsersAsync(token);
 
@@ -170,13 +191,22 @@ public sealed class EventController : ControllerBase
 
                     if (currentUser != null)
                     {
-                        listGuests.Add(currentUser);
+                        var map = new EventsUsersMap
+                        {
+                            UserId = guestId,
+                            User = currentUser,
+                            EventId = eventId,
+                            Event = existedEvent,
+                            DecisionType = Models.Enums.DecisionType.Default
+                        };
+
+                        listGuestsMap.Add(map);
                     }
                 }
 
                 if (existedEvent.EventType != Models.Enums.EventType.Personal)
                 {
-                    existedEvent.Guests.AddRange(listGuests);
+                    existedEvent.GuestsMap.AddRange(listGuestsMap);
                 }
             }
 
@@ -321,16 +351,18 @@ public sealed class EventController : ControllerBase
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
 
-            var isAccessedToInfo = existedEvent.Manager.Id == userId;
+            var isAccessedToEventInfo = existedEvent.Manager.Id == userId;
 
-            var groupUsers = existedEvent.RelatedGroup.Participants;
+            var groupUsers = existedEvent.RelatedGroup.ParticipantsMap;
 
-            if (groupUsers.FirstOrDefault(x => x.Id == userId) != null) 
+            var existedUserMap = groupUsers.FirstOrDefault(x => x.UserId == userId);
+
+            if (existedUserMap != null) 
             {
-                isAccessedToInfo = true;
+                isAccessedToEventInfo = true;
             }
 
-            if (isAccessedToInfo)
+            if (!isAccessedToEventInfo)
             {
                 var response1 = new Response();
                 response1.Result = false;
@@ -344,10 +376,12 @@ public sealed class EventController : ControllerBase
 
             var listGuests = new List<ShortUserInfo>();
 
-            if (existedEvent.Guests != null)
+            if (existedEvent.GuestsMap != null)
             {
-                foreach(var guest in existedEvent.Guests)
+                foreach(var guestMap in existedEvent.GuestsMap)
                 {
+                    var guest = guestMap.User;
+
                     var userInfo = new ShortUserInfo
                     {
                         UserEmail = guest.Email,
@@ -372,10 +406,12 @@ public sealed class EventController : ControllerBase
             {
                 var participants = new List<ShortUserInfo>();
 
-                if (existedEvent.RelatedGroup.Participants != null)
+                if (existedEvent.RelatedGroup.ParticipantsMap != null)
                 {
-                    foreach (var participant in existedEvent.RelatedGroup.Participants)
+                    foreach (var participantMap in existedEvent.RelatedGroup.ParticipantsMap)
                     {
+                        var participant = participantMap.User;
+
                         var userInfo = new ShortUserInfo
                         {
                             UserEmail = participant.Email,

@@ -12,21 +12,9 @@ public class Group
 
     public GroupType Type { get; set; }
 
-    public virtual List<User> Participants { get; set; }
+    public virtual List<GroupingUsersMap> ParticipantsMap { get; set; }
 
     public virtual List<Event> RelatedEvents { get; set; }
 
     public Group() { }
-
-    public Group(
-        int groupId,
-        string groupName,
-        GroupType groupType,
-        List<User> participants)
-    {
-        Id = groupId;
-        GroupName = groupName;
-        Type = groupType;
-        Participants = participants;
-    }
 }

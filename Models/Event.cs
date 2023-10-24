@@ -24,7 +24,7 @@ public class Event
 
     public virtual User Manager { get; set; }
 
-    public virtual List<User> Guests { get; set; }
+    public virtual List<EventsUsersMap> GuestsMap { get; set; }
 
     public Event() { }
 }

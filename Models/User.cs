@@ -17,32 +17,18 @@ namespace Models
 
         public string AuthToken { get; set; }
 
-        public virtual List<Group> Groups { get; set; }
+        public virtual List<GroupingUsersMap> GroupingMaps { get; set; }
 
         public virtual List<UserTask> ReportedTasks { get; set; }
 
         public virtual List<UserTask> TasksForImplementation { get; set; }
 
-        public virtual List<Event> Events { get; set; }
+        public virtual List<EventsUsersMap> EventMaps { get; set; }
 
         public virtual List<Event> ManagedEvents { get; set; }
 
         public virtual List<Report> Reports { get; set; }
 
         public User() { }
-
-        public User(
-            int id,
-            string userName,
-            string email,
-            string password,
-            string phoneNumber)
-        {
-            Id = id;
-            UserName = userName;
-            Email = email;
-            Password = password;
-            PhoneNumber = phoneNumber;
-        }
     }
 }

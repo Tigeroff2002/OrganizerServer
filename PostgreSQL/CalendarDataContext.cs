@@ -27,7 +27,8 @@ public class CalendarDataContext : DbContext
             .MapEnum<GroupType>()
             .MapEnum<TaskType>()
             .MapEnum<TaskCurrentStatus>()
-            .MapEnum<ReportType>();
+            .MapEnum<ReportType>()
+            .MapEnum<DecisionType>();
 
     public CalendarDataContext(DbContextOptions<CalendarDataContext> options)
         : base(options)
@@ -49,7 +50,8 @@ public class CalendarDataContext : DbContext
             .HasPostgresEnum<GroupType>()
             .HasPostgresEnum<TaskType>()
             .HasPostgresEnum<TaskCurrentStatus>()
-            .HasPostgresEnum<ReportType>();
+            .HasPostgresEnum<ReportType>()
+            .HasPostgresEnum<DecisionType>();
 
         CreateUsersModels(modelBuilder);
         CreateGroupsModels(modelBuilder);
@@ -81,11 +83,6 @@ public class CalendarDataContext : DbContext
             .Property(x => x.AuthToken);
 
         _ = modelBuilder.Entity<User>()
-            .HasMany(x => x.Groups)
-            .WithMany(x => x.Participants)
-            .UsingEntity("users_groups_map");
-
-        _ = modelBuilder.Entity<User>()
             .HasMany(x => x.ReportedTasks)
             .WithOne(x => x.Reporter);
 
@@ -96,11 +93,6 @@ public class CalendarDataContext : DbContext
         _ = modelBuilder.Entity<User>()
             .HasMany(x => x.Reports)
             .WithOne(x => x.User);
-
-        _ = modelBuilder.Entity<User>()
-            .HasMany(x => x.Events)
-            .WithMany(x => x.Guests)
-            .UsingEntity("users_events_calendar");
     }
 
     public static void CreateGroupsModels(ModelBuilder modelBuilder)
@@ -145,11 +137,6 @@ public class CalendarDataContext : DbContext
         _ = modelBuilder.Entity<Event>()
             .HasOne(x => x.Manager)
             .WithMany(x => x.ManagedEvents);
-
-        _ = modelBuilder.Entity<Event>()
-            .HasMany(x => x.Guests)
-            .WithMany(x => x.Events)
-            .UsingEntity("users_events_calendar");
     }
 
     public static void CreateTasksModels(ModelBuilder modelBuilder)
@@ -186,5 +173,46 @@ public class CalendarDataContext : DbContext
 
         _ = modelBuilder.Entity<Report>()
             .Property(x => x.EndMoment);
+    }
+
+    private static void CreateGroupingUsersMapModels(ModelBuilder modelBuilder)
+    {
+        _ = modelBuilder.Entity<GroupingUsersMap>()
+            .HasKey(map => new { map.UserId, map.GroupId });
+
+        _ = modelBuilder.Entity<GroupingUsersMap>()
+            .HasOne(map => map.User)
+            .WithMany(gm => gm.GroupingMaps)
+            .HasForeignKey(map => map.UserId);
+
+        _ = modelBuilder.Entity<GroupingUsersMap>()
+            .HasOne(map => map.Group)
+            .WithMany(pm => pm.ParticipantsMap)
+            .HasForeignKey(map => map.GroupId);
+
+        _ = modelBuilder.Entity<GroupingUsersMap>()
+            .ToTable("groups_users_map");
+    }
+
+    private static void CreateEventUsersMapModels(ModelBuilder modelBuilder)
+    {
+        _ = modelBuilder.Entity<EventsUsersMap>()
+            .HasKey(map => new { map.UserId, map.EventId });
+
+        _ = modelBuilder.Entity<EventsUsersMap>()
+            .HasOne(map => map.User)
+            .WithMany(em => em.EventMaps)
+            .HasForeignKey(map => map.UserId);
+
+        _ = modelBuilder.Entity<EventsUsersMap>()
+            .HasOne(map => map.Event)
+            .WithMany(gm => gm.GuestsMap)
+            .HasForeignKey(map => map.EventId);
+
+        _ = modelBuilder.Entity<EventsUsersMap>()
+            .Property(x => x.DecisionType);
+
+        _ = modelBuilder.Entity<GroupingUsersMap>()
+            .ToTable("events_users_map");
     }
 }

@@ -36,23 +36,6 @@ public sealed class GroupController : ControllerBase
 
         Debug.Assert(groupToCreate != null);
 
-        var listUsers = new List<User>();
-
-        if (groupToCreate.Participants != null)
-        {
-            var existedUsers = await _usersRepository.GetAllUsersAsync(token);
-
-            foreach (var userId in groupToCreate.Participants)
-            {
-                var currentUser = existedUsers.FirstOrDefault(x => x.Id == userId);
-
-                if (currentUser != null)
-                {
-                    listUsers.Add(currentUser);
-                }
-            }
-        }
-
         var selfUser = await _usersRepository.GetUserByIdAsync(groupToCreate.UserId, token);
 
         if (selfUser == null)
@@ -64,28 +47,61 @@ public sealed class GroupController : ControllerBase
             return BadRequest(JsonConvert.SerializeObject(response1));
         }
 
-        listUsers.Add(selfUser);
-
         var group = new Group()
         {
             GroupName = groupToCreate.GroupName,
             Type = groupToCreate.Type,
-            Participants = new List<User>()
+            ParticipantsMap = new List<GroupingUsersMap>()
         };
 
         await _groupsRepository.AddAsync(group, token);
 
         var groupId = group.Id;
 
-        group.Participants = listUsers;
+        var listGroupingUsersMap = new List<GroupingUsersMap>();
+
+        if (groupToCreate.Participants != null)
+        {
+            var existedUsers = await _usersRepository.GetAllUsersAsync(token);
+
+            foreach (var userId in groupToCreate.Participants)
+            {
+                var currentUser = existedUsers.FirstOrDefault(x => x.Id == userId);
+
+                if (currentUser != null)
+                {
+                    var map = new GroupingUsersMap
+                    {
+                        UserId = userId,
+                        User = currentUser,
+                        GroupId = groupId,
+                        Group = group
+                    };
+
+                    listGroupingUsersMap.Add(map);
+                }
+            }
+        }
+
+        var selfUserMap = new GroupingUsersMap
+        {
+            UserId = selfUser.Id,
+            User = selfUser,
+            GroupId = groupId,
+            Group = group
+        };
+
+        listGroupingUsersMap.Add(selfUserMap);
+
+        group.ParticipantsMap = listGroupingUsersMap;
 
         await _groupsRepository.UpdateAsync(group, token);
 
-        var newGroup = _groupsRepository.GetGroupByIdAsync(groupId, token);
-
         var response = new Response();
         response.Result = true;
-        response.OutInfo = $"New group with id = {groupId} and name {group.GroupName} was created";
+        response.OutInfo = 
+            $"New group with id = {groupId}" +
+            $" and name {group.GroupName} was created";
 
         var json = JsonConvert.SerializeObject(response);
 
@@ -109,13 +125,15 @@ public sealed class GroupController : ControllerBase
 
         if (existedGroup != null)
         {
-            if (existedGroup.Participants == null)
+            if (existedGroup.ParticipantsMap == null)
             {
-                existedGroup.Participants = new List<User>();
+                existedGroup.ParticipantsMap = new List<GroupingUsersMap>();
             }
 
-            if (existedGroup.Participants
-                    .FirstOrDefault(x => x.Id == currentUserId) == null)
+            var existedMap = existedGroup.ParticipantsMap
+                    .FirstOrDefault(x => x.GroupId == groupId && x.UserId == currentUserId);
+
+            if (existedMap == null)
             {
                 var response1 = new Response();
                 response1.Result = false;
@@ -126,7 +144,7 @@ public sealed class GroupController : ControllerBase
 
             if (updateGroupParams.Participants != null) 
             {
-                var listUsers = new List<User>();
+                var listGroupingUsersMap = new List<GroupingUsersMap>();
 
                 var existedUsers = await _usersRepository.GetAllUsersAsync(token);
 
@@ -136,11 +154,19 @@ public sealed class GroupController : ControllerBase
 
                     if (currentUser != null)
                     {
-                        listUsers.Add(currentUser);
+                        var map = new GroupingUsersMap
+                        {
+                            UserId = userId,
+                            User = currentUser,
+                            GroupId = groupId,
+                            Group = existedGroup
+                        };
+
+                        listGroupingUsersMap.Add(map);
                     }
                 }
 
-                existedGroup.Participants.AddRange(listUsers);
+                existedGroup.ParticipantsMap.AddRange(listGroupingUsersMap);
             }
 
             if (!string.IsNullOrWhiteSpace(updateGroupParams.GroupName))
@@ -190,20 +216,36 @@ public sealed class GroupController : ControllerBase
             return BadRequest(JsonConvert.SerializeObject(response1));
         }
 
-        var existedGroup = await _groupsRepository.GetGroupByIdAsync(
-            groupDeleteParticipant.GroupId, token);
+        var groupId = groupDeleteParticipant.GroupId;
+        var participantId = groupDeleteParticipant.Participant_Id;
+
+        var existedGroup = await _groupsRepository.GetGroupByIdAsync(groupId, token);
 
         var existedUser = await _usersRepository.GetUserByIdAsync(groupDeleteParticipant.Participant_Id, token);
 
         if (existedGroup != null && existedUser != null)
         {
-            if (existedGroup.Participants == null)
+            if (existedGroup.ParticipantsMap == null)
             {
-                existedGroup.Participants = new List<User>();
+                existedGroup.ParticipantsMap = new List<GroupingUsersMap>();
             }
 
-            existedGroup.Participants = 
-                existedGroup.Participants.Where(x => x.Id != groupDeleteParticipant.Participant_Id).ToList();
+            var existedMap = existedGroup.ParticipantsMap
+                .FirstOrDefault(x => x.GroupId == groupId && x.UserId == existedUser.Id);
+
+            if (existedMap == null)
+            {
+                var response1 = new Response();
+                response1.Result = false;
+                response1.OutInfo = 
+                    $"Participants of group with id {groupId} " +
+                    $"has not been modified cause user not relate to that";
+
+                return BadRequest(JsonConvert.SerializeObject(response1));
+            }
+
+            existedGroup.ParticipantsMap = 
+                existedGroup.ParticipantsMap.Where(x => x.UserId != participantId).ToList();
 
             await _groupsRepository.UpdateAsync(existedGroup, token);
 
@@ -239,13 +281,15 @@ public sealed class GroupController : ControllerBase
 
         if (existedGroup != null)
         {
-            if (existedGroup.Participants == null)
+            if (existedGroup.ParticipantsMap == null)
             {
-                existedGroup.Participants = new List<User>();
+                existedGroup.ParticipantsMap = new List<GroupingUsersMap>();
             }
 
-            if (existedGroup.Participants
-                    .FirstOrDefault(x => x.Id == userId) == null)
+            var existedMap = existedGroup.ParticipantsMap
+                .FirstOrDefault(x => x.GroupId == groupId && x.UserId == userId);
+
+            if (existedMap == null)
             {
                 var response1 = new Response();
                 response1.Result = true;
@@ -260,8 +304,10 @@ public sealed class GroupController : ControllerBase
 
             var listOfUsersInfo = new List<ShortUserInfo>();
 
-            foreach(var user in existedGroup.Participants)
+            foreach(var userMap in existedGroup.ParticipantsMap)
             {
+                var user = userMap.User;
+
                 var shortUserInfo = new ShortUserInfo
                 {
                     UserName = user.UserName,

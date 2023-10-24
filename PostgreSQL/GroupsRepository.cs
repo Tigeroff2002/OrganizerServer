@@ -73,7 +73,7 @@ public sealed class GroupsRepository
         SaveChanges();
     }
 
-    public async Task UpdateAsync(Models.Group group, CancellationToken token)
+    public async Task UpdateAsync(Group group, CancellationToken token)
     {
         ArgumentNullException.ThrowIfNull(group);
 
@@ -89,7 +89,7 @@ public sealed class GroupsRepository
             _repositoryContext.Groups.Entry(localGroup).CurrentValues.SetValues(group);
         }
 
-        localGroup!.Participants = group.Participants;
+        localGroup = group.Map<Group>();
 
         _logger.LogDebug($"Properties of group with id {localGroup!.Id} were modified");
 
