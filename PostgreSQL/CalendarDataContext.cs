@@ -58,6 +58,8 @@ public class CalendarDataContext : DbContext
         CreateEventsModels(modelBuilder);
         CreateTasksModels(modelBuilder);
         CreateReportsModels(modelBuilder);
+        CreateGroupingUsersMapModels(modelBuilder);
+        CreateEventUsersMapModels(modelBuilder);
 
         base.OnModelCreating(modelBuilder);
     }
@@ -212,7 +214,7 @@ public class CalendarDataContext : DbContext
         _ = modelBuilder.Entity<EventsUsersMap>()
             .Property(x => x.DecisionType);
 
-        _ = modelBuilder.Entity<GroupingUsersMap>()
+        _ = modelBuilder.Entity<EventsUsersMap>()
             .ToTable("events_users_map");
     }
 }
