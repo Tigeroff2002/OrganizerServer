@@ -19,8 +19,8 @@ public class CalendarDataContext : DbContext
 
     public virtual DbSet<Report> Reports { get; set; } = default!;
 
-    // дополнительные сущности для отношений many-to-many
 
+    // дополнительные сущности для отношений many-to-many
     public virtual DbSet<GroupingUsersMap> GroupingUsersMaps { get; set; } = default!;
 
     public virtual DbSet<EventsUsersMap> EventsUsersMaps { get; set; } = default!;
@@ -39,7 +39,7 @@ public class CalendarDataContext : DbContext
     public CalendarDataContext(DbContextOptions<CalendarDataContext> options)
         : base(options)
     {
-        //Database.EnsureCreated();
+        // Database.EnsureCreated();
 
         AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
         AppContext.SetSwitch("Npgsql.DisableDateTimeInfinityConversions", true);

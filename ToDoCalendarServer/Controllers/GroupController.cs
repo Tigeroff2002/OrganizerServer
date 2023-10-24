@@ -17,13 +17,17 @@ public sealed class GroupController : ControllerBase
 {
     public GroupController(
         IGroupsRepository groupsRepository,
-        IUsersRepository usersRepository) 
+        IUsersRepository usersRepository,
+        IGroupingUsersMapRepository groupingUsersMapRepository) 
     {
         _groupsRepository = groupsRepository
             ?? throw new ArgumentNullException(nameof(groupsRepository));
 
         _usersRepository = usersRepository
             ?? throw new ArgumentNullException(nameof(usersRepository));
+
+        _groupingUsersMapRepository = groupingUsersMapRepository
+            ?? throw new ArgumentNullException(nameof(groupingUsersMapRepository));
     }
 
     [HttpPost]
@@ -78,6 +82,8 @@ public sealed class GroupController : ControllerBase
                         Group = group
                     };
 
+                    await _groupingUsersMapRepository.AddAsync(map, token);
+
                     listGroupingUsersMap.Add(map);
                 }
             }
@@ -90,6 +96,8 @@ public sealed class GroupController : ControllerBase
             GroupId = groupId,
             Group = group
         };
+
+        await _groupingUsersMapRepository.AddAsync(selfUserMap, token);
 
         listGroupingUsersMap.Add(selfUserMap);
 
@@ -162,6 +170,8 @@ public sealed class GroupController : ControllerBase
                             Group = existedGroup
                         };
 
+                        await _groupingUsersMapRepository.AddAsync(map, token);
+
                         listGroupingUsersMap.Add(map);
                     }
                 }
@@ -230,10 +240,10 @@ public sealed class GroupController : ControllerBase
                 existedGroup.ParticipantsMap = new List<GroupingUsersMap>();
             }
 
-            var existedMap = existedGroup.ParticipantsMap
+            var existedUserMap = existedGroup.ParticipantsMap
                 .FirstOrDefault(x => x.GroupId == groupId && x.UserId == existedUser.Id);
 
-            if (existedMap == null)
+            if (existedUserMap == null)
             {
                 var response1 = new Response();
                 response1.Result = false;
@@ -243,6 +253,8 @@ public sealed class GroupController : ControllerBase
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
+
+            await _groupingUsersMapRepository.DeleteAsync(groupId, participantId, token);
 
             existedGroup.ParticipantsMap = 
                 existedGroup.ParticipantsMap.Where(x => x.UserId != participantId).ToList();
@@ -351,4 +363,5 @@ public sealed class GroupController : ControllerBase
 
     private readonly IGroupsRepository _groupsRepository;
     private readonly IUsersRepository _usersRepository;
+    private readonly IGroupingUsersMapRepository _groupingUsersMapRepository;
 }

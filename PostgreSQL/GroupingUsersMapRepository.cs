@@ -31,7 +31,13 @@ public sealed class GroupingUsersMapRepository
         using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
         _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
-        await _repositoryContext.GroupingUsersMaps.AddAsync(map, token);
+        var existedMap = await _repositoryContext.GroupingUsersMaps
+            .FirstOrDefaultAsync(x => x.UserId == map.UserId && x.GroupId == map.GroupId);
+
+        if (existedMap == null)
+        {
+            await _repositoryContext.GroupingUsersMaps.AddAsync(map, token);
+        }
 
         SaveChanges();
     }

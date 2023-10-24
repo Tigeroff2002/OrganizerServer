@@ -18,7 +18,8 @@ public sealed class EventController : ControllerBase
     public EventController(
         IEventsRepository eventsRepository,
         IGroupsRepository groupsRepository,
-        IUsersRepository usersRepository)
+        IUsersRepository usersRepository,
+        IEventsUsersMapRepository eventsUsersMapRepository)
     {
         _eventsRepository = eventsRepository
             ?? throw new ArgumentNullException(nameof(eventsRepository));
@@ -28,6 +29,9 @@ public sealed class EventController : ControllerBase
 
         _usersRepository = usersRepository
             ?? throw new ArgumentNullException(nameof(usersRepository));
+
+        _eventsUsersMapRepository = eventsUsersMapRepository
+            ?? throw new ArgumentNullException(nameof(eventsUsersMapRepository));
     }
 
     [HttpPost]
@@ -106,6 +110,8 @@ public sealed class EventController : ControllerBase
                         Event = @event
                     };
 
+                    await _eventsUsersMapRepository.AddAsync(map, token);
+
                     listGuestsMaps.Add(map);
                 }
             }
@@ -119,6 +125,8 @@ public sealed class EventController : ControllerBase
             EventId = eventId,
             Event = @event
         };
+
+        await _eventsUsersMapRepository.AddAsync(managerMap, token);
 
         listGuestsMaps.Add(managerMap);
 
@@ -206,6 +214,11 @@ public sealed class EventController : ControllerBase
 
                 if (existedEvent.EventType != Models.Enums.EventType.Personal)
                 {
+                    foreach(var map in listGuestsMap)
+                    {
+                        await _eventsUsersMapRepository.AddAsync(map, token);
+                    }
+
                     existedEvent.GuestsMap.AddRange(listGuestsMap);
                 }
             }
@@ -472,5 +485,6 @@ public sealed class EventController : ControllerBase
     private readonly IEventsRepository _eventsRepository;
     private readonly IGroupsRepository _groupsRepository;
     private readonly IUsersRepository _usersRepository;
+    private readonly IEventsUsersMapRepository _eventsUsersMapRepository;
 }
 

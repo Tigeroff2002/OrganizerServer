@@ -29,7 +29,13 @@ public sealed class EventsUsersMapRepository
         using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
         _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
-        await _repositoryContext.EventsUsersMaps.AddAsync(map, token);
+        var existedMap = await _repositoryContext.EventsUsersMaps
+            .FirstOrDefaultAsync(x => x.UserId == map.UserId && x.EventId == map.EventId);
+
+        if (existedMap == null)
+        {
+            await _repositoryContext.EventsUsersMaps.AddAsync(map, token);
+        }
 
         SaveChanges();
     }
