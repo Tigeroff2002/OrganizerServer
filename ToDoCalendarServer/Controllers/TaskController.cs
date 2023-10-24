@@ -68,8 +68,8 @@ public sealed class TaskController : ControllerBase
             Description = taskToCreate.TaskDescription,
             TaskType = taskToCreate.TaskType,
             TaskStatus = taskToCreate.TaskStatus,
-            Reporter = reporter,
-            Implementer = implementer
+            ReporterId = reporter.Id,
+            ImplementerId = implementer.Id
         };
 
         await _tasksRepository.AddAsync(task, token);
@@ -103,8 +103,20 @@ public sealed class TaskController : ControllerBase
         var existedTask = await _tasksRepository.GetTaskByIdAsync(
             taskUpdateParams.TaskId, token);
 
+        var reporterId = taskUpdateParams.UserId;
+        var implementerId = taskUpdateParams.ImplementerId;
+
         if (existedTask != null)
         {
+            var reporter = await _usersRepository.GetUserByIdAsync(reporterId, token);
+            var implementer = await _usersRepository.GetUserByIdAsync(implementerId, token);
+
+            if (reporter != null && implementer != null)
+            {
+                existedTask.Reporter = reporter;
+                existedTask.Implementer = implementer;
+            }
+
             if (existedTask.Reporter.Id != taskUpdateParams.UserId)
             {
                 var response1 = new Response();
@@ -136,7 +148,7 @@ public sealed class TaskController : ControllerBase
 
             if (taskUpdateParams.ImplementerId != -1)
             {
-                var implementer = await _usersRepository.GetUserByIdAsync(taskUpdateParams.ImplementerId, token);
+                implementer = await _usersRepository.GetUserByIdAsync(taskUpdateParams.ImplementerId, token);
 
                 if (implementer == null)
                 {
@@ -183,8 +195,17 @@ public sealed class TaskController : ControllerBase
 
         var existedTask = await _tasksRepository.GetTaskByIdAsync(taskId, token);
 
+        var reporterId = taskToDelete.UserId;
+
         if (existedTask != null)
         {
+            var reporter = await _usersRepository.GetUserByIdAsync(reporterId, token);
+
+            if (reporter != null)
+            {
+                existedTask.Reporter = reporter;
+            }
+
             if (taskToDelete.UserId != existedTask.Reporter.Id)
             {
                 var response1 = new Response();
@@ -225,6 +246,18 @@ public sealed class TaskController : ControllerBase
 
         if (existedTask != null)
         {
+            var reporterId = existedTask.ReporterId;
+            var implementerId = existedTask.ImplementerId;
+
+            var reporter = await _usersRepository.GetUserByIdAsync(reporterId, token);
+            var implementer = await _usersRepository.GetUserByIdAsync(implementerId, token);
+
+            if (reporter != null && implementer != null)
+            {
+                existedTask.Reporter = reporter;
+                existedTask.Implementer = implementer;
+            }
+
             if (taskWithIdRequest.UserId != existedTask.Reporter.Id 
                 && taskWithIdRequest.UserId != existedTask.Implementer.Id)
             {
@@ -235,9 +268,6 @@ public sealed class TaskController : ControllerBase
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
-
-            var reporter = await _usersRepository.GetUserByIdAsync(existedTask.Reporter.Id, token);
-            var implementer = await _usersRepository.GetUserByIdAsync(existedTask.Implementer.Id, token);
 
             if (reporter == null)
             {

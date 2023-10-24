@@ -17,8 +17,8 @@ public sealed class TaskInfoResponse
     public required TaskType TaskType { get; init; }
 
     [JsonConverter(typeof(StringEnumConverter))]
-    [JsonProperty("task_type", Required = Required.Default)]
-    public required TaskCurrentStatus TaskStatus { get; init; } = TaskCurrentStatus.ToDo;
+    [JsonProperty("task_status", Required = Required.Default)]
+    public required TaskCurrentStatus TaskStatus { get; set; } = TaskCurrentStatus.ToDo;
 
     [JsonProperty("reporter", Required = Required.Default)]
     public ShortUserInfo Reporter { get; set; } = default!;

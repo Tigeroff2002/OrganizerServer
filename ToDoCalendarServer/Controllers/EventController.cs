@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Models;
 using Models.BusinessModels;
 using Newtonsoft.Json;
+using PostgreSQL;
 using PostgreSQL.Abstractions;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
@@ -20,7 +21,8 @@ public sealed class EventController : ControllerBase
         IEventsRepository eventsRepository,
         IGroupsRepository groupsRepository,
         IUsersRepository usersRepository,
-        IEventsUsersMapRepository eventsUsersMapRepository)
+        IEventsUsersMapRepository eventsUsersMapRepository,
+        IGroupingUsersMapRepository groupingUsersMapRepository)
     {
         _eventsRepository = eventsRepository
             ?? throw new ArgumentNullException(nameof(eventsRepository));
@@ -33,6 +35,9 @@ public sealed class EventController : ControllerBase
 
         _eventsUsersMapRepository = eventsUsersMapRepository
             ?? throw new ArgumentNullException(nameof(eventsUsersMapRepository));
+
+        _groupingUsersMapRepository = groupingUsersMapRepository
+            ?? throw new ArgumentNullException(nameof(groupingUsersMapRepository));
     }
 
     [HttpPost]
@@ -81,7 +86,9 @@ public sealed class EventController : ControllerBase
             ScheduledStart = eventToCreate.ScheduledStart,
             Duration = eventToCreate.Duration,
             EventType = eventToCreate.EventType,
-            Status = eventToCreate.EventStatus
+            Status = eventToCreate.EventStatus,
+            ManagerId = managerId,
+            RelatedGroupId = groupId
         };
 
         await _eventsRepository.AddAsync(@event, token);
@@ -122,10 +129,8 @@ public sealed class EventController : ControllerBase
         var managerMap = new EventsUsersMap
         {
             UserId = manager.Id,
-            User = manager,
             DecisionType = Models.Enums.DecisionType.Apply,
             EventId = eventId,
-            Event = @event
         };
 
         await _eventsUsersMapRepository.AddAsync(managerMap, token);
@@ -179,6 +184,12 @@ public sealed class EventController : ControllerBase
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
 
+            var managerId = existedEvent.ManagerId;
+
+            var manager = await _usersRepository.GetUserByIdAsync(userId, token);
+
+            existedEvent.Manager = manager!;
+
             if (existedEvent.Manager.Id != userId)
             {
                 var response1 = new Response();
@@ -205,9 +216,7 @@ public sealed class EventController : ControllerBase
                         var map = new EventsUsersMap
                         {
                             UserId = guestId,
-                            User = currentUser,
                             EventId = eventId,
-                            Event = existedEvent,
                             DecisionType = Models.Enums.DecisionType.Default
                         };
 
@@ -222,7 +231,14 @@ public sealed class EventController : ControllerBase
                         await _eventsUsersMapRepository.AddAsync(map, token);
                     }
 
-                    existedEvent.GuestsMap.AddRange(listGuestsMap);
+                    if (existedEvent.GuestsMap == null)
+                    {
+                        existedEvent.GuestsMap = listGuestsMap;
+                    }
+                    else
+                    {
+                        existedEvent.GuestsMap.AddRange(listGuestsMap);
+                    }
                 }
             }
 
@@ -322,10 +338,10 @@ public sealed class EventController : ControllerBase
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
 
-            if (updateEventParams.DecisionType != Models.Enums.DecisionType.None)
-            {
-                var decisionType = updateEventParams.DecisionType;
+            var decisionType = updateEventParams.DecisionType;
 
+            if (decisionType != Models.Enums.DecisionType.None)
+            {
                 await _eventsUsersMapRepository
                     .UpdateDecisionAsync(eventId, userId, decisionType, token);
             }
@@ -333,11 +349,13 @@ public sealed class EventController : ControllerBase
             var response = new Response();
             response.Result = true;
             response.OutInfo = existedEvent.RelatedGroup != null
-                ? $"New event with id = {eventId} related" +
-                    $" to group {existedEvent.RelatedGroup.Id}" +
-                    $" with name {existedEvent.RelatedGroup.GroupName} has been created"
-                : $"New event with id = {eventId} personal for manager " +
-                    $"with id {existedEvent.Manager.Id} has been created";
+                ? $"For event with id = {eventId} related" +
+                    $" to group {existedEvent.RelatedGroupId}" +
+                    $" for user {user.UserName}" +
+                    $" has been changed decision to {decisionType}"
+                : $"For event with id = {eventId} personal for manager " +
+                    $"with id {existedEvent.ManagerId}" +
+                    $" has been changed decision to {decisionType}";
 
             var json = JsonConvert.SerializeObject(response);
 
@@ -441,9 +459,22 @@ public sealed class EventController : ControllerBase
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
 
-            var isAccessedToEventInfo = existedEvent.Manager.Id == userId;
+            var isAccessedToEventInfo = existedEvent.ManagerId == userId;
 
-            var groupUsers = existedEvent.RelatedGroup.ParticipantsMap;
+            var manager = await _usersRepository.GetUserByIdAsync(existedEvent.ManagerId, token);
+
+            existedEvent.Manager = manager!;
+
+            var relatedGroupId = existedEvent.RelatedGroupId;
+
+            var relatedGroup = await _groupsRepository.GetGroupByIdAsync(relatedGroupId, token);
+
+            existedEvent.RelatedGroup = relatedGroup!;
+
+            var groupingUsersMaps = await _groupingUsersMapRepository
+                .GetAllMapsAsync(token);
+
+            var groupUsers = groupingUsersMaps.Where(x => x.GroupId == relatedGroupId);
 
             var existedUserMap = groupUsers.FirstOrDefault(x => x.UserId == userId);
 
@@ -483,7 +514,7 @@ public sealed class EventController : ControllerBase
                 }
             }
 
-            var manager = new ShortUserInfo
+            var managerInfo = new ShortUserInfo
             {
                 UserEmail = existedEvent.Manager.Email,
                 UserName = existedEvent.Manager.UserName,
@@ -529,7 +560,7 @@ public sealed class EventController : ControllerBase
                 Duration = existedEvent.Duration,
                 EventType = existedEvent.EventType,
                 EventStatus = existedEvent.Status,
-                Manager = manager,
+                Manager = managerInfo,
                 Group = groupInfoResponse,
                 Guests = listGuests
             };
@@ -563,5 +594,6 @@ public sealed class EventController : ControllerBase
     private readonly IGroupsRepository _groupsRepository;
     private readonly IUsersRepository _usersRepository;
     private readonly IEventsUsersMapRepository _eventsUsersMapRepository;
+    private readonly IGroupingUsersMapRepository _groupingUsersMapRepository;
 }
 

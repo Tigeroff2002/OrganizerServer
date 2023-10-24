@@ -173,7 +173,14 @@ public sealed class GroupController : ControllerBase
                     }
                 }
 
-                existedGroup.ParticipantsMap.AddRange(listGroupingUsersMap);
+                if (existedGroup.ParticipantsMap == null)
+                {
+                    existedGroup.ParticipantsMap = listGroupingUsersMap;
+                }
+                else
+                {
+                    existedGroup.ParticipantsMap.AddRange(listGroupingUsersMap);
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(updateGroupParams.GroupName))

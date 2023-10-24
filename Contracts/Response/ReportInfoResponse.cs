@@ -6,12 +6,6 @@ namespace Contracts.Response;
 
 public sealed class ReportInfoResponse
 {
-    [JsonProperty("user_name", Required = Required.Always)]
-    public required string UserName { get; init; }
-
-    [JsonProperty("user_email", Required = Required.Always)]
-    public required string UserEmail { get; init; }
-
     [JsonProperty("description", Required = Required.Always)]
     public required string ReportDescription { get; init; }
 
@@ -24,4 +18,7 @@ public sealed class ReportInfoResponse
 
     [JsonProperty("end_moment", Required = Required.Always)]
     public required DateTimeOffset EndMoment { get; init; }
+
+    [JsonProperty("reporter", Required = Required.Default)]
+    public ShortUserInfo Reporter { get; set; } = default!;
 }

@@ -53,7 +53,8 @@ public sealed class ReportController : ControllerBase
             ReportType = reportToCreate.ReportType,
             BeginMoment = reportToCreate.BeginMoment,
             EndMoment = reportToCreate.EndMoment,
-            User = user
+            Description = string.Empty,
+            UserId = user.Id
         };
 
         await _reportsRepository.AddAsync(report, token);
@@ -88,7 +89,9 @@ public sealed class ReportController : ControllerBase
 
         if (existedReport != null)
         {
-            if (reportToDelete.UserId != existedReport.User.Id)
+            var userId = existedReport!.UserId;
+
+            if (reportToDelete.UserId != userId)
             {
                 var response1 = new Response();
                 response1.Result = false;
@@ -126,7 +129,20 @@ public sealed class ReportController : ControllerBase
 
         if (existedReport != null)
         {
-            if (reportWithIdRequest.UserId != existedReport.User.Id)
+            var userId = existedReport!.UserId;
+
+            var reporter = await _usersRepository.GetUserByIdAsync(userId, token);
+
+            if (reporter == null)
+            {
+                var response1 = new Response();
+                response1.Result = false;
+                response1.OutInfo = $"Cant take info about report cause user with id {userId} is not found";
+
+                return BadRequest(JsonConvert.SerializeObject(response1));
+            }
+
+            if (reportWithIdRequest.UserId != userId)
             {
                 var response1 = new Response();
                 response1.Result = false;
@@ -135,17 +151,21 @@ public sealed class ReportController : ControllerBase
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
 
+            var reporterInfo = new ShortUserInfo
+            {
+                UserEmail = reporter.Email,
+                UserName = reporter.UserName,
+                UserPhone = reporter.PhoneNumber
+            };
+
             var reportInfo = new ReportInfoResponse
             {
                 ReportDescription = existedReport.Description,
                 ReportType = existedReport.ReportType,
                 BeginMoment = existedReport.BeginMoment,
                 EndMoment = existedReport.EndMoment,
-                UserEmail = existedReport.User.Email,
-                UserName = existedReport.User.UserName
+                Reporter = reporterInfo
             };
-
-            var userId = existedReport.User.Id;
 
             var getReponse = new GetResponse();
             getReponse.Result = true;
