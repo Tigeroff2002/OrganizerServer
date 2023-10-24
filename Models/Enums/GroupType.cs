@@ -2,6 +2,8 @@
 
 public enum GroupType
 {
+    None, 
+
     Educational,
 
     Job

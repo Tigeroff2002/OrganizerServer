@@ -158,10 +158,10 @@ public sealed class EventController : ControllerBase
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
 
-            var listGuests = new List<User>();
-
             if (updateEventParams.GuestsIds != null)
             {
+                var listGuests = new List<User>();
+
                 var existedUsers = await _usersRepository.GetAllUsersAsync(token);
 
                 foreach (var guestId in updateEventParams.GuestsIds)
@@ -173,16 +173,42 @@ public sealed class EventController : ControllerBase
                         listGuests.Add(currentUser);
                     }
                 }
+
+                if (existedEvent.EventType != Models.Enums.EventType.Personal)
+                {
+                    existedEvent.Guests.AddRange(listGuests);
+                }
             }
 
-            existedEvent.Caption = updateEventParams.Caption;
-            existedEvent.Description = updateEventParams.Description;
-            existedEvent.ScheduledStart = updateEventParams.ScheduledStart;
-            existedEvent.Duration = updateEventParams.Duration;
-            existedEvent.EventType = updateEventParams.EventType;
-            existedEvent.Status = updateEventParams.EventStatus;
-            existedEvent.Manager = user;
-            existedEvent.Guests.AddRange(listGuests);
+            if (!string.IsNullOrWhiteSpace(updateEventParams.Caption))
+            {
+                existedEvent.Caption = updateEventParams.Caption;
+            }
+
+            if (!string.IsNullOrWhiteSpace(updateEventParams.Description))
+            {
+                existedEvent.Description = updateEventParams.Description;
+            }
+
+            if (updateEventParams.ScheduledStart != DateTimeOffset.MinValue)
+            {
+                existedEvent.ScheduledStart = updateEventParams.ScheduledStart;
+            }
+
+            if (updateEventParams.Duration != TimeSpan.Zero)
+            {
+                existedEvent.Duration = updateEventParams.Duration;
+            }
+
+            if (updateEventParams.EventType != Models.Enums.EventType.None)
+            {
+                existedEvent.EventType = updateEventParams.EventType;
+            }
+
+            if (updateEventParams.EventStatus != Models.Enums.EventStatus.None)
+            {
+                existedEvent.Status = updateEventParams.EventStatus;
+            }
 
             await _eventsRepository.UpdateAsync(existedEvent, token);
 

@@ -2,6 +2,9 @@
 
 public enum ReportType
 {
+    None,
+
     EventsReport,
+
     TasksReport
 }

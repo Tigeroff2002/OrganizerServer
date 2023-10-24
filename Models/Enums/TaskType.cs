@@ -2,6 +2,8 @@
 
 public enum TaskType
 {
+    None,
+
     AbstractGoal,
 
     MeetingPresense,

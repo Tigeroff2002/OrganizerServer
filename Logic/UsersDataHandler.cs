@@ -221,10 +221,25 @@ public sealed class UsersDataHandler
 
         if (existedUser != null)
         {
-            existedUser.UserName = userUpdateInfo.UserName;
-            existedUser.Email = userUpdateInfo.Email;
-            existedUser.Password = userUpdateInfo.Password;
-            existedUser.PhoneNumber = userUpdateInfo.PhoneNumber;
+            if (!string.IsNullOrWhiteSpace(userUpdateInfo.UserName))
+            {
+                existedUser.UserName = userUpdateInfo.UserName;
+            }
+
+            if (!string.IsNullOrWhiteSpace(userUpdateInfo.Email))
+            {
+                existedUser.Email = userUpdateInfo.Email;
+            }
+
+            if (!string.IsNullOrWhiteSpace(userUpdateInfo.Password))
+            {
+                existedUser.Password = userUpdateInfo.Password;
+            }
+
+            if (!string.IsNullOrWhiteSpace(userUpdateInfo.PhoneNumber))
+            {
+                existedUser.PhoneNumber = userUpdateInfo.PhoneNumber;
+            }
 
             string authToken = GenerateNewAuthToken();
 

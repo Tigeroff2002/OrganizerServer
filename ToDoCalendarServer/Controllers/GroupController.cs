@@ -93,17 +93,19 @@ public sealed class GroupController : ControllerBase
     }
 
     [HttpPut]
-    [Route("add_participants")]
+    [Route("update_group_params")]
     public async Task<IActionResult> AddParticipants(CancellationToken token)
     {
         var body = await ReadRequestBodyAsync();
 
-        var groupAddParticipants = JsonConvert.DeserializeObject<GroupAddParticipants>(body);
+        var updateGroupParams = JsonConvert.DeserializeObject<UpdateGroupParams>(body);
 
-        Debug.Assert(groupAddParticipants != null);
+        Debug.Assert(updateGroupParams != null);
 
-        var existedGroup = await _groupsRepository.GetGroupByIdAsync(
-            groupAddParticipants.GroupId, token);
+        var groupId = updateGroupParams.GroupId;
+        var currentUserId = updateGroupParams.UserId;
+
+        var existedGroup = await _groupsRepository.GetGroupByIdAsync(groupId, token);
 
         if (existedGroup != null)
         {
@@ -113,7 +115,7 @@ public sealed class GroupController : ControllerBase
             }
 
             if (existedGroup.Participants
-                    .FirstOrDefault(x => x.Id == groupAddParticipants.UserId) == null)
+                    .FirstOrDefault(x => x.Id == currentUserId) == null)
             {
                 var response1 = new Response();
                 response1.Result = false;
@@ -122,27 +124,40 @@ public sealed class GroupController : ControllerBase
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
 
-            var listUsers = new List<User>();
-
-            var existedUsers = await _usersRepository.GetAllUsersAsync(token);
-
-            foreach (var userId in groupAddParticipants.Participants)
+            if (updateGroupParams.Participants != null) 
             {
-                var currentUser = existedUsers.FirstOrDefault(x => x.Id == userId);
+                var listUsers = new List<User>();
 
-                if (currentUser != null)
+                var existedUsers = await _usersRepository.GetAllUsersAsync(token);
+
+                foreach (var userId in updateGroupParams.Participants)
                 {
-                    listUsers.Add(currentUser);
+                    var currentUser = existedUsers.FirstOrDefault(x => x.Id == userId);
+
+                    if (currentUser != null)
+                    {
+                        listUsers.Add(currentUser);
+                    }
                 }
+
+                existedGroup.Participants.AddRange(listUsers);
             }
 
-            existedGroup.Participants.AddRange(listUsers);
+            if (!string.IsNullOrWhiteSpace(updateGroupParams.GroupName))
+            {
+                existedGroup.GroupName = updateGroupParams.GroupName;
+            }
+
+            if (updateGroupParams.Type != Models.Enums.GroupType.None)
+            {
+                existedGroup.Type = updateGroupParams.Type;
+            }
 
             await _groupsRepository.UpdateAsync(existedGroup, token);
 
             var response = new Response();
             response.Result = true;
-            response.OutInfo = $"New participants to group with id {groupAddParticipants.GroupId} were added";
+            response.OutInfo = $"New participants to group with id {groupId} were added";
 
             var json = JsonConvert.SerializeObject(response);
 
@@ -151,7 +166,7 @@ public sealed class GroupController : ControllerBase
 
         var response2 = new Response();
         response2.Result = true;
-        response2.OutInfo = $"No such group with id {groupAddParticipants.GroupId}";
+        response2.OutInfo = $"No such group with id {groupId}";
 
         return BadRequest(JsonConvert.SerializeObject(response2));
     }

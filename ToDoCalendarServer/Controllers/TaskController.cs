@@ -4,6 +4,7 @@ using Contracts.Response;
 using Microsoft.AspNetCore.Mvc;
 using Models;
 using Models.BusinessModels;
+using Models.Enums;
 using Newtonsoft.Json;
 using PostgreSQL.Abstractions;
 using System.Diagnostics;
@@ -110,23 +111,41 @@ public sealed class TaskController : ControllerBase
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
 
-            existedTask.Caption = taskUpdateParams.TaskCaption;
-            existedTask.Description = taskUpdateParams.TaskDescription;
-            existedTask.TaskType = taskUpdateParams.TaskType;
-            existedTask.TaskStatus = taskUpdateParams.TaskStatus;
-
-            var implementer = await _usersRepository.GetUserByIdAsync(taskUpdateParams.ImplementerId, token);
-
-            if (implementer == null)
+            if (!string.IsNullOrWhiteSpace(taskUpdateParams.TaskCaption))
             {
-                var response1 = new Response();
-                response1.Result = false;
-                response1.OutInfo = $"Task has not been modified cause new implementer was not found";
-
-                return BadRequest(JsonConvert.SerializeObject(response1));
+                existedTask.Caption = taskUpdateParams.TaskCaption;
             }
 
-            existedTask.Implementer = implementer;
+            if (!string.IsNullOrWhiteSpace(taskUpdateParams.TaskDescription))
+            {
+                existedTask.Description = taskUpdateParams.TaskDescription;
+            }
+
+            if (taskUpdateParams.TaskType != TaskType.None)
+            {
+                existedTask.TaskType = taskUpdateParams.TaskType;
+            }          
+
+            if (taskUpdateParams.TaskStatus != TaskCurrentStatus.None)
+            {
+                existedTask.TaskStatus = taskUpdateParams.TaskStatus;
+            }
+
+            if (taskUpdateParams.ImplementerId != -1)
+            {
+                var implementer = await _usersRepository.GetUserByIdAsync(taskUpdateParams.ImplementerId, token);
+
+                if (implementer == null)
+                {
+                    var response1 = new Response();
+                    response1.Result = false;
+                    response1.OutInfo = $"Task has not been modified cause new implementer was not found";
+
+                    return BadRequest(JsonConvert.SerializeObject(response1));
+                }
+
+                existedTask.Implementer = implementer;
+            }
 
             await _tasksRepository.UpdateAsync(existedTask, token);
 

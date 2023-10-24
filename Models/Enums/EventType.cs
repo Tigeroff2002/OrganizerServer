@@ -2,6 +2,8 @@
 
 public enum EventType
 {
+    None,
+
     Personal,
 
     OneToOne,

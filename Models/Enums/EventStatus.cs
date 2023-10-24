@@ -2,8 +2,13 @@
 
 public enum EventStatus
 {
+    None,
+
     NotStarted,
+
     Live,
+
     Finished,
+
     Cancelled
 }

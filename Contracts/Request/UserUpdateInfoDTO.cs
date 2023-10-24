@@ -4,15 +4,15 @@ namespace Contracts.Request;
 
 public class UserUpdateInfoDTO : RequestWithToken
 {
-    [JsonProperty("email", Required = Required.Always)]
-    public required string Email { get; init; }
+    [JsonProperty("email", Required = Required.Default)]
+    public string Email { get; set; } = default!;
 
-    [JsonProperty("name", Required = Required.Always)]
-    public required string UserName { get; init; }
+    [JsonProperty("name", Required = Required.Default)]
+    public string UserName { get; set; } = default!;
 
-    [JsonProperty("password", Required = Required.Always)]
-    public required string Password { get; init; }
+    [JsonProperty("password", Required = Required.Default)]
+    public string Password { get; set; } = default!;
 
-    [JsonProperty("phone_number", Required = Required.Always)]
-    public required string PhoneNumber { get; init; }
+    [JsonProperty("phone_number", Required = Required.Default)]
+    public string PhoneNumber { get; set; } = default!;
 }
