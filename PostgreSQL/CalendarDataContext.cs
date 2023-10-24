@@ -92,7 +92,8 @@ public class CalendarDataContext : DbContext
 
         _ = modelBuilder.Entity<User>()
             .HasMany(x => x.ReportedTasks)
-            .WithOne(x => x.Reporter);
+            .WithOne(x => x.Reporter)
+            .OnDelete(DeleteBehavior.Cascade);
 
         _ = modelBuilder.Entity<User>()
             .HasMany(x => x.TasksForImplementation)
@@ -100,7 +101,8 @@ public class CalendarDataContext : DbContext
 
         _ = modelBuilder.Entity<User>()
             .HasMany(x => x.Reports)
-            .WithOne(x => x.User);
+            .WithOne(x => x.User)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 
     public static void CreateGroupsModels(ModelBuilder modelBuilder)
@@ -140,11 +142,13 @@ public class CalendarDataContext : DbContext
 
         _ = modelBuilder.Entity<Event>()
             .HasOne(x => x.RelatedGroup)
-            .WithMany(x => x.RelatedEvents);
+            .WithMany(x => x.RelatedEvents)
+            .OnDelete(DeleteBehavior.Cascade);
 
         _ = modelBuilder.Entity<Event>()
             .HasOne(x => x.Manager)
-            .WithMany(x => x.ManagedEvents);
+            .WithMany(x => x.ManagedEvents)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 
     public static void CreateTasksModels(ModelBuilder modelBuilder)
@@ -191,12 +195,14 @@ public class CalendarDataContext : DbContext
         _ = modelBuilder.Entity<GroupingUsersMap>()
             .HasOne(map => map.User)
             .WithMany(gm => gm.GroupingMaps)
-            .HasForeignKey(map => map.UserId);
+            .HasForeignKey(map => map.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         _ = modelBuilder.Entity<GroupingUsersMap>()
             .HasOne(map => map.Group)
             .WithMany(pm => pm.ParticipantsMap)
-            .HasForeignKey(map => map.GroupId);
+            .HasForeignKey(map => map.GroupId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         _ = modelBuilder.Entity<GroupingUsersMap>()
             .ToTable("groups_users_map");
@@ -210,12 +216,14 @@ public class CalendarDataContext : DbContext
         _ = modelBuilder.Entity<EventsUsersMap>()
             .HasOne(map => map.User)
             .WithMany(em => em.EventMaps)
-            .HasForeignKey(map => map.UserId);
+            .HasForeignKey(map => map.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         _ = modelBuilder.Entity<EventsUsersMap>()
             .HasOne(map => map.Event)
             .WithMany(gm => gm.GuestsMap)
-            .HasForeignKey(map => map.EventId);
+            .HasForeignKey(map => map.EventId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         _ = modelBuilder.Entity<EventsUsersMap>()
             .Property(x => x.DecisionType);
