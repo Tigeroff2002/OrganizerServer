@@ -19,6 +19,12 @@ public class CalendarDataContext : DbContext
 
     public virtual DbSet<Report> Reports { get; set; } = default!;
 
+    // дополнительные сущности для отношений many-to-many
+
+    public virtual DbSet<GroupingUsersMap> GroupingUsersMaps { get; set; } = default!;
+
+    public virtual DbSet<EventsUsersMap> EventsUsersMaps { get; set; } = default!;
+
     [Obsolete]
     static CalendarDataContext()
         => NpgsqlConnection.GlobalTypeMapper

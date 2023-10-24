@@ -28,6 +28,12 @@ public sealed class RepositoryContext
     /// <inheritdoc/>
     public DbSet<Report> Reports => _context.Reports;
 
+    /// <inheritdoc/>
+    public DbSet<GroupingUsersMap> GroupingUsersMaps => _context.GroupingUsersMaps;
+
+    /// <inheritdoc/>
+    public DbSet<EventsUsersMap> EventsUsersMaps => _context.EventsUsersMaps;
+
     /// <summary>
     /// Создаёт новый экземпляр <see cref="RepositoryContext"/>
     /// </summary>

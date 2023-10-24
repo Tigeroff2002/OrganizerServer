@@ -16,5 +16,9 @@ public interface IRepositoryContext
 
     DbSet<Report> Reports { get; }
 
+    DbSet<GroupingUsersMap> GroupingUsersMaps { get; }
+
+    DbSet<EventsUsersMap> EventsUsersMaps { get; }
+
     void SaveChanges();
 }
