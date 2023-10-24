@@ -18,7 +18,11 @@ public class UserTask
 
     public virtual User Reporter { get; set; }
 
+    public int ReporterId { get; set; }
+
     public virtual User Implementer { get; set; }
+
+    public int ImplementerId { get; set; }
 
     public UserTask() { }
 }

@@ -60,10 +60,14 @@ public sealed class UsersCodeConfirmer
             useSsl: true,
             token);
 
+        await smtpClient.AuthenticateAsync(
+            _configuration.FromAdress,
+            _configuration.FromPassword);
+
         _logger.LogInformation("Connected to smtp server");
 
         var code =
-            RandomNumberGenerator.GetInt32(10000000).ToString().PadLeft(6, '0');
+            RandomNumberGenerator.GetInt32(1_000_000).ToString().PadLeft(6, '0');
 
         var subject = "Registration new calendar app account";
 

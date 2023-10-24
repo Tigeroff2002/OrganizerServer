@@ -68,7 +68,7 @@ public sealed class ReportController : ControllerBase
 
         var json = JsonConvert.SerializeObject(response);
 
-        return Ok(response);
+        return Ok(json);
     }
 
     [HttpDelete]

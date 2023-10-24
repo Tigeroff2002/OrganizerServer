@@ -16,9 +16,6 @@ public sealed class GroupingUsersMapRepository
         _provider = provider ?? throw new ArgumentNullException(nameof(provider));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
-        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
-
         _logger.LogInformation("Grouping users map repository was created just now");
     }
 

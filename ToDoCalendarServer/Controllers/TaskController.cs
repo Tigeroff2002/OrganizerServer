@@ -84,7 +84,7 @@ public sealed class TaskController : ControllerBase
 
         var json = JsonConvert.SerializeObject(response);
 
-        return Ok(response);
+        return Ok(json);
     }
 
     [HttpPut]

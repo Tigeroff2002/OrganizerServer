@@ -146,7 +146,7 @@ public sealed class EventController : ControllerBase
 
         var json = JsonConvert.SerializeObject(response);
 
-        return Ok(response);
+        return Ok(json);
     }
 
     [HttpPut]
@@ -261,6 +261,78 @@ public sealed class EventController : ControllerBase
             var response = new Response();
             response.Result = true;
             response.OutInfo = existedEvent.RelatedGroup != null
+                ? $"Existed event with id = {eventId} related" +
+                    $" to group {existedEvent.RelatedGroup.Id} has been modified"
+                : $"Existed event with id = {eventId} personal for manager " +
+                    $"with id {existedEvent.Manager.Id} has been modified";
+
+            var json = JsonConvert.SerializeObject(response);
+
+            return Ok(json);
+        }
+
+        var response2 = new Response();
+        response2.Result = true;
+        response2.OutInfo = $"No such event with id {eventId}";
+
+        return BadRequest(JsonConvert.SerializeObject(response2));
+    }
+
+    [HttpPut]
+    [Route("change_user_decision_for_event")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
+    public async Task<IActionResult> ChangeUserDecisionForEvent(CancellationToken token)
+    {
+        var body = await ReadRequestBodyAsync();
+
+        var updateEventParams = JsonConvert.DeserializeObject<EventUserDecisionDTO>(body);
+
+        Debug.Assert(updateEventParams != null);
+
+        var eventId = updateEventParams.EventId;
+
+        var existedEvent = await _eventsRepository.GetEventByIdAsync(eventId, token);
+
+        if (existedEvent != null)
+        {
+            var userId = updateEventParams.UserId;
+
+            var user = await _usersRepository.GetUserByIdAsync(userId, token);
+
+            if (user == null)
+            {
+                var response1 = new Response();
+                response1.Result = false;
+                response1.OutInfo = $"Event has not been modified cause current user was not found";
+
+                return BadRequest(JsonConvert.SerializeObject(response1));
+            }
+
+            var existedUserEventMap = await _eventsUsersMapRepository
+                .GetEventUserMapByIdsAsync(eventId, userId, token);
+
+            if (existedUserEventMap == null)
+            {
+                var response1 = new Response();
+                response1.Result = false;
+                response1.OutInfo = 
+                    $"User decision for event {eventId} has not been modified" +
+                    $" cause user with id {userId} not relate to that";
+
+                return BadRequest(JsonConvert.SerializeObject(response1));
+            }
+
+            if (updateEventParams.DecisionType != Models.Enums.DecisionType.None)
+            {
+                var decisionType = updateEventParams.DecisionType;
+
+                await _eventsUsersMapRepository
+                    .UpdateDecisionAsync(eventId, userId, decisionType, token);
+            }
+
+            var response = new Response();
+            response.Result = true;
+            response.OutInfo = existedEvent.RelatedGroup != null
                 ? $"New event with id = {eventId} related" +
                     $" to group {existedEvent.RelatedGroup.Id}" +
                     $" with name {existedEvent.RelatedGroup.GroupName} has been created"
@@ -269,7 +341,7 @@ public sealed class EventController : ControllerBase
 
             var json = JsonConvert.SerializeObject(response);
 
-            return Ok(response);
+            return Ok(json);
         }
 
         var response2 = new Response();
@@ -329,7 +401,7 @@ public sealed class EventController : ControllerBase
 
             var json = JsonConvert.SerializeObject(response);
 
-            return Ok(response);
+            return Ok(json);
         }
 
         var response2 = new Response();
@@ -470,7 +542,7 @@ public sealed class EventController : ControllerBase
 
             var json = JsonConvert.SerializeObject(response);
 
-            return Ok(response);
+            return Ok(json);
         }
 
         var response2 = new Response();

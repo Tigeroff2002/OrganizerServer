@@ -2,6 +2,7 @@
 using Contracts.Request.RequestById;
 using Contracts.Response;
 using Logic.Abstractions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Models;
 using Models.BusinessModels;
@@ -32,6 +33,7 @@ public sealed class GroupController : ControllerBase
 
     [HttpPost]
     [Route("create")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> CreateGroup(CancellationToken token)
     {
         var body = await ReadRequestBodyAsync();
@@ -109,11 +111,12 @@ public sealed class GroupController : ControllerBase
 
         var json = JsonConvert.SerializeObject(response);
 
-        return Ok(response);
+        return Ok(json);
     }
 
     [HttpPut]
     [Route("update_group_params")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> AddParticipants(CancellationToken token)
     {
         var body = await ReadRequestBodyAsync();
@@ -134,7 +137,7 @@ public sealed class GroupController : ControllerBase
                 existedGroup.ParticipantsMap = new List<GroupingUsersMap>();
             }
 
-            var existedMap = _groupingUsersMapRepository
+            var existedMap = await _groupingUsersMapRepository
                 .GetGroupingUserMapByIdsAsync(groupId, currentUserId, token);
 
             if (existedMap == null)
@@ -161,9 +164,7 @@ public sealed class GroupController : ControllerBase
                         var map = new GroupingUsersMap
                         {
                             UserId = userId,
-                            User = currentUser,
                             GroupId = groupId,
-                            Group = existedGroup
                         };
 
                         await _groupingUsersMapRepository.AddAsync(map, token);
@@ -205,6 +206,7 @@ public sealed class GroupController : ControllerBase
 
     [HttpDelete]
     [Route("delete_participant")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> DeleteParticipant(CancellationToken token)
     {
         var body = await ReadRequestBodyAsync();
@@ -236,7 +238,7 @@ public sealed class GroupController : ControllerBase
                 existedGroup.ParticipantsMap = new List<GroupingUsersMap>();
             }
 
-            var existedUserMap = _groupingUsersMapRepository
+            var existedUserMap = await _groupingUsersMapRepository
                 .GetGroupingUserMapByIdsAsync(groupId, existedUser.Id, token);
 
             if (existedUserMap == null)
@@ -274,6 +276,7 @@ public sealed class GroupController : ControllerBase
 
     [HttpGet]
     [Route("get_group_info")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> GetGroupInfo(CancellationToken token)
     {
         var body = await ReadRequestBodyAsync();
@@ -294,7 +297,7 @@ public sealed class GroupController : ControllerBase
                 existedGroup.ParticipantsMap = new List<GroupingUsersMap>();
             }
 
-            var existedMap = _groupingUsersMapRepository
+            var existedMap = await _groupingUsersMapRepository
                 .GetGroupingUserMapByIdsAsync(groupId, userId, token);
 
             if (existedMap == null)

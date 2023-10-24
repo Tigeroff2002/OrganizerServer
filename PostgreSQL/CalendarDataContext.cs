@@ -93,15 +93,18 @@ public class CalendarDataContext : DbContext
         _ = modelBuilder.Entity<User>()
             .HasMany(x => x.ReportedTasks)
             .WithOne(x => x.Reporter)
+            .HasForeignKey(x => x.ReporterId)
             .OnDelete(DeleteBehavior.Cascade);
 
         _ = modelBuilder.Entity<User>()
             .HasMany(x => x.TasksForImplementation)
-            .WithOne(x => x.Implementer);
+            .WithOne(x => x.Implementer)
+            .HasForeignKey(x => x.ImplementerId);
 
         _ = modelBuilder.Entity<User>()
             .HasMany(x => x.Reports)
             .WithOne(x => x.User)
+            .HasForeignKey(x => x.UserId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 
@@ -143,11 +146,13 @@ public class CalendarDataContext : DbContext
         _ = modelBuilder.Entity<Event>()
             .HasOne(x => x.RelatedGroup)
             .WithMany(x => x.RelatedEvents)
+            .HasForeignKey(x => x.RelatedGroupId)
             .OnDelete(DeleteBehavior.Cascade);
 
         _ = modelBuilder.Entity<Event>()
             .HasOne(x => x.Manager)
             .WithMany(x => x.ManagedEvents)
+            .HasForeignKey(x => x.ManagerId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 

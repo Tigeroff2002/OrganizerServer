@@ -22,7 +22,11 @@ public class Event
 
     public virtual Group RelatedGroup { get; set; }
 
+    public int RelatedGroupId { get; set;  }
+
     public virtual User Manager { get; set; }
+
+    public int ManagerId { get; set; }  
 
     public virtual List<EventsUsersMap> GuestsMap { get; set; }
 
