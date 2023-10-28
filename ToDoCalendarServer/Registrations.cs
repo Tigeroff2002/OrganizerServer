@@ -19,13 +19,13 @@ public static class Registrations
 {
     public static IServiceCollection AddHostedServices(
         this IServiceCollection services)
-        => services.AddHostedService<NotifyService>();
+        => services.AddHostedService<EventNotifyService>();
 
     public static IServiceCollection AddLogic(
         this IServiceCollection services,
         IConfiguration configuration)
         => services
-            .AddSingleton<INotificationsHandler, NotificationsHandler>()
+            .AddSingleton<IEventNotificationsHandler, EventNotificationsHandler>()
             .AddSingleton<IUsersDataHandler, UsersDataHandler>()
             .AddSingleton<IUsersCodeConfirmer, UsersCodeConfirmer>()
             .AddConfiguration(configuration)
@@ -52,9 +52,7 @@ public static class Registrations
             .AddSingleton<IGroupsRepository, GroupsRepository>()
             .AddSingleton<IEventsRepository, EventsRepository>()
             .AddSingleton<ITasksRepository, TasksRepository>()
-            .AddSingleton<IReportsRepository, ReportsRepository>()
-            .AddSingleton<IGroupingUsersMapRepository, GroupingUsersMapRepository>()
-            .AddSingleton<IEventsUsersMapRepository, EventsUsersMapRepository>();
+            .AddSingleton<IReportsRepository, ReportsRepository>();
 
     public static IServiceCollection AddConfiguration(
         this IServiceCollection services,

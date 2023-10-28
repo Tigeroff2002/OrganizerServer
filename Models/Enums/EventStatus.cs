@@ -6,6 +6,8 @@ public enum EventStatus
 
     NotStarted,
 
+    WithinReminderOffset,
+
     Live,
 
     Finished,
