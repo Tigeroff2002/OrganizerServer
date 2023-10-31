@@ -74,6 +74,8 @@ public sealed class TaskController : ControllerBase
 
         await _tasksRepository.AddAsync(task, token);
 
+        _tasksRepository.SaveChanges();
+
         var taskId = task.Id;
 
         var response = new Response();
@@ -164,6 +166,8 @@ public sealed class TaskController : ControllerBase
 
             await _tasksRepository.UpdateAsync(existedTask, token);
 
+            _tasksRepository.SaveChanges();
+
             var response = new Response();
             response.Result = true;
             response.OutInfo = $"New info was added to task with id {taskId}";
@@ -216,6 +220,8 @@ public sealed class TaskController : ControllerBase
             }
 
             await _tasksRepository.DeleteAsync(taskId, token);
+
+            _tasksRepository.SaveChanges();
 
             var response = new Response();
             response.Result = true;

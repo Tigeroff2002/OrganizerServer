@@ -62,6 +62,8 @@ public sealed class GroupController : ControllerBase
 
         await _groupsRepository.AddAsync(group, token);
 
+        _groupsRepository.SaveChanges();
+
         var groupId = group.Id;
 
         var listGroupingUsersMap = new List<GroupingUsersMap>();
@@ -87,6 +89,8 @@ public sealed class GroupController : ControllerBase
                     listGroupingUsersMap.Add(map);
                 }
             }
+
+            _groupingUsersMapRepository.SaveChanges();
         }
 
         var selfUserMap = new GroupingUsersMap
@@ -97,11 +101,7 @@ public sealed class GroupController : ControllerBase
 
         await _groupingUsersMapRepository.AddAsync(selfUserMap, token);
 
-        listGroupingUsersMap.Add(selfUserMap);
-
-        group.ParticipantsMap = listGroupingUsersMap;
-
-        await _groupsRepository.UpdateAsync(group, token);
+        _groupingUsersMapRepository.SaveChanges();
 
         var response = new Response();
         response.Result = true;
@@ -173,6 +173,8 @@ public sealed class GroupController : ControllerBase
                     }
                 }
 
+                _groupingUsersMapRepository.SaveChanges();
+
                 if (existedGroup.ParticipantsMap == null)
                 {
                     existedGroup.ParticipantsMap = listGroupingUsersMap;
@@ -194,6 +196,8 @@ public sealed class GroupController : ControllerBase
             }
 
             await _groupsRepository.UpdateAsync(existedGroup, token);
+
+            _groupsRepository.SaveChanges();
 
             var response = new Response();
             response.Result = true;
@@ -261,10 +265,14 @@ public sealed class GroupController : ControllerBase
 
             await _groupingUsersMapRepository.DeleteAsync(groupId, participantId, token);
 
+            _groupingUsersMapRepository.SaveChanges();
+
             existedGroup.ParticipantsMap = 
                 existedGroup.ParticipantsMap.Where(x => x.UserId != participantId).ToList();
 
             await _groupsRepository.UpdateAsync(existedGroup, token);
+
+            _groupsRepository.SaveChanges();
 
             var response = new Response();
             response.Result = true;

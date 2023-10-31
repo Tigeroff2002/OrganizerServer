@@ -59,6 +59,8 @@ public sealed class ReportController : ControllerBase
 
         await _reportsRepository.AddAsync(report, token);
 
+        _reportsRepository.SaveChanges();
+
         var reportId = report.Id;
 
         var response = new Response();
@@ -99,6 +101,10 @@ public sealed class ReportController : ControllerBase
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
+
+            await _reportsRepository.DeleteAsync(reportId, token);
+
+            _reportsRepository.SaveChanges();
 
             var response = new Response();
             response.Result = true;

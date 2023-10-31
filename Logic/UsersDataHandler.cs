@@ -109,11 +109,13 @@ public sealed class UsersDataHandler
 
         await _usersRepository.AddAsync(user, token);
 
+        _usersRepository.SaveChanges();
+
         var response = new Response();
         response.Result = true;
 
         builder.Append(
-            $"Registrating new user {user.Email}" +
+            $"Registrating new user {user.Email} with id {user.Id}" +
             $" with creating new auth token {authToken}");
 
         response.OutInfo = builder.ToString();
@@ -164,6 +166,8 @@ public sealed class UsersDataHandler
         existedUser.AuthToken = authToken;
 
         await _usersRepository.UpdateAsync(existedUser, token);
+
+        _usersRepository.SaveChanges();
 
         var userName = existedUser.UserName;
 
@@ -246,6 +250,8 @@ public sealed class UsersDataHandler
             existedUser.AuthToken = authToken;
 
             await _usersRepository.UpdateAsync(existedUser, token);
+
+            _usersRepository.SaveChanges();
 
             var response1 = new GetResponse();
             response1.Result = true;
