@@ -93,6 +93,8 @@ public sealed class EventController : ControllerBase
 
         await _eventsRepository.AddAsync(@event, token);
 
+        _eventsRepository.SaveChanges();
+
         var eventId = @event.Id;
 
         @event.Manager = manager;
@@ -124,6 +126,8 @@ public sealed class EventController : ControllerBase
                     listGuestsMaps.Add(map);
                 }
             }
+
+            _eventsUsersMapRepository.SaveChanges();
         }
 
         var managerMap = new EventsUsersMap
@@ -135,11 +139,15 @@ public sealed class EventController : ControllerBase
 
         await _eventsUsersMapRepository.AddAsync(managerMap, token);
 
+        _eventsUsersMapRepository.SaveChanges();
+
         listGuestsMaps.Add(managerMap);
 
         @event.GuestsMap = listGuestsMaps;
 
         await _eventsRepository.UpdateAsync(@event, token);
+
+        _eventsRepository.SaveChanges();
 
         var response = new Response();
         response.Result = true;
@@ -231,6 +239,8 @@ public sealed class EventController : ControllerBase
                         await _eventsUsersMapRepository.AddAsync(map, token);
                     }
 
+                    _eventsUsersMapRepository.SaveChanges();
+
                     if (existedEvent.GuestsMap == null)
                     {
                         existedEvent.GuestsMap = listGuestsMap;
@@ -273,6 +283,8 @@ public sealed class EventController : ControllerBase
             }
 
             await _eventsRepository.UpdateAsync(existedEvent, token);
+
+            _eventsRepository.SaveChanges();
 
             var response = new Response();
             response.Result = true;
@@ -344,6 +356,8 @@ public sealed class EventController : ControllerBase
             {
                 await _eventsUsersMapRepository
                     .UpdateDecisionAsync(eventId, userId, decisionType, token);
+
+                _eventsUsersMapRepository.SaveChanges();
             }
 
             var response = new Response();
@@ -412,6 +426,8 @@ public sealed class EventController : ControllerBase
             }
 
             await _eventsRepository.DeleteAsync(eventId, token);
+
+            _eventsRepository.SaveChanges();
 
             var response = new Response();
             response.Result = true;

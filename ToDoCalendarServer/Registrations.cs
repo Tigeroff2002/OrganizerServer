@@ -28,7 +28,7 @@ public static class Registrations
             .AddSingleton<IEventNotificationsHandler, EventNotificationsHandler>()
             .AddSingleton<IUsersDataHandler, UsersDataHandler>()
             .AddSingleton<IUsersCodeConfirmer, UsersCodeConfirmer>()
-            .AddConfiguration(configuration)
+            .AddConfigurations(configuration)
             .AddSingleton<IGroupsHandler, GroupsHandler>()
             .AddSingleton<IEventsHandler, EventsHandler>()
             .AddSingleton<ITasksHandler, TasksHandler>()
@@ -50,16 +50,20 @@ public static class Registrations
             .AddScoped<IRepositoryContext, RepositoryContext>()
             .AddSingleton<IUsersRepository, UsersRepository>()
             .AddSingleton<IGroupsRepository, GroupsRepository>()
-            .AddSingleton<IEventsRepository, EventsRepository>()
+            .AddScoped<IEventsRepository, EventsRepository>()
             .AddSingleton<ITasksRepository, TasksRepository>()
-            .AddSingleton<IReportsRepository, ReportsRepository>();
+            .AddSingleton<IReportsRepository, ReportsRepository>()
+            .AddSingleton<IGroupingUsersMapRepository, GroupingUsersMapRepository>()
+            .AddSingleton<IEventsUsersMapRepository, EventsUsersMapRepository>();
 
-    public static IServiceCollection AddConfiguration(
+    public static IServiceCollection AddConfigurations(
         this IServiceCollection services,
         IConfiguration configuration)
         => services
             .Configure<SmtpConfiguration>(
-                configuration.GetSection(nameof(SmtpConfiguration)));
+                configuration.GetSection(nameof(SmtpConfiguration)))
+            .Configure<NotificationConfiguration>(
+                configuration.GetSection(nameof(NotificationConfiguration)));
 
     public static AuthenticationBuilder AddAuthBuilder(
         this IServiceCollection services)

@@ -16,6 +16,9 @@ public sealed class GroupingUsersMapRepository
         _provider = provider ?? throw new ArgumentNullException(nameof(provider));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
+        var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
+
         _logger.LogInformation("Grouping users map repository was created just now");
     }
 
@@ -25,9 +28,6 @@ public sealed class GroupingUsersMapRepository
 
         token.ThrowIfCancellationRequested();
 
-        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
-        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
-
         var existedMap = await _repositoryContext.GroupingUsersMaps
             .FirstOrDefaultAsync(x => x.UserId == map.UserId && x.GroupId == map.GroupId);
 
@@ -35,8 +35,6 @@ public sealed class GroupingUsersMapRepository
         {
             await _repositoryContext.GroupingUsersMaps.AddAsync(map, token);
         }
-
-        SaveChanges();
     }
 
     public async Task<GroupingUsersMap?> GetGroupingUserMapByIdsAsync(
@@ -46,9 +44,6 @@ public sealed class GroupingUsersMapRepository
     {
         token.ThrowIfCancellationRequested();
 
-        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
-        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
-
         return await _repositoryContext.GroupingUsersMaps
             .FirstOrDefaultAsync(x => x.UserId == userId && x.GroupId == groupId);
     }
@@ -57,18 +52,12 @@ public sealed class GroupingUsersMapRepository
     {
         token.ThrowIfCancellationRequested();
 
-        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
-        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
-
         return await _repositoryContext.GroupingUsersMaps.ToListAsync();
     }
 
     public async Task DeleteAsync(int groupId, int userId, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-
-        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
-        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
         var map = await _repositoryContext.GroupingUsersMaps
             .FirstOrDefaultAsync(
@@ -79,8 +68,6 @@ public sealed class GroupingUsersMapRepository
         {
             _repositoryContext.GroupingUsersMaps.Entry(map).State = EntityState.Deleted;
         }
-
-        SaveChanges();
     }
 
     public void SaveChanges()
@@ -91,6 +78,6 @@ public sealed class GroupingUsersMapRepository
     }
 
     private readonly IServiceProvider _provider;
-    private IRepositoryContext _repositoryContext;
+    private readonly IRepositoryContext _repositoryContext;
     private readonly ILogger _logger;
 }

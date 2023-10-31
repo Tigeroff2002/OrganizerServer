@@ -16,6 +16,9 @@ public sealed class TasksRepository
         _provider = provider ?? throw new ArgumentNullException(nameof(provider));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
+        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
+
         _logger.LogInformation("Tasks repository was created just now");
     }
 
@@ -25,20 +28,12 @@ public sealed class TasksRepository
 
         token.ThrowIfCancellationRequested();
 
-        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
-        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
-
         await _repositoryContext.Tasks.AddAsync(task, token);
-
-        SaveChanges();
     }
 
     public async Task<UserTask?> GetTaskByIdAsync(int taskId, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-
-        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
-        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
         return await _repositoryContext.Tasks.FirstOrDefaultAsync(x => x.Id == taskId);
     }
@@ -47,9 +42,6 @@ public sealed class TasksRepository
     {
         token.ThrowIfCancellationRequested();
 
-        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
-        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
-
         return _repositoryContext.Tasks.ToListAsync(token);
     }
 
@@ -57,17 +49,12 @@ public sealed class TasksRepository
     {
         token.ThrowIfCancellationRequested();
 
-        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
-        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
-
         var task = await _repositoryContext.Tasks.FirstOrDefaultAsync(x => x.Id == taskId);
 
         if (task != null)
         {
             _repositoryContext.Tasks.Entry(task).State = EntityState.Deleted;
         }
-
-        SaveChanges();
     }
 
     public async Task UpdateAsync(UserTask task, CancellationToken token)
@@ -75,9 +62,6 @@ public sealed class TasksRepository
         ArgumentNullException.ThrowIfNull(task);
 
         token.ThrowIfCancellationRequested();
-
-        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
-        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
         var localTask = await _repositoryContext.Tasks.FirstOrDefaultAsync(x => x.Id == task.Id);
 
@@ -87,8 +71,6 @@ public sealed class TasksRepository
         }
 
         localTask = task.Map<UserTask>();
-
-        SaveChanges();
     }
 
     public void SaveChanges()
@@ -99,6 +81,6 @@ public sealed class TasksRepository
     }
 
     private readonly IServiceProvider _provider;
-    private IRepositoryContext _repositoryContext;
+    private readonly IRepositoryContext _repositoryContext;
     private readonly ILogger _logger;
 }

@@ -18,6 +18,9 @@ public sealed class EventsUsersMapRepository
         _provider = provider ?? throw new ArgumentNullException(nameof(provider));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
+        var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
+
         _logger.LogInformation("Events users map repository was created just now");
     }
 
@@ -27,9 +30,6 @@ public sealed class EventsUsersMapRepository
 
         token.ThrowIfCancellationRequested();
 
-        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
-        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
-
         var existedMap = await _repositoryContext.EventsUsersMaps
             .FirstOrDefaultAsync(x => x.UserId == map.UserId && x.EventId == map.EventId);
 
@@ -37,16 +37,11 @@ public sealed class EventsUsersMapRepository
         {
             await _repositoryContext.EventsUsersMaps.AddAsync(map, token);
         }
-
-        SaveChanges();
     }
 
     public async Task DeleteAsync(int eventId, int userId, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-
-        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
-        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
         var map = await _repositoryContext.EventsUsersMaps
             .FirstOrDefaultAsync(
@@ -57,16 +52,11 @@ public sealed class EventsUsersMapRepository
         {
             _repositoryContext.EventsUsersMaps.Entry(map).State = EntityState.Deleted;
         }
-
-        SaveChanges();
     }
 
     public async Task<EventsUsersMap?> GetEventUserMapByIdsAsync(int eventId, int userId, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-
-        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
-        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
         return await _repositoryContext.EventsUsersMaps
             .FirstOrDefaultAsync(x => x.UserId == userId && x.EventId == eventId);
@@ -75,9 +65,6 @@ public sealed class EventsUsersMapRepository
     public async Task<List<EventsUsersMap>> GetAllMapsAsync(CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-
-        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
-        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
         return await _repositoryContext.EventsUsersMaps.ToListAsync();
     }
@@ -90,9 +77,6 @@ public sealed class EventsUsersMapRepository
     {
         token.ThrowIfCancellationRequested();
 
-        using var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
-        _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
-
         var localMap = await _repositoryContext.EventsUsersMaps
             .FirstOrDefaultAsync(
                 x => x.EventId == eventId
@@ -102,8 +86,6 @@ public sealed class EventsUsersMapRepository
         {
             localMap.DecisionType = decisionType;
         }
-
-        SaveChanges();
     }
 
     public void SaveChanges()
@@ -114,6 +96,6 @@ public sealed class EventsUsersMapRepository
     }
 
     private readonly IServiceProvider _provider;
-    private IRepositoryContext _repositoryContext;
+    private readonly IRepositoryContext _repositoryContext;
     private readonly ILogger _logger;
 }
