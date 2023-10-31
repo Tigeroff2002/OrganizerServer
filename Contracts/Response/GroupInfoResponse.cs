@@ -13,6 +13,6 @@ public sealed class GroupInfoResponse
     [JsonProperty("group_type", Required = Required.Always)]
     public required GroupType Type { get; init; }
 
-    [JsonProperty("participants", Required = Required.Default)]
+    [JsonProperty("participants", NullValueHandling = NullValueHandling.Ignore)]
     public List<ShortUserInfo> Participants { get; set; } = default!;
 }

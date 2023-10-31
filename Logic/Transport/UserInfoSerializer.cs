@@ -7,9 +7,9 @@ using Newtonsoft.Json;
 namespace Logic.Transport;
 
 public sealed class UserInfoSerializer
-    : ISerializer<User>
+    : ISerializer<UserInfoContent>
 {
-    public string Serialize(User entity)
+    public string Serialize(UserInfoContent entity)
     {
         ArgumentNullException.ThrowIfNull(entity);
 
@@ -18,32 +18,20 @@ public sealed class UserInfoSerializer
         return JsonConvert.SerializeObject(dto);
     }
 
-    public static UserInfoResponse FromModel(User user)
+    public static UserInfoResponse FromModel(UserInfoContent user)
     {
         ArgumentNullException.ThrowIfNull(user);
 
-        return new()
+        return new UserInfoResponse
         {
-            UserId = user.Id,
             UserName = user.UserName,
+            Password = user.Password,
             UserEmail = user.Email,
-            UserToken = user.AuthToken,
-            UserGroups = new List<GroupInfoResponse>()
-            {
-
-            },
-            UserTasks = new List<TaskInfoResponse>()
-            {
-
-            },
-            UserEvents = new List<EventInfoResponse>()
-            {
-
-            },
-            UserReports = new List<ReportInfoResponse>()
-            {
-
-            }
+            PhoneNumber = user.PhoneNumber,
+            UserGroups = user.Groups,
+            UserEvents = user.Events,
+            UserTasks = user.Tasks,
+            UserReports = user.Reports
         };
     }
 }

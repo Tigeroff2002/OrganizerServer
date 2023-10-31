@@ -12,6 +12,7 @@ using Logic.Transport;
 using Models;
 using Logic.Authentification;
 using Microsoft.AspNetCore.Authentication;
+using Contracts.Response;
 
 namespace ToDoCalendarServer;
 
@@ -39,7 +40,7 @@ public static class Registrations
             .AddSingleton<IDeserializer<UserLoginData>, UsersLoginDataDeserializer>()
             .AddSingleton<IDeserializer<UserRegistrationData>, UsersRegistrationDataDeserializer>()
             .AddSingleton<IDeserializer<UserInfoById>, UserInfoByIdDeserializer>()
-            .AddSingleton<ISerializer<User>, UserInfoSerializer>();
+            .AddSingleton<ISerializer<UserInfoContent>, UserInfoSerializer>();
 
     public static IServiceCollection AddStorage(
         this IServiceCollection services,
