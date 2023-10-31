@@ -20,7 +20,7 @@ public sealed class TaskInfoResponse
     [JsonProperty("task_status", Required = Required.Default)]
     public required TaskCurrentStatus TaskStatus { get; set; } = TaskCurrentStatus.ToDo;
 
-    [JsonProperty("reporter", Required = Required.Default)]
+    [JsonProperty("reporter", NullValueHandling = NullValueHandling.Ignore)]
     public ShortUserInfo Reporter { get; set; } = default!;
 
     [JsonProperty("implementer", Required = Required.Default)]

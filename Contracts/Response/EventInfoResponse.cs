@@ -33,5 +33,5 @@ public sealed class EventInfoResponse
     public GroupInfoResponse Group { get; set; } = default!;
 
     [JsonProperty("guests", Required = Required.Default)]
-    public List<ShortUserInfo> Guests { get; set; } = default!;
+    public List<UserInfoWithDecision> Guests { get; set; } = default!;
 }

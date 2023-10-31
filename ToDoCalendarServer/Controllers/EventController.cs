@@ -511,7 +511,7 @@ public sealed class EventController : ControllerBase
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
 
-            var listGuests = new List<ShortUserInfo>();
+            var listGuests = new List<UserInfoWithDecision>();
 
             if (existedEvent.GuestsMap != null)
             {
@@ -519,11 +519,12 @@ public sealed class EventController : ControllerBase
                 {
                     var guest = guestMap.User;
 
-                    var userInfo = new ShortUserInfo
+                    var userInfo = new UserInfoWithDecision
                     {
                         UserEmail = guest.Email,
                         UserName = guest.UserName,
-                        UserPhone = guest.PhoneNumber
+                        UserPhone = guest.PhoneNumber,
+                        DecisionType = guestMap.DecisionType
                     };
 
                     listGuests.Add(userInfo);

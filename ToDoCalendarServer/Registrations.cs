@@ -50,7 +50,7 @@ public static class Registrations
             .AddScoped<IRepositoryContext, RepositoryContext>()
             .AddSingleton<IUsersRepository, UsersRepository>()
             .AddSingleton<IGroupsRepository, GroupsRepository>()
-            .AddScoped<IEventsRepository, EventsRepository>()
+            .AddSingleton<IEventsRepository, EventsRepository>()
             .AddSingleton<ITasksRepository, TasksRepository>()
             .AddSingleton<IReportsRepository, ReportsRepository>()
             .AddSingleton<IGroupingUsersMapRepository, GroupingUsersMapRepository>()
