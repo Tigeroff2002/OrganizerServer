@@ -226,6 +226,8 @@ public sealed class TaskController : ControllerBase
             var response = new Response();
             response.Result = true;
             response.OutInfo = $"Task with id {taskId} was deleted by reporter";
+
+            return Ok(JsonConvert.SerializeObject(response));
         }
 
         var response2 = new Response();

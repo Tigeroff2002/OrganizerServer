@@ -115,10 +115,8 @@ public sealed class EventController : ControllerBase
                     var map = new EventsUsersMap
                     {
                         UserId = userId,
-                        User = currentUser,
                         DecisionType = Models.Enums.DecisionType.Default,
-                        EventId = eventId,
-                        Event = @event
+                        EventId = eventId
                     };
 
                     await _eventsUsersMapRepository.AddAsync(map, token);
@@ -144,10 +142,6 @@ public sealed class EventController : ControllerBase
         listGuestsMaps.Add(managerMap);
 
         @event.GuestsMap = listGuestsMaps;
-
-        await _eventsRepository.UpdateAsync(@event, token);
-
-        _eventsRepository.SaveChanges();
 
         var response = new Response();
         response.Result = true;

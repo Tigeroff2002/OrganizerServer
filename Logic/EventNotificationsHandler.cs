@@ -83,7 +83,8 @@ public sealed class EventNotificationsHandler
         {
             if (dbEvent.ScheduledStart <= currentTiming) 
             {
-                if (dbEvent.Status != EventStatus.Cancelled)
+                if (dbEvent.Status != EventStatus.Cancelled 
+                    && dbEvent.Status != EventStatus.Finished)
                 {
                     var oldStatus = dbEvent.Status;
 
@@ -128,7 +129,8 @@ public sealed class EventNotificationsHandler
             {
                 if (dbEvent.Status != EventStatus.Cancelled)
                 {
-                    if (dbEvent.Status == EventStatus.NotStarted)
+                    if (dbEvent.Status == EventStatus.NotStarted
+                        && dbEvent.Status != EventStatus.Finished)
                     {
                         dbEvent.Status = EventStatus.WithinReminderOffset;
 

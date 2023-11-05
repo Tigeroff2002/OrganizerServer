@@ -126,6 +126,8 @@ public sealed class ReportController : ControllerBase
             var response = new Response();
             response.Result = true;
             response.OutInfo = $"Report with id {reportId} was deleted by reporter";
+
+            return Ok(JsonConvert.SerializeObject(response));
         }
 
         var response2 = new Response();

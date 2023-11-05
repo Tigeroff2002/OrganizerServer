@@ -279,7 +279,7 @@ public sealed class GroupController : ControllerBase
             response.OutInfo = $"Participant with id {groupDeleteParticipant.Participant_Id}" +
                 $" has been deleted from group with id {groupDeleteParticipant.GroupId}";
 
-            var json = JsonConvert.SerializeObject(response);
+            return Ok(JsonConvert.SerializeObject(response));
         }
 
         var response2 = new Response();
