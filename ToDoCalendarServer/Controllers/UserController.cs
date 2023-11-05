@@ -69,7 +69,6 @@ public sealed class UserController : ControllerBase
         return result.Result ? Ok(json) : BadRequest(json);
     }
 
-    [HttpGet]
     [Route("get_info")]
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> GetInfoAsync(CancellationToken token)
@@ -87,7 +86,6 @@ public sealed class UserController : ControllerBase
         return Ok(get_json);
     }
 
-    [HttpPut]
     [Route("update_user_info")]
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> UpdateUserInfo(CancellationToken token)

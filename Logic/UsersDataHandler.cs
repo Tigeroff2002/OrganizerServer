@@ -139,7 +139,7 @@ public sealed class UsersDataHandler
 
         _usersRepository.SaveChanges();
 
-        var response = new Response();
+        var response = new ResponseWithToken();
         response.Result = true;
 
         builder.Append(
@@ -147,6 +147,7 @@ public sealed class UsersDataHandler
             $" with creating new auth token {authToken}");
 
         response.OutInfo = builder.ToString();
+        response.Token = authToken;
 
         return await Task.FromResult(response);
     }
@@ -199,9 +200,10 @@ public sealed class UsersDataHandler
 
         var userName = existedUser.UserName;
 
-        var response = new Response();
+        var response = new ResponseWithToken();
         response.Result = true;
         response.OutInfo = $"Login existed user {userName} with new auth token {authToken}";
+        response.Token = authToken;
 
         return await Task.FromResult(response);
     }

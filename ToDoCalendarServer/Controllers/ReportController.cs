@@ -91,7 +91,6 @@ public sealed class ReportController : ControllerBase
         return Ok(json);
     }
 
-    [HttpDelete]
     [Route("delete_report")]
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> DeleteReport(CancellationToken token)
@@ -137,7 +136,6 @@ public sealed class ReportController : ControllerBase
         return BadRequest(JsonConvert.SerializeObject(response2));
     }
 
-    [HttpGet]
     [Route("get_report_info")]
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> GetGroupInfo(CancellationToken token)

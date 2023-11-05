@@ -156,7 +156,6 @@ public sealed class EventController : ControllerBase
         return Ok(json);
     }
 
-    [HttpPut]
     [Route("update_event_params")]
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> UpdateEventParams(CancellationToken token)
@@ -246,39 +245,50 @@ public sealed class EventController : ControllerBase
                 }
             }
 
+            var numbers_of_new_params = 0;
+
             if (!string.IsNullOrWhiteSpace(updateEventParams.Caption))
             {
                 existedEvent.Caption = updateEventParams.Caption;
+                numbers_of_new_params++;
             }
 
             if (!string.IsNullOrWhiteSpace(updateEventParams.Description))
             {
                 existedEvent.Description = updateEventParams.Description;
+                numbers_of_new_params++;
             }
 
             if (updateEventParams.ScheduledStart != DateTimeOffset.MinValue)
             {
                 existedEvent.ScheduledStart = updateEventParams.ScheduledStart;
+                numbers_of_new_params++;
             }
 
             if (updateEventParams.Duration != TimeSpan.Zero)
             {
                 existedEvent.Duration = updateEventParams.Duration;
+                numbers_of_new_params++;
             }
 
             if (updateEventParams.EventType != Models.Enums.EventType.None)
             {
                 existedEvent.EventType = updateEventParams.EventType;
+                numbers_of_new_params++;
             }
 
             if (updateEventParams.EventStatus != Models.Enums.EventStatus.None)
             {
                 existedEvent.Status = updateEventParams.EventStatus;
+                numbers_of_new_params++;
             }
 
-            await _eventsRepository.UpdateAsync(existedEvent, token);
+            if (numbers_of_new_params > 0)
+            {
+                await _eventsRepository.UpdateAsync(existedEvent, token);
 
-            _eventsRepository.SaveChanges();
+                _eventsRepository.SaveChanges();
+            }
 
             var response = new Response();
             response.Result = true;
@@ -300,7 +310,6 @@ public sealed class EventController : ControllerBase
         return BadRequest(JsonConvert.SerializeObject(response2));
     }
 
-    [HttpPut]
     [Route("change_user_decision_for_event")]
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> ChangeUserDecisionForEvent(CancellationToken token)
@@ -439,7 +448,6 @@ public sealed class EventController : ControllerBase
         return BadRequest(JsonConvert.SerializeObject(response2));
     }
 
-    [HttpGet]
     [Route("get_event_info")]
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> GetEventInfo(CancellationToken token)

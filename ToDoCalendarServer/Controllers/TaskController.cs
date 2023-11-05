@@ -89,7 +89,6 @@ public sealed class TaskController : ControllerBase
         return Ok(json);
     }
 
-    [HttpPut]
     [Route("update_task_params")]
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> UpdateTaskParams(CancellationToken token)
@@ -184,7 +183,6 @@ public sealed class TaskController : ControllerBase
         return BadRequest(JsonConvert.SerializeObject(response2));
     }
 
-    [HttpDelete]
     [Route("delete_task")]
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> DeleteTaskByReporter(CancellationToken token)
@@ -237,7 +235,6 @@ public sealed class TaskController : ControllerBase
         return BadRequest(JsonConvert.SerializeObject(response2));
     }
 
-    [HttpGet]
     [Route("get_task_info")]
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> GetTaskInfo(CancellationToken token)

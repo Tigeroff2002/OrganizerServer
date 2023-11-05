@@ -114,7 +114,6 @@ public sealed class GroupController : ControllerBase
         return Ok(json);
     }
 
-    [HttpPut]
     [Route("update_group_params")]
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> AddParticipants(CancellationToken token)
@@ -215,7 +214,6 @@ public sealed class GroupController : ControllerBase
         return BadRequest(JsonConvert.SerializeObject(response2));
     }
 
-    [HttpDelete]
     [Route("delete_participant")]
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> DeleteParticipant(CancellationToken token)
@@ -289,7 +287,6 @@ public sealed class GroupController : ControllerBase
         return BadRequest(JsonConvert.SerializeObject(response2));
     }
 
-    [HttpGet]
     [Route("get_group_info")]
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> GetGroupInfo(CancellationToken token)
