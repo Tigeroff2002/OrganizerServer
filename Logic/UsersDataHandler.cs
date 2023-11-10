@@ -147,6 +147,7 @@ public sealed class UsersDataHandler
             $" with creating new auth token {authToken}");
 
         response.OutInfo = builder.ToString();
+        response.UserId = user.Id;
         response.Token = authToken;
 
         return await Task.FromResult(response);
@@ -203,6 +204,7 @@ public sealed class UsersDataHandler
         var response = new ResponseWithToken();
         response.Result = true;
         response.OutInfo = $"Login existed user {userName} with new auth token {authToken}";
+        response.UserId = existedUser.Id;
         response.Token = authToken;
 
         return await Task.FromResult(response);
