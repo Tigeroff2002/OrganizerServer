@@ -20,6 +20,10 @@ public class Event
 
     public EventStatus Status { get; set; }
 
+    //public RecursionEventType RecursionEventType { get; set; }
+
+    //public string MeetLinkUrl { get; set; }
+
     public virtual Group RelatedGroup { get; set; }
 
     public int RelatedGroupId { get; set;  }
