@@ -565,6 +565,7 @@ public sealed class EventController : ControllerBase
 
                 groupInfoResponse = new GroupInfoResponse
                 {
+                    GroupId = existedEvent.RelatedGroup.Id,
                     GroupName = existedEvent.RelatedGroup.GroupName,
                     Type = existedEvent.RelatedGroup.Type,
                     Participants = participants

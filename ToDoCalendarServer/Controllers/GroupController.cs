@@ -350,17 +350,18 @@ public sealed class GroupController : ControllerBase
 
             var groupInfo = new GroupInfoResponse
             {
+                GroupId = groupId,
                 GroupName = existedGroup.GroupName,
                 Type = existedGroup.Type,
                 Participants = listOfUsersInfo
             };
 
-            var getReponse = new GetResponse();
-            getReponse.Result = true;
-            getReponse.OutInfo = $"Info about group with id {groupByIdRequest.GroupId} was found";
-            getReponse.RequestedInfo = groupInfo;
+            var getResponse = new GetResponse();
+            getResponse.Result = true;
+            getResponse.OutInfo = $"Info about group with id {groupByIdRequest.GroupId} was found";
+            getResponse.RequestedInfo = groupInfo;
 
-            var json = JsonConvert.SerializeObject(getReponse);
+            var json = JsonConvert.SerializeObject(getResponse);
 
             return Ok(json);
         }

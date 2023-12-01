@@ -411,6 +411,7 @@ public sealed class UsersDataHandler
 
             var groupInfo = new GroupInfoResponse
             {
+                GroupId = groupId,
                 GroupName = group!.GroupName,
                 Type = group!.Type
             };

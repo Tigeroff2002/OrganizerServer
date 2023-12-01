@@ -6,6 +6,9 @@ namespace Contracts.Response;
 
 public sealed class GroupInfoResponse
 {
+    [JsonProperty("group_id", Required = Required.Always)]
+    public required int GroupId { get; init; }
+
     [JsonProperty("group_name", Required = Required.Always)]
     public required string GroupName { get; init; }
 
