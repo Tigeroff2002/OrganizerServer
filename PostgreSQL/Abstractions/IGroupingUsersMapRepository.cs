@@ -11,6 +11,10 @@ public interface IGroupingUsersMapRepository : IRepository
         int userId,
         CancellationToken token);
 
+    Task<IList<GroupingUsersMap>> GetGroupingUsersMapByGroupIdsAsync(
+        int groupId,
+        CancellationToken token);
+
     Task<List<GroupingUsersMap>> GetAllMapsAsync(CancellationToken token);
 
     Task DeleteAsync(int groupId, int userId, CancellationToken token);

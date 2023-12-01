@@ -295,6 +295,7 @@ public sealed class UsersDataHandler
 
             var shortUserInfo = new ShortUserInfo
             {
+                UserId = existedUser.Id,
                 UserEmail = existedUser.Email,
                 UserName = existedUser.UserName,
                 UserPhone = existedUser.PhoneNumber
@@ -350,6 +351,7 @@ public sealed class UsersDataHandler
 
             var reporterInfo = new ShortUserInfo
             {
+                UserId = reporter!.Id,
                 UserEmail = reporter!.Email,
                 UserName = reporter!.UserName,
                 UserPhone = reporter!.PhoneNumber
@@ -430,6 +432,7 @@ public sealed class UsersDataHandler
 
             var managerInfo = new ShortUserInfo
             {
+                UserId = manager!.Id,
                 UserEmail = manager!.Email,
                 UserName = manager!.UserName,
                 UserPhone = manager!.PhoneNumber

@@ -48,6 +48,15 @@ public sealed class GroupingUsersMapRepository
             .FirstOrDefaultAsync(x => x.UserId == userId && x.GroupId == groupId);
     }
 
+    public async Task<IList<GroupingUsersMap>> GetGroupingUsersMapByGroupIdsAsync(
+        int groupId,
+        CancellationToken token)
+    {
+        return await _repositoryContext.GroupingUsersMaps
+            .Where(x => x.GroupId == groupId)
+            .ToListAsync();
+    }
+
     public async Task<List<GroupingUsersMap>> GetAllMapsAsync(CancellationToken token)
     {
         token.ThrowIfCancellationRequested();

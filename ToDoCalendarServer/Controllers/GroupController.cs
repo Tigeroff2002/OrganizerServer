@@ -309,10 +309,10 @@ public sealed class GroupController : ControllerBase
                 existedGroup.ParticipantsMap = new List<GroupingUsersMap>();
             }
 
-            var existedMap = await _groupingUsersMapRepository
-                .GetGroupingUserMapByIdsAsync(groupId, userId, token);
+            var existedMaps = await _groupingUsersMapRepository
+                .GetGroupingUsersMapByGroupIdsAsync(groupId, token);
 
-            if (existedMap == null)
+            if (existedMaps == null)
             {
                 var response1 = new Response();
                 response1.Result = true;
@@ -327,18 +327,25 @@ public sealed class GroupController : ControllerBase
 
             var listOfUsersInfo = new List<ShortUserInfo>();
 
-            foreach(var userMap in existedGroup.ParticipantsMap)
+            foreach(var userMap in existedMaps)
             {
-                var user = userMap.User;
+                var participantId = userMap.UserId;
 
-                var shortUserInfo = new ShortUserInfo
+                var user = await _usersRepository
+                    .GetUserByIdAsync(participantId, token);
+
+                if (user != null)
                 {
-                    UserName = user.UserName,
-                    UserEmail = user.Email,
-                    UserPhone = user.PhoneNumber
-                };
+                    var shortUserInfo = new ShortUserInfo
+                    {
+                        UserId = userMap.UserId,
+                        UserName = user.UserName,
+                        UserEmail = user.Email,
+                        UserPhone = user.PhoneNumber
+                    };
 
-                listOfUsersInfo.Add(shortUserInfo);
+                    listOfUsersInfo.Add(shortUserInfo);
+                }
             }
 
             var groupInfo = new GroupInfoResponse
