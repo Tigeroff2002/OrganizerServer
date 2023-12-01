@@ -18,4 +18,7 @@ public sealed class GroupInfoResponse
 
     [JsonProperty("participants", NullValueHandling = NullValueHandling.Ignore)]
     public List<ShortUserInfo> Participants { get; set; } = default!;
+
+    [JsonProperty("content", NullValueHandling = NullValueHandling.Ignore)]
+    public object Content { get; set; } = default!;
 }

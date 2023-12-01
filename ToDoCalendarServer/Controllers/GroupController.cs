@@ -348,12 +348,20 @@ public sealed class GroupController : ControllerBase
                 }
             }
 
+            var groupContent = new GroupContent
+            {
+                Participants = listOfUsersInfo
+            };
+
+            var content = JsonConvert.SerializeObject(groupContent);
+
             var groupInfo = new GroupInfoResponse
             {
                 GroupId = groupId,
                 GroupName = existedGroup.GroupName,
                 Type = existedGroup.Type,
-                Participants = listOfUsersInfo
+                Participants = listOfUsersInfo,
+                Content = content
             };
 
             var getResponse = new GetResponse();
