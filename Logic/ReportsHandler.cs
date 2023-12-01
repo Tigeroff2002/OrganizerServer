@@ -1,8 +1,10 @@
-﻿using Contracts.Response;
+﻿using Contracts.Request;
+using Contracts.Response;
 using Logic.Abstractions;
 using Models;
 using Models.Enums;
 using PostgreSQL.Abstractions;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Logic;
@@ -39,12 +41,17 @@ public sealed class ReportsHandler
 
     public async Task<ReportDescriptionResult> CreateReportDescriptionAsync(
         int userId, 
-        ReportType reportType,
+        ReportInputDTO inputReport,
         CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
 
         var user = await _usersRepository.GetUserByIdAsync(userId, token);
+
+        var beginMoment = inputReport.BeginMoment;
+        var endMoment = inputReport.EndMoment;
+
+        var reportType = inputReport.ReportType;
 
         var creationTime = DateTimeOffset.UtcNow;
 
@@ -58,47 +65,40 @@ public sealed class ReportsHandler
                     .Where(task => task.ImplementerId == userId)
                     .ToList();
 
-                var tasksInfo = new List<TaskInfoResponse>();
+                var stringBuilder = new StringBuilder();
 
-                foreach (var task in userTasks)
-                { 
-                    var reporter = await _usersRepository
-                        .GetUserByIdAsync(task.ReporterId, token);
+                var notStartedTasks = userTasks
+                    .Where(
+                        x => x.TaskStatus == TaskCurrentStatus.ToDo)
+                    .ToList();
 
-                    ShortUserInfo reporterInfo =
-                        reporter != null
-                            ? new ShortUserInfo
-                            {
-                                UserEmail = reporter.Email,
-                                UserName = reporter.UserName,
-                                UserPhone = reporter.PhoneNumber
-                            }
-                            : null!;
+                var inProgressTasks = userTasks
+                    .Where(
+                        x => x.TaskStatus == TaskCurrentStatus.InProgress)
+                    .ToList();
 
-                    var implementerInfo = new ShortUserInfo
-                    {
-                        UserEmail = user.Email,
-                        UserName = user.UserName,
-                        UserPhone = user.PhoneNumber
-                    };
+                var doneTasks = userTasks
+                    .Where(
+                        x => x.TaskStatus == TaskCurrentStatus.Review 
+                        || x.TaskStatus == TaskCurrentStatus.Done)
+                    .ToList();
 
-                    var info = new TaskInfoResponse
-                    {
-                        TaskCaption = task.Caption,
-                        TaskDescription = task.Description,
-                        TaskStatus = task.TaskStatus,
-                        TaskType = task.TaskType,
-                        Reporter = reporterInfo,
-                        Implementer = implementerInfo
-                    };
+                var tasksNotStartedPercent = (notStartedTasks.Count / userTasks.Count) * 100;
+                var tasksInProgressPercent = (inProgressTasks.Count / userTasks.Count) * 100;
+                var tasksDonePercent = (doneTasks.Count / userTasks.Count) * 100;
 
-                    tasksInfo.Add(info);
-                }
+                stringBuilder.Append($"Отчет был выполнен в {creationTime}\n");
+                stringBuilder.Append($"Всего задач для имплементации пользователем - {userTasks.Count}\n");
+                stringBuilder.Append($"Процент не начатых задач - {tasksNotStartedPercent}%\n");
+                stringBuilder.Append($"Процент задач в процессе выполнения - {tasksInProgressPercent}%\n");
+                stringBuilder.Append($"Процент задач, выполненных пользователем - {tasksDonePercent}%\n");
 
-                var reportTasksResult = new ReportTasksDescriptionResult
+                var reportTasksResult = new ReportDescriptionResult
                 {
-                    CreationTime = creationTime,
-                    TasksInformation = tasksInfo
+                    ReportType = reportType,
+                    BeginMoment = beginMoment,
+                    EndMoment = endMoment,
+                    Content = stringBuilder.ToString()
                 };
 
                 return reportTasksResult;
@@ -115,7 +115,9 @@ public sealed class ReportsHandler
                     .Where(map => map.UserId == userId)
                     .ToList();
 
-                var eventsInfo = new List<EventInfoResponse>();
+                var userEventsCount = 0;
+                var totalEventsMinutesDuration = 0f;
+                var acceptedEventsCount = 0;
 
                 foreach (var map in userEventsMaps)
                 {
@@ -126,109 +128,36 @@ public sealed class ReportsHandler
 
                     if (@event != null)
                     {
-                        var manager = await _usersRepository
-                            .GetUserByIdAsync(@event.ManagerId, token);
+                        userEventsCount++;
+                        totalEventsMinutesDuration += (float) @event.Duration.TotalMinutes;
 
-                        ShortUserInfo managerInfo =
-                            manager != null
-                                ? new ShortUserInfo
-                                {
-                                    UserEmail = manager.Email,
-                                    UserName = manager.UserName,
-                                    UserPhone = manager.PhoneNumber
-                                }
-                                : null!;
-
-                        var group = await _groupsRepository
-                            .GetGroupByIdAsync(@event.RelatedGroupId, token);
-
-                        GroupInfoResponse groupInfo = null!;
-
-                        if (group != null)
+                        if (map.DecisionType == DecisionType.Apply)
                         {
-                            var participants = new List<ShortUserInfo>();
-
-                            var groupId = group.Id;
-
-                            var usersMaps = groupsUsersMaps
-                                .Where(map => map.GroupId == groupId).ToList();
-
-                            foreach (var participantMap in usersMaps)
-                            {
-                                var participantId = participantMap.UserId;
-
-                                var participant = await _usersRepository
-                                    .GetUserByIdAsync(participantId, token);
-
-                                if (participant != null)
-                                {
-                                    var participantInfo = new ShortUserInfo
-                                    {
-                                        UserEmail = participant.Email,
-                                        UserName = participant.UserName,
-                                        UserPhone = participant.PhoneNumber
-                                    };
-
-                                    participants.Add(participantInfo);
-                                }
-                            }
-
-                            groupInfo = new GroupInfoResponse
-                            {
-                                GroupName = group.GroupName,
-                                Type = group.Type,
-                                Participants = participants
-                            };
+                            acceptedEventsCount++;
                         }
-
-                        var eventGuestsMaps = dbMaps
-                            .Where(map => map.EventId == @event.Id)
-                            .ToList();
-
-                        var guestsInfoWithDecisions = new List<UserInfoWithDecision>();
-
-                        foreach (var guestMap in eventGuestsMaps)
-                        {
-                            var guestId = guestMap.UserId;
-
-                            var guest = await _usersRepository
-                                .GetUserByIdAsync(guestId, token);
-
-                            if (guest != null)
-                            {
-                                var guestInfo = new UserInfoWithDecision
-                                {
-                                    UserEmail = guest.Email,
-                                    UserName = guest.UserName,
-                                    UserPhone = guest.PhoneNumber,
-                                    DecisionType = guestMap.DecisionType
-                                };
-
-                                guestsInfoWithDecisions.Add(guestInfo);
-                            }
-                        }
-
-                        var info = new EventInfoResponse
-                        {
-                            Caption = @event.Caption,
-                            Description = @event.Description,
-                            EventType = @event.EventType,
-                            EventStatus = @event.Status,
-                            ScheduledStart = @event.ScheduledStart,
-                            Duration = @event.Duration,
-                            Manager = managerInfo,
-                            Group = groupInfo,
-                            Guests = guestsInfoWithDecisions
-                        };
-
-                        eventsInfo.Add(info);
                     }
                 }
 
-                var reportEventsResult = new ReportEventsDescriptionResult
+                var stringBuilder = new StringBuilder();
+
+                var totalHours = totalEventsMinutesDuration / 60;
+
+                var eventsAcceptedPercent = (float) acceptedEventsCount / userEventsCount;
+
+                stringBuilder.Append($"Отчет был выполнен в {creationTime}\n");
+                stringBuilder.Append(
+                    $"Всего запланированных мероприятий пользователя, за данный период - {userEventsCount}\n");
+                stringBuilder.Append(
+                    $"Общая продолжительность мероприятий за данный период - {totalHours} ч.\n");
+                stringBuilder.Append(
+                    $"Процент посещенных мероприятий пользователем - {eventsAcceptedPercent}%\n");
+
+                var reportEventsResult = new ReportDescriptionResult
                 {
-                    CreationTime = creationTime,
-                    EventsInformation = eventsInfo
+                    ReportType = reportType,
+                    BeginMoment = beginMoment,
+                    EndMoment = endMoment,
+                    Content = stringBuilder.ToString()
                 };
 
                 return reportEventsResult;

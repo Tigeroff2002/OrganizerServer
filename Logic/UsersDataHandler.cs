@@ -386,23 +386,13 @@ public sealed class UsersDataHandler
 
             if (currentReport != null)
             {
-                var reportDescription = currentReport!.Description;
-
-                ReportDescriptionResult? descriptionModel =
-                    currentReport.ReportType == ReportType.TasksReport
-                        ? JsonConvert.DeserializeObject<ReportTasksDescriptionResult>(
-                            reportDescription)
-                        : JsonConvert.DeserializeObject<ReportEventsDescriptionResult>(
-                            reportDescription);
-
-                Debug.Assert(descriptionModel != null);
-
                 var reportInfo = new ReportInfoResponse
                 {
                     BeginMoment = currentReport.BeginMoment,
                     EndMoment = currentReport.EndMoment,
                     ReportType = currentReport.ReportType,
-                    ReportContent = descriptionModel
+                    CreationTime = DateTimeOffset.Now,
+                    Content = currentReport.Description
                 };
 
                 userReports.Add(reportInfo);

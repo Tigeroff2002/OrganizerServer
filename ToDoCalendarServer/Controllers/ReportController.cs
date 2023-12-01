@@ -58,15 +58,13 @@ public sealed class ReportController : ControllerBase
         }
 
         var reportDescriptionResult = await _reportsHandler
-            .CreateReportDescriptionAsync(userId, reportType, token);
+            .CreateReportDescriptionAsync(userId, reportToCreate, token);
 
         Debug.Assert(reportDescriptionResult != null);
 
-        var description = JsonConvert.SerializeObject(reportDescriptionResult);
-
         var report = new Report
         {
-            Description = description,
+            Description = reportDescriptionResult.Content,
             ReportType = reportToCreate.ReportType,
             BeginMoment = reportToCreate.BeginMoment,
             EndMoment = reportToCreate.EndMoment,
@@ -176,10 +174,8 @@ public sealed class ReportController : ControllerBase
 
             var reportDescription = existedReport.Description;
 
-            ReportDescriptionResult? descriptionModel = 
-                existedReport.ReportType == ReportType.TasksReport
-                    ? JsonConvert.DeserializeObject<ReportTasksDescriptionResult>(reportDescription)
-                    : JsonConvert.DeserializeObject<ReportEventsDescriptionResult>(reportDescription);
+            ReportDescriptionResult? descriptionModel =
+                JsonConvert.DeserializeObject<ReportDescriptionResult>(reportDescription);
 
             Debug.Assert(descriptionModel != null);
 
@@ -188,7 +184,8 @@ public sealed class ReportController : ControllerBase
                 BeginMoment = existedReport.BeginMoment,
                 EndMoment = existedReport.EndMoment,
                 ReportType = existedReport.ReportType,
-                ReportContent = descriptionModel
+                CreationTime = DateTimeOffset.Now,
+                Content = existedReport.Description
             };
 
             var getReponse = new GetResponse();
