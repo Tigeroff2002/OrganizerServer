@@ -24,6 +24,7 @@ public sealed class UserInfoSerializer
 
         return new UserInfoResponse
         {
+            UserId = user.UserId,
             UserName = user.UserName,
             Password = user.Password,
             UserEmail = user.Email,

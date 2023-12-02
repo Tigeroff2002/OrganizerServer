@@ -359,6 +359,7 @@ public sealed class UsersDataHandler
 
             var taskInfo = new TaskInfoResponse
             {
+                TaskId = taskId,
                 TaskCaption = currentTask!.Caption,
                 TaskDescription = currentTask!.Description,
                 TaskType = currentTask!.TaskType,
@@ -441,6 +442,7 @@ public sealed class UsersDataHandler
 
             var eventInfo = new EventInfoResponse
             {
+                EventId = eventId,
                 Caption = @event!.Caption,
                 Description = @event!.Description,
                 EventType = @event!.EventType,
@@ -455,6 +457,7 @@ public sealed class UsersDataHandler
 
         return new UserInfoContent
         {
+            UserId = userId,
             UserName = user.UserName,
             Email = user.Email,
             Password = user.Password,

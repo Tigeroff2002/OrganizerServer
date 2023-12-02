@@ -6,6 +6,9 @@ namespace Contracts.Response;
 
 public sealed class EventInfoResponse
 {
+    [JsonProperty("event_id", Required = Required.Always)]
+    public required int EventId { get; init; }
+
     [JsonProperty("caption", Required = Required.Always)]
     public required string Caption { get; init; }
 

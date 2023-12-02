@@ -308,6 +308,7 @@ public sealed class TaskController : ControllerBase
 
             var taskInfo = new TaskInfoResponse
             {
+                TaskId = taskId,
                 TaskCaption = existedTask.Caption,
                 TaskDescription = existedTask.Description,
                 TaskType = existedTask.TaskType,

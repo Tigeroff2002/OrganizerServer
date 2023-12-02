@@ -5,6 +5,8 @@ namespace Contracts.Response;
 
 public sealed class UserInfoContent
 {
+    public required int UserId { get; init; }
+
     public required string UserName { get; init; }
 
     public required string Email { get; init; }

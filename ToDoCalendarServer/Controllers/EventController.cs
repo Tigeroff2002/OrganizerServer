@@ -574,6 +574,7 @@ public sealed class EventController : ControllerBase
 
             var eventInfo = new EventInfoResponse
             {
+                EventId = existedEvent.Id,
                 Caption = existedEvent.Caption,
                 Description = existedEvent.Description,
                 ScheduledStart = existedEvent.ScheduledStart,

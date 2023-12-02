@@ -449,6 +449,7 @@ public sealed class GroupController : ControllerBase
                                     {
                                         var eventInfo = new EventInfoResponse
                                         {
+                                            EventId = currentEventId,
                                             Caption = existedEvent.Caption,
                                             Description = existedEvent.Description,
                                             ScheduledStart = existedEvent.ScheduledStart,
