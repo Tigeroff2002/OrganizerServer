@@ -177,7 +177,7 @@ public sealed class ReportsHandler
                 stringBuilder.Append(
                     $"Всего запланированных мероприятий пользователя, за данный период - {userEventsCount}\n");
                 stringBuilder.Append(
-                    $"Общая продолжительность мероприятий за данный период - {totalHours} ч.\n");
+                    $"Общая продолжительность мероприятий за данный период - {totalHours.ToString("0.0")} ч.\n");
                 stringBuilder.Append(
                     $"Процент посещенных мероприятий пользователем - {eventsAcceptedPercent}%\n");
 
