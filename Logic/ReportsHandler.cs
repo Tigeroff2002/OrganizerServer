@@ -85,9 +85,9 @@ public sealed class ReportsHandler
 
                 var tasksNotStartedPercent = (notStartedTasks.Count / userTasks.Count) * 100;
                 var tasksInProgressPercent = (inProgressTasks.Count / userTasks.Count) * 100;
-                var tasksDonePercent = (doneTasks.Count / userTasks.Count) * 100;
+                var tasksDonePercent = ((float)doneTasks.Count / userTasks.Count) * 100;
 
-                stringBuilder.Append($"Отчет был выполнен в {creationTime}\n");
+                stringBuilder.Append($"Отчет был выполнен в {creationTime.ToLocalTime()}\n");
                 stringBuilder.Append($"Всего задач для имплементации пользователем - {userTasks.Count}\n");
                 stringBuilder.Append($"Процент не начатых задач - {tasksNotStartedPercent}%\n");
                 stringBuilder.Append($"Процент задач в процессе выполнения - {tasksInProgressPercent}%\n");
@@ -128,8 +128,37 @@ public sealed class ReportsHandler
 
                     if (@event != null)
                     {
+                        var eventStart = @event.ScheduledStart;
+                        var eventEnd = eventStart.Add(@event.Duration);
+
+                        var isFullEventEarlier = eventEnd <= beginMoment;
+
+                        var isFullEventLater = eventStart >= endMoment;
+
+                        if (isFullEventEarlier || isFullEventLater)
+                        {
+                            continue;
+                        }
+
                         userEventsCount++;
-                        totalEventsMinutesDuration += (float) @event.Duration.TotalMinutes;
+
+                        var realEventDuration = (float) @event.Duration.TotalMinutes;
+
+                        var partOfEventEarlierBeginning = beginMoment.Subtract(eventStart).TotalMinutes;
+
+                        if (partOfEventEarlierBeginning > 0)
+                        {
+                            realEventDuration -= (float) partOfEventEarlierBeginning;
+                        }
+
+                        var partOfEventLaterEnd = eventEnd.Subtract(endMoment).TotalMinutes;
+
+                        if (partOfEventLaterEnd > 0)
+                        {
+                            realEventDuration -= (float) partOfEventLaterEnd;
+                        }
+
+                        totalEventsMinutesDuration += realEventDuration;
 
                         if (map.DecisionType == DecisionType.Apply)
                         {
@@ -142,9 +171,9 @@ public sealed class ReportsHandler
 
                 var totalHours = totalEventsMinutesDuration / 60;
 
-                var eventsAcceptedPercent = (float) acceptedEventsCount / userEventsCount;
+                var eventsAcceptedPercent = ((float) acceptedEventsCount / userEventsCount) * 100;
 
-                stringBuilder.Append($"Отчет был выполнен в {creationTime}\n");
+                stringBuilder.Append($"Отчет был выполнен в {creationTime.ToLocalTime()}\n");
                 stringBuilder.Append(
                     $"Всего запланированных мероприятий пользователя, за данный период - {userEventsCount}\n");
                 stringBuilder.Append(
