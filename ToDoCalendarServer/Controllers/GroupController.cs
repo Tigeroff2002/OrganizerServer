@@ -19,7 +19,9 @@ public sealed class GroupController : ControllerBase
     public GroupController(
         IGroupsRepository groupsRepository,
         IUsersRepository usersRepository,
-        IGroupingUsersMapRepository groupingUsersMapRepository) 
+        IGroupingUsersMapRepository groupingUsersMapRepository,
+        IEventsUsersMapRepository eventsUsersMapRepository,
+        IEventsRepository eventsRepository) 
     {
         _groupsRepository = groupsRepository
             ?? throw new ArgumentNullException(nameof(groupsRepository));
@@ -29,6 +31,12 @@ public sealed class GroupController : ControllerBase
 
         _groupingUsersMapRepository = groupingUsersMapRepository
             ?? throw new ArgumentNullException(nameof(groupingUsersMapRepository));
+
+        _eventsUsersMapRepository = eventsUsersMapRepository
+            ?? throw new ArgumentNullException(nameof(eventsUsersMapRepository));
+
+        _eventsRepository = eventsRepository
+            ?? throw new ArgumentNullException(nameof(eventsRepository));
     }
 
     [HttpPost]
@@ -381,6 +389,126 @@ public sealed class GroupController : ControllerBase
         return BadRequest(JsonConvert.SerializeObject(response2));
     }
 
+
+    [Route("get_participant_calendar")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
+    public async Task<IActionResult> GetGroupParticipantCalendarInfo(CancellationToken token)
+    {
+        var body = await ReadRequestBodyAsync();
+
+        var participantCalendarRequest = JsonConvert.DeserializeObject<AnotherUserCalendarRequest>(body);
+
+        Debug.Assert(participantCalendarRequest != null);
+
+        var userId = participantCalendarRequest.UserId;
+        var groupId = participantCalendarRequest.GroupId;
+        var participantId = participantCalendarRequest.ParticipantId;
+
+        var existedGroup = await _groupsRepository.GetGroupByIdAsync(groupId, token);
+
+        if (existedGroup != null)
+        {
+            var existedUser = await _usersRepository.GetUserByIdAsync(userId, token);
+
+            if (existedUser != null )
+            {
+                var participant = await _usersRepository.GetUserByIdAsync(participantId, token);
+
+                if (participant != null)
+                {
+                    var allGroupMaps = await _groupingUsersMapRepository.GetAllMapsAsync(token);
+
+                    var existedGroupMaps = allGroupMaps
+                        .Where(x => x.GroupId == groupId)
+                        .ToList();
+
+                    if (existedGroupMaps != null)
+                    {
+                        var isUserRelatedToGroup = existedGroupMaps.Any(x => x.UserId == userId);
+                        var isParticipantRelatedToGroup = existedGroupMaps.Any(x => x.UserId == participantId);
+
+                        if (isUserRelatedToGroup && isParticipantRelatedToGroup)
+                        {
+                            var resultEvents = new List<EventInfoResponse>();
+
+                            var allEventMaps = await _eventsUsersMapRepository.GetAllMapsAsync(token);
+                            var participantEventsInGroup = allEventMaps
+                                .Where(x => x.UserId == participantId)
+                                .ToList();
+
+                            foreach(var eventMap in participantEventsInGroup)
+                            {
+                                var currentEventId = eventMap.EventId;
+                                var existedEvent = await _eventsRepository.GetEventByIdAsync(currentEventId, token);
+
+                                if (existedEvent != null)
+                                {
+                                    var relatedGroupId = existedEvent.RelatedGroupId;
+
+                                    if (relatedGroupId == groupId)
+                                    {
+                                        var eventInfo = new EventInfoResponse
+                                        {
+                                            Caption = existedEvent.Caption,
+                                            Description = existedEvent.Description,
+                                            ScheduledStart = existedEvent.ScheduledStart,
+                                            Duration = existedEvent.Duration,
+                                            EventType = existedEvent.EventType,
+                                            EventStatus = existedEvent.Status
+                                        };
+
+                                        resultEvents.Add(eventInfo);
+                                    }
+                                }
+                            }
+
+                            var participantCalendarResponse = new AnotherUserCalendarResponse
+                            {
+                                UserEvents = resultEvents
+                            };
+
+                            var getResponse = new GetResponse();
+                            getResponse.Result = true;
+                            getResponse.OutInfo = 
+                                $"Info about group's participant calendar with id" +
+                                $" {participantCalendarRequest.ParticipantId} was found";
+                            getResponse.RequestedInfo = 
+                                JsonConvert.SerializeObject(participantCalendarResponse);
+
+                            var json = JsonConvert.SerializeObject(getResponse);
+
+                            return Ok(json);
+                        }
+                    }
+
+                    var response5 = new Response();
+                    response5.Result = false;
+                    response5.OutInfo = $"Info about participant {participantCalendarRequest.ParticipantId} forbidden";
+
+                    return Forbid(JsonConvert.SerializeObject(response5));
+                }
+
+                var response4 = new Response();
+                response4.Result = false;
+                response4.OutInfo = $"No such participant with id {participantCalendarRequest.ParticipantId}";
+
+                return BadRequest(JsonConvert.SerializeObject(response4));
+            }
+
+            var response3 = new Response();
+            response3.Result = false;
+            response3.OutInfo = $"No such user with id {participantCalendarRequest.UserId}";
+
+            return BadRequest(JsonConvert.SerializeObject(response3));
+        }
+
+        var response2 = new Response();
+        response2.Result = false;
+        response2.OutInfo = $"No such group with id {participantCalendarRequest.GroupId}";
+
+        return BadRequest(JsonConvert.SerializeObject(response2));
+    }
+
     private async Task<string> ReadRequestBodyAsync()
     {
         using var reader = new StreamReader(Request.Body);
@@ -391,4 +519,6 @@ public sealed class GroupController : ControllerBase
     private readonly IGroupsRepository _groupsRepository;
     private readonly IUsersRepository _usersRepository;
     private readonly IGroupingUsersMapRepository _groupingUsersMapRepository;
+    private readonly IEventsUsersMapRepository _eventsUsersMapRepository;
+    private readonly IEventsRepository _eventsRepository;
 }
