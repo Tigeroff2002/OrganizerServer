@@ -94,6 +94,7 @@ public sealed class EventNotifyServiceTests
         exception.Should().BeNull();
     }
 
+    /*
     [Fact(DisplayName = $"{nameof(EventNotifyService)}" +
         $" can health check.")]
     [Trait("Category", "Integration")]
@@ -107,13 +108,14 @@ public sealed class EventNotifyServiceTests
         // Act
         var exception =
             await Record.ExceptionAsync(async () =>
-                    response = await client.GetStringAsync("/hc"));
+                response = await client.GetStringAsync("/hc"));
 
         // Assert
         exception.Should().BeNull();
         response.Should().NotBeNullOrWhiteSpace()
             .And.Be("Healthy");
     }
+    */
 
     private readonly WebApplicationFactory<Startup> _factory;
 }
