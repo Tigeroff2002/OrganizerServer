@@ -1,4 +1,5 @@
 ﻿using Contracts;
+using Contracts.Request.RequestById;
 using Contracts.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -454,152 +455,146 @@ public sealed class EventController : ControllerBase
     {
         var body = await ReadRequestBodyAsync();
 
-        var getEventInfoRequest = JsonConvert.DeserializeObject<EventIdDTO>(body);
+        var eventByIdRequest = JsonConvert.DeserializeObject<EventIdDTO>(body);
 
-        Debug.Assert(getEventInfoRequest != null);
+        Debug.Assert(eventByIdRequest != null);
 
-        var eventId = getEventInfoRequest.EventId;
+        var userId = eventByIdRequest.UserId;
+        var eventId = eventByIdRequest.EventId;
 
         var existedEvent = await _eventsRepository.GetEventByIdAsync(eventId, token);
 
         if (existedEvent != null)
         {
-            var userId = getEventInfoRequest.UserId;
-
-            var user = await _usersRepository.GetUserByIdAsync(userId, token);
-
-            if (user == null)
+            if (existedEvent.GuestsMap == null)
             {
-                var response1 = new Response();
-                response1.Result = false;
-                response1.OutInfo = $"Event info has not been received cause current user was not found";
-
-                return BadRequest(JsonConvert.SerializeObject(response1));
+                existedEvent.GuestsMap = new List<EventsUsersMap>();
             }
 
-            var isAccessedToEventInfo = existedEvent.ManagerId == userId;
+            var existedUserEventMap = await _eventsUsersMapRepository
+                .GetEventUserMapByIdsAsync(eventId, userId, token);
 
-            var manager = await _usersRepository.GetUserByIdAsync(existedEvent.ManagerId, token);
+            if (existedUserEventMap == null)
+            {
+                var response1 = new Response();
+                response1.Result = true;
+                response1.OutInfo =
+                    $"Info about event with id {eventId} was not accessed" +
+                    $" cause user with id {userId} not related to that";
 
-            existedEvent.Manager = manager!;
+                var json1 = JsonConvert.SerializeObject(response1);
+
+                return Forbid(json1);
+            }
+
+            var allEventMaps = await _eventsUsersMapRepository.GetAllMapsAsync(token);
+
+            var existedEventMaps = allEventMaps.Where(x => x.EventId == eventId).ToList();
+
+            var listOfUsersInfo = new List<ShortUserInfo>();
+
+            foreach (var userMap in existedEventMaps)
+            {
+                var participantId = userMap.UserId;
+
+                var user = await _usersRepository
+                    .GetUserByIdAsync(participantId, token);
+
+                if (user != null)
+                {
+                    var shortUserInfo = new ShortUserInfo
+                    {
+                        UserId = userMap.UserId,
+                        UserName = user.UserName,
+                        UserEmail = user.Email,
+                        UserPhone = user.PhoneNumber
+                    };
+
+                    listOfUsersInfo.Add(shortUserInfo);
+                }
+            }
 
             var relatedGroupId = existedEvent.RelatedGroupId;
 
-            var relatedGroup = await _groupsRepository.GetGroupByIdAsync(relatedGroupId, token);
+            var relatedGroup = await _groupsRepository.GetGroupByIdAsync(
+                relatedGroupId, token);
 
-            existedEvent.RelatedGroup = relatedGroup!;
+            var groupParticipants = new List<ShortUserInfo>();
 
-            var groupingUsersMaps = await _groupingUsersMapRepository
-                .GetAllMapsAsync(token);
-
-            var groupUsers = groupingUsersMaps.Where(x => x.GroupId == relatedGroupId);
-
-            var existedUserMap = groupUsers.FirstOrDefault(x => x.UserId == userId);
-
-            if (existedUserMap != null) 
+            if (relatedGroup != null)
             {
-                isAccessedToEventInfo = true;
-            }
+                var existedGroupMaps = await _groupingUsersMapRepository
+                    .GetGroupingUsersMapByGroupIdsAsync(relatedGroupId, token);
 
-            if (!isAccessedToEventInfo)
-            {
-                var response1 = new Response();
-                response1.Result = false;
-                response1.OutInfo =
-                    $"Event info has not been received cause current user with id {userId}" +
-                    $" is not manager: 'managerId = {existedEvent.Manager.Id}'" +
-                    $" or he is not participant of related group for this event";
-
-                return BadRequest(JsonConvert.SerializeObject(response1));
-            }
-
-            var listGuests = new List<UserInfoWithDecision>();
-
-            if (existedEvent.GuestsMap != null)
-            {
-                foreach(var guestMap in existedEvent.GuestsMap)
+                foreach (var userMap in existedGroupMaps)
                 {
-                    var guest = guestMap.User;
+                    var participantId = userMap.UserId;
 
-                    var userInfo = new UserInfoWithDecision
+                    var user = await _usersRepository
+                        .GetUserByIdAsync(participantId, token);
+
+                    if (user != null)
                     {
-                        UserEmail = guest.Email,
-                        UserName = guest.UserName,
-                        UserPhone = guest.PhoneNumber,
-                        DecisionType = guestMap.DecisionType
-                    };
-
-                    listGuests.Add(userInfo);
-                }
-            }
-
-            var managerInfo = new ShortUserInfo
-            {
-                UserEmail = existedEvent.Manager.Email,
-                UserName = existedEvent.Manager.UserName,
-                UserPhone = existedEvent.Manager.PhoneNumber
-            };
-
-            GroupInfoResponse groupInfoResponse = null!;
-
-            if (existedEvent.RelatedGroup != null)
-            {
-                var participants = new List<ShortUserInfo>();
-
-                if (existedEvent.RelatedGroup.ParticipantsMap != null)
-                {
-                    foreach (var participantMap in existedEvent.RelatedGroup.ParticipantsMap)
-                    {
-                        var participant = participantMap.User;
-
-                        var userInfo = new ShortUserInfo
+                        var shortUserInfo = new ShortUserInfo
                         {
-                            UserEmail = participant.Email,
-                            UserName = participant.UserName,
-                            UserPhone = participant.PhoneNumber
+                            UserId = userMap.UserId,
+                            UserName = user.UserName,
+                            UserEmail = user.Email,
+                            UserPhone = user.PhoneNumber
                         };
 
-                        participants.Add(userInfo);
+                        groupParticipants.Add(shortUserInfo);
                     }
                 }
-
-                groupInfoResponse = new GroupInfoResponse
-                {
-                    GroupId = existedEvent.RelatedGroup.Id,
-                    GroupName = existedEvent.RelatedGroup.GroupName,
-                    Type = existedEvent.RelatedGroup.Type,
-                    Participants = participants
-                };
             }
 
-            var eventInfo = new EventInfoResponse
+            var groupContent = new GroupContent
             {
-                EventId = existedEvent.Id,
+                Participants = groupParticipants
+            };
+
+            var serializedGroupContent = JsonConvert.SerializeObject(groupContent);
+
+            var eventContent = new EventContent
+            {
+                Guests = listOfUsersInfo,
                 Caption = existedEvent.Caption,
                 Description = existedEvent.Description,
                 ScheduledStart = existedEvent.ScheduledStart,
                 Duration = existedEvent.Duration,
                 EventType = existedEvent.EventType,
                 EventStatus = existedEvent.Status,
-                Manager = managerInfo,
-                Group = groupInfoResponse,
-                Guests = listGuests
+                GroupId = relatedGroupId,
+                GroupContent = serializedGroupContent
             };
 
-            var response = new GetResponse();
-            response.Result = true;
-            response.OutInfo =
-                $"Info about event with id = {eventId} has been received";
-            response.RequestedInfo = eventInfo;
+            var content = JsonConvert.SerializeObject(eventContent);
 
-            var json = JsonConvert.SerializeObject(response);
+            var eventInfo = new EventInfoResponse
+            {
+                Caption = existedEvent.Caption,
+                Description = existedEvent.Description,
+                ScheduledStart = existedEvent.ScheduledStart,
+                Duration = existedEvent.Duration,
+                EventType = existedEvent.EventType,
+                EventStatus = existedEvent.Status,
+                EventId = existedEvent.Id,
+                Content = content
+            };
+
+            var getResponse = new GetResponse();
+            getResponse.Result = true;
+            getResponse.OutInfo = $"Info about event with id {existedEvent.Id} was found";
+            getResponse.RequestedInfo = eventInfo;
+
+            var json = JsonConvert.SerializeObject(getResponse);
 
             return Ok(json);
         }
 
         var response2 = new Response();
-        response2.Result = true;
-        response2.OutInfo = $"No such event with id {eventId}";
+        response2.Result = false;
+        response2.OutInfo = $"No such event with id {eventByIdRequest.EventId}";
 
         return BadRequest(JsonConvert.SerializeObject(response2));
     }

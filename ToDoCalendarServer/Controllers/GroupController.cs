@@ -317,21 +317,24 @@ public sealed class GroupController : ControllerBase
                 existedGroup.ParticipantsMap = new List<GroupingUsersMap>();
             }
 
-            var existedMaps = await _groupingUsersMapRepository
-                .GetGroupingUsersMapByGroupIdsAsync(groupId, token);
+            var existedUserGroupMap = await _groupingUsersMapRepository
+                .GetGroupingUserMapByIdsAsync(groupId, userId, token);
 
-            if (existedMaps == null)
+            if (existedUserGroupMap == null)
             {
                 var response1 = new Response();
                 response1.Result = true;
-                response1.OutInfo = 
-                    $"Info about group with id {groupId} has not been received" +
-                    $" cause user with id {userId} not relate to that";
+                response1.OutInfo =
+                    $"Info about group with id {groupId}" +
+                    $" was not accessed cause user with id {userId} not related to that"; 
 
                 var json1 = JsonConvert.SerializeObject(response1);
 
-                return BadRequest(json1);
+                return Forbid(json1);
             }
+
+            var existedMaps = await _groupingUsersMapRepository.GetGroupingUsersMapByGroupIdsAsync(
+                groupId, token);
 
             var listOfUsersInfo = new List<ShortUserInfo>();
 
