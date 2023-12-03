@@ -29,14 +29,14 @@ public sealed class EventInfoResponse
     [JsonProperty("event_status", Required = Required.Always)]
     public required EventStatus EventStatus { get; init; }
 
-    [JsonProperty("manager", Required = Required.Default)]
-    public ShortUserInfo Manager { get; set; } = default!;
+    [JsonProperty("manager", NullValueHandling = NullValueHandling.Ignore)]
+    public ShortUserInfo? Manager { get; set; } = default!;
 
-    [JsonProperty("group", Required = Required.Default)]
-    public GroupInfoResponse Group { get; set; } = default!;
+    [JsonProperty("group", NullValueHandling = NullValueHandling.Ignore)]
+    public GroupInfoResponse? Group { get; set; } = default!;
 
-    [JsonProperty("guests", Required = Required.Default)]
-    public List<UserInfoWithDecision> Guests { get; set; } = default!;
+    [JsonProperty("guests", NullValueHandling = NullValueHandling.Ignore)]
+    public List<UserInfoWithDecision>? Guests { get; set; } = default!;
 
     [JsonProperty("content", NullValueHandling = NullValueHandling.Ignore)]
     public object Content { get; set; } = default!;

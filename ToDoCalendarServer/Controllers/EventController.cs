@@ -553,7 +553,7 @@ public sealed class EventController : ControllerBase
                 Participants = groupParticipants
             };
 
-            var serializedGroupContent = JsonConvert.SerializeObject(groupContent);
+            var serializedGroupContent = groupContent;
 
             var eventContent = new EventContent
             {
