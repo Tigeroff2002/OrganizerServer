@@ -4,6 +4,8 @@ namespace Contracts.Response;
 
 public class ShortUserInfo
 {
+    [JsonProperty("user_id", Required = Required.Default)]
+    public int UserId { get; init; }
 
     [JsonProperty("user_name", Required = Required.Always)]
     public required string UserName { get; init; }

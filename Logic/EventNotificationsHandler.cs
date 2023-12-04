@@ -2,6 +2,7 @@
 using Logic.Abstractions;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MimeKit;
@@ -20,7 +21,7 @@ public sealed class EventNotificationsHandler
 {
     public EventNotificationsHandler(
         IUsersRepository usersRepository,
-        IEventsRepository eventsRepository,
+        IServiceProvider serviceProvider,
         IEventsUsersMapRepository eventsUsersMapRepository,
         IOptions<SmtpConfiguration> smtpConfiguration,
         IOptions<NotificationConfiguration> notifyConfiguration,
@@ -29,8 +30,8 @@ public sealed class EventNotificationsHandler
         _usersRepository = usersRepository 
             ?? throw new ArgumentNullException(nameof(usersRepository));
 
-        _eventsRepository = eventsRepository 
-            ?? throw new ArgumentNullException(nameof(eventsRepository));
+        _serviceProvider = serviceProvider 
+            ?? throw new ArgumentNullException(nameof(serviceProvider));
 
         _eventsUsersMapRepository = eventsUsersMapRepository
             ?? throw new ArgumentNullException(nameof(eventsUsersMapRepository));
@@ -48,29 +49,42 @@ public sealed class EventNotificationsHandler
     {
         _logger.LogInformation("Starting handling events in target handler");
         
-        while(!token.IsCancellationRequested)
+        while (!token.IsCancellationRequested)
         {
-            await HandleEventStatusesASync(token);
+            using var scope = _serviceProvider.GetRequiredService<IServiceScopeFactory>().CreateScope();
 
-            await HandleEventsNotificationsAsync(token);
+            var eventRepository = scope.ServiceProvider.GetRequiredService<IEventsRepository>();
 
-            Task.Delay(_notifyConfiguration.IterationDelay).GetAwaiter().GetResult();
+            var dbEvents = await eventRepository.GetAllEventsAsync(token);
+
+            await HandleEventsNotificationsAsync(dbEvents, token);
+
+            HandleEventStatuses(dbEvents, token);
+
+            eventRepository.SaveChanges();
+
+            Task.Delay(_notifyConfiguration.IterationDelay, token).GetAwaiter().GetResult();
         }
     }
 
-    private async Task HandleEventStatusesASync(CancellationToken token)
+    private void HandleEventStatuses(
+        List<Event>? dbEvents, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
 
-        var dbEvents = await _eventsRepository.GetAllEventsAsync(token);
-
         var currentTiming = DateTimeOffset.Now;
+
+        if (dbEvents == null)
+        {
+            return;
+        }
 
         foreach(var dbEvent in dbEvents)
         {
             if (dbEvent.ScheduledStart <= currentTiming) 
             {
-                if (dbEvent.Status != EventStatus.Cancelled)
+                if (dbEvent.Status != EventStatus.Cancelled 
+                    && dbEvent.Status != EventStatus.Finished)
                 {
                     var oldStatus = dbEvent.Status;
 
@@ -83,7 +97,7 @@ public sealed class EventNotificationsHandler
                         dbEvent.Status = EventStatus.Finished;
                     }
 
-                    _logger.LogDebug(
+                    _logger.LogInformation(
                         "Status of event {EventId} was changed" +
                         " from {OldStatus} to {NewStatus}",
                         dbEvent.Id,
@@ -94,11 +108,16 @@ public sealed class EventNotificationsHandler
         }
     }
 
-    private async Task HandleEventsNotificationsAsync(CancellationToken token)
+    private async Task HandleEventsNotificationsAsync(
+        List<Event>? dbEvents,
+        CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
 
-        var dbEvents = await _eventsRepository.GetAllEventsAsync(token);
+        if (dbEvents == null)
+        {
+            return;
+        }
 
         var currentTiming = DateTimeOffset.Now;
 
@@ -110,18 +129,19 @@ public sealed class EventNotificationsHandler
             {
                 if (dbEvent.Status != EventStatus.Cancelled)
                 {
-                    if (dbEvent.Status == EventStatus.NotStarted)
+                    if (dbEvent.Status == EventStatus.NotStarted
+                        && dbEvent.Status != EventStatus.Finished)
                     {
                         dbEvent.Status = EventStatus.WithinReminderOffset;
 
-                        _logger.LogDebug(
+                        _logger.LogInformation(
                             "Status of event {EventId} was changed" +
                             " from {OldStatus} to {NewStatus}",
                             dbEvent.Id,
                             EventStatus.NotStarted,
                             EventStatus.WithinReminderOffset);
 
-                        _logger.LogDebug(
+                        _logger.LogInformation(
                             "Start reminding users related for visiting event {EventId}",
                             dbEvent.Id);
 
@@ -129,9 +149,9 @@ public sealed class EventNotificationsHandler
                         var endOfEvent = dbEvent.ScheduledStart.Add(dbEvent.Duration);
 
                         eventName.Append($"Event info:\n");
-                        eventName.Append("Caption: {dbEvent.Caption}\n");
+                        eventName.Append($"Caption: {dbEvent.Caption}\n");
                         eventName.Append($"Description: {dbEvent.Description}\n");
-                        eventName.Append($"Event timing borders: {dbEvent.ScheduledStart} : {endOfEvent}.");
+                        eventName.Append($"Event timing borders: {dbEvent.ScheduledStart.ToLocalTime()} : {endOfEvent.ToLocalTime()}.");
 
                         await SendRemindersForUsersAsync(dbEvent.Id, eventName.ToString(), token);
                     }
@@ -165,14 +185,14 @@ public sealed class EventNotificationsHandler
                 var userName = currentUser.UserName;
                 var email = currentUser.Email;
 
-                _logger.LogDebug(
+                _logger.LogInformation(
                     "Sending reminder for user {UserName} to email adress {Email}",
                     userName,
                     email);
 
                 await SendMessageFromSmtpAsync(eventName, userName, email, token);
 
-                _logger.LogDebug("Reminder has been succesfully sent");
+                _logger.LogInformation("Reminder has been succesfully sent");
             }
         }
     }
@@ -222,8 +242,8 @@ public sealed class EventNotificationsHandler
             MimeMessage.CreateFromMailMessage(mailMessage), token);
     }
 
+    private readonly IServiceProvider _serviceProvider;
     private readonly IUsersRepository _usersRepository;
-    private readonly IEventsRepository _eventsRepository;
     private readonly IEventsUsersMapRepository _eventsUsersMapRepository;
     private readonly SmtpConfiguration _smtpConfiguration;
     private readonly NotificationConfiguration _notifyConfiguration;

@@ -8,6 +8,8 @@ using PostgreSQL.Abstractions;
 using System.Diagnostics;
 using Contracts.Request;
 using Microsoft.AspNetCore.Authorization;
+using Logic.Abstractions;
+using Models.Enums;
 
 namespace ToDoCalendarServer.Controllers;
 
@@ -16,9 +18,13 @@ namespace ToDoCalendarServer.Controllers;
 public sealed class ReportController : ControllerBase
 {
     public ReportController(
+        IReportsHandler reportsHandler,
         IReportsRepository reportsRepository,
         IUsersRepository usersRepository)
     {
+        _reportsHandler = reportsHandler
+            ?? throw new ArgumentNullException(nameof(reportsHandler));
+
         _reportsRepository = reportsRepository 
             ?? throw new ArgumentNullException(nameof(reportsRepository));
 
@@ -37,7 +43,10 @@ public sealed class ReportController : ControllerBase
 
         Debug.Assert(reportToCreate != null);
 
-        var user = await _usersRepository.GetUserByIdAsync(reportToCreate.UserId, token);
+        var userId = reportToCreate.UserId;
+        var reportType = reportToCreate.ReportType;
+
+        var user = await _usersRepository.GetUserByIdAsync(userId, token);
 
         if (user == null)
         {
@@ -48,16 +57,23 @@ public sealed class ReportController : ControllerBase
             return BadRequest(JsonConvert.SerializeObject(response1));
         }
 
+        var reportDescriptionResult = await _reportsHandler
+            .CreateReportDescriptionAsync(userId, reportToCreate, token);
+
+        Debug.Assert(reportDescriptionResult != null);
+
         var report = new Report
         {
+            Description = reportDescriptionResult.Content,
             ReportType = reportToCreate.ReportType,
             BeginMoment = reportToCreate.BeginMoment,
             EndMoment = reportToCreate.EndMoment,
-            Description = string.Empty,
             UserId = user.Id
         };
 
         await _reportsRepository.AddAsync(report, token);
+
+        _reportsRepository.SaveChanges();
 
         var reportId = report.Id;
 
@@ -65,14 +81,14 @@ public sealed class ReportController : ControllerBase
         response.Result = true;
         response.OutInfo =
             $"New report with id = {reportId}" +
-            $" for user '{user.UserName}' was created";
+            $" for user '{user.UserName}'" +
+            $" with type '{reportType}' has been created";
 
         var json = JsonConvert.SerializeObject(response);
 
         return Ok(json);
     }
 
-    [HttpDelete]
     [Route("delete_report")]
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> DeleteReport(CancellationToken token)
@@ -100,9 +116,15 @@ public sealed class ReportController : ControllerBase
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
 
+            await _reportsRepository.DeleteAsync(reportId, token);
+
+            _reportsRepository.SaveChanges();
+
             var response = new Response();
             response.Result = true;
             response.OutInfo = $"Report with id {reportId} was deleted by reporter";
+
+            return Ok(JsonConvert.SerializeObject(response));
         }
 
         var response2 = new Response();
@@ -112,7 +134,6 @@ public sealed class ReportController : ControllerBase
         return BadRequest(JsonConvert.SerializeObject(response2));
     }
 
-    [HttpGet]
     [Route("get_report_info")]
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> GetGroupInfo(CancellationToken token)
@@ -151,20 +172,20 @@ public sealed class ReportController : ControllerBase
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
 
-            var reporterInfo = new ShortUserInfo
-            {
-                UserEmail = reporter.Email,
-                UserName = reporter.UserName,
-                UserPhone = reporter.PhoneNumber
-            };
+            var reportDescription = existedReport.Description;
+
+            ReportDescriptionResult? descriptionModel =
+                JsonConvert.DeserializeObject<ReportDescriptionResult>(reportDescription);
+
+            Debug.Assert(descriptionModel != null);
 
             var reportInfo = new ReportInfoResponse
             {
-                ReportDescription = existedReport.Description,
-                ReportType = existedReport.ReportType,
                 BeginMoment = existedReport.BeginMoment,
                 EndMoment = existedReport.EndMoment,
-                Reporter = reporterInfo
+                ReportType = existedReport.ReportType,
+                CreationTime = DateTimeOffset.Now,
+                Content = existedReport.Description
             };
 
             var getReponse = new GetResponse();
@@ -191,6 +212,7 @@ public sealed class ReportController : ControllerBase
         return await reader.ReadToEndAsync();
     }
 
+    private readonly IReportsHandler _reportsHandler;
     private readonly IReportsRepository _reportsRepository;
     private readonly IUsersRepository _usersRepository;
 }

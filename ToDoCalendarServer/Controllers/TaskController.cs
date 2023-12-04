@@ -74,6 +74,8 @@ public sealed class TaskController : ControllerBase
 
         await _tasksRepository.AddAsync(task, token);
 
+        _tasksRepository.SaveChanges();
+
         var taskId = task.Id;
 
         var response = new Response();
@@ -87,7 +89,6 @@ public sealed class TaskController : ControllerBase
         return Ok(json);
     }
 
-    [HttpPut]
     [Route("update_task_params")]
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> UpdateTaskParams(CancellationToken token)
@@ -164,6 +165,8 @@ public sealed class TaskController : ControllerBase
 
             await _tasksRepository.UpdateAsync(existedTask, token);
 
+            _tasksRepository.SaveChanges();
+
             var response = new Response();
             response.Result = true;
             response.OutInfo = $"New info was added to task with id {taskId}";
@@ -180,7 +183,6 @@ public sealed class TaskController : ControllerBase
         return BadRequest(JsonConvert.SerializeObject(response2));
     }
 
-    [HttpDelete]
     [Route("delete_task")]
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> DeleteTaskByReporter(CancellationToken token)
@@ -217,9 +219,13 @@ public sealed class TaskController : ControllerBase
 
             await _tasksRepository.DeleteAsync(taskId, token);
 
+            _tasksRepository.SaveChanges();
+
             var response = new Response();
             response.Result = true;
             response.OutInfo = $"Task with id {taskId} was deleted by reporter";
+
+            return Ok(JsonConvert.SerializeObject(response));
         }
 
         var response2 = new Response();
@@ -229,7 +235,6 @@ public sealed class TaskController : ControllerBase
         return BadRequest(JsonConvert.SerializeObject(response2));
     }
 
-    [HttpGet]
     [Route("get_task_info")]
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> GetTaskInfo(CancellationToken token)
@@ -303,6 +308,7 @@ public sealed class TaskController : ControllerBase
 
             var taskInfo = new TaskInfoResponse
             {
+                TaskId = taskId,
                 TaskCaption = existedTask.Caption,
                 TaskDescription = existedTask.Description,
                 TaskType = existedTask.TaskType,

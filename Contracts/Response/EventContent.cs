@@ -1,13 +1,19 @@
 ﻿using Models.Enums;
-using Newtonsoft.Json.Converters;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace Contracts.Response;
 
-public sealed class EventInfoResponse
+public sealed class EventContent
 {
-    [JsonProperty("event_id", Required = Required.Always)]
-    public required int EventId { get; init; }
+    [JsonProperty("guests", NullValueHandling = NullValueHandling.Ignore)]
+    public List<ShortUserInfo> Guests { get; set; } = default!;
+
+    [JsonProperty("group_content", NullValueHandling = NullValueHandling.Ignore)]
+    public object GroupContent { get; set; } = default!;
+
+    [JsonProperty("group_id", Required = Required.Always)]
+    public required int GroupId { get; set; }
 
     [JsonProperty("caption", Required = Required.Always)]
     public required string Caption { get; init; }
@@ -28,16 +34,4 @@ public sealed class EventInfoResponse
     [JsonConverter(typeof(StringEnumConverter))]
     [JsonProperty("event_status", Required = Required.Always)]
     public required EventStatus EventStatus { get; init; }
-
-    [JsonProperty("manager", NullValueHandling = NullValueHandling.Ignore)]
-    public ShortUserInfo? Manager { get; set; } = default!;
-
-    [JsonProperty("group", NullValueHandling = NullValueHandling.Ignore)]
-    public GroupInfoResponse? Group { get; set; } = default!;
-
-    [JsonProperty("guests", NullValueHandling = NullValueHandling.Ignore)]
-    public List<UserInfoWithDecision>? Guests { get; set; } = default!;
-
-    [JsonProperty("content", NullValueHandling = NullValueHandling.Ignore)]
-    public object Content { get; set; } = default!;
 }

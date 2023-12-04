@@ -6,6 +6,9 @@ namespace Contracts.Response;
 
 public sealed class GroupInfoResponse
 {
+    [JsonProperty("group_id", Required = Required.Always)]
+    public required int GroupId { get; init; }
+
     [JsonProperty("group_name", Required = Required.Always)]
     public required string GroupName { get; init; }
 
@@ -13,6 +16,9 @@ public sealed class GroupInfoResponse
     [JsonProperty("group_type", Required = Required.Always)]
     public required GroupType Type { get; init; }
 
-    [JsonProperty("participants", Required = Required.Default)]
+    [JsonProperty("participants", NullValueHandling = NullValueHandling.Ignore)]
     public List<ShortUserInfo> Participants { get; set; } = default!;
+
+    [JsonProperty("content", NullValueHandling = NullValueHandling.Ignore)]
+    public object Content { get; set; } = default!;
 }

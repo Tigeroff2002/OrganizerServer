@@ -114,7 +114,10 @@ public sealed class AuthentificationTokensHandler
         {
             var response2 = new Response();
             response2.Result = false;
-            response2.OutInfo = $"Cant authentificate user with id {userId} cause token is invalid";
+            response2.OutInfo = 
+                $"Cant authentificate user" +
+                $" with id {userId} cause token {token}" +
+                $" does not compare with real token {existedUser.AuthToken}";
 
             return await Task.FromResult(response2);
         }

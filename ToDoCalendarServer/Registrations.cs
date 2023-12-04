@@ -12,6 +12,7 @@ using Logic.Transport;
 using Models;
 using Logic.Authentification;
 using Microsoft.AspNetCore.Authentication;
+using Contracts.Response;
 
 namespace ToDoCalendarServer;
 
@@ -28,7 +29,7 @@ public static class Registrations
             .AddSingleton<IEventNotificationsHandler, EventNotificationsHandler>()
             .AddSingleton<IUsersDataHandler, UsersDataHandler>()
             .AddSingleton<IUsersCodeConfirmer, UsersCodeConfirmer>()
-            .AddConfiguration(configuration)
+            .AddConfigurations(configuration)
             .AddSingleton<IGroupsHandler, GroupsHandler>()
             .AddSingleton<IEventsHandler, EventsHandler>()
             .AddSingleton<ITasksHandler, TasksHandler>()
@@ -39,7 +40,7 @@ public static class Registrations
             .AddSingleton<IDeserializer<UserLoginData>, UsersLoginDataDeserializer>()
             .AddSingleton<IDeserializer<UserRegistrationData>, UsersRegistrationDataDeserializer>()
             .AddSingleton<IDeserializer<UserInfoById>, UserInfoByIdDeserializer>()
-            .AddSingleton<ISerializer<User>, UserInfoSerializer>();
+            .AddSingleton<ISerializer<UserInfoContent>, UserInfoSerializer>();
 
     public static IServiceCollection AddStorage(
         this IServiceCollection services,
@@ -52,14 +53,18 @@ public static class Registrations
             .AddSingleton<IGroupsRepository, GroupsRepository>()
             .AddSingleton<IEventsRepository, EventsRepository>()
             .AddSingleton<ITasksRepository, TasksRepository>()
-            .AddSingleton<IReportsRepository, ReportsRepository>();
+            .AddSingleton<IReportsRepository, ReportsRepository>()
+            .AddSingleton<IGroupingUsersMapRepository, GroupingUsersMapRepository>()
+            .AddSingleton<IEventsUsersMapRepository, EventsUsersMapRepository>();
 
-    public static IServiceCollection AddConfiguration(
+    public static IServiceCollection AddConfigurations(
         this IServiceCollection services,
         IConfiguration configuration)
         => services
             .Configure<SmtpConfiguration>(
-                configuration.GetSection(nameof(SmtpConfiguration)));
+                configuration.GetSection(nameof(SmtpConfiguration)))
+            .Configure<NotificationConfiguration>(
+                configuration.GetSection(nameof(NotificationConfiguration)));
 
     public static AuthenticationBuilder AddAuthBuilder(
         this IServiceCollection services)
