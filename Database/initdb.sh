@@ -7,4 +7,4 @@ source "$(which docker-entrypoint.sh)"
 
 # docker_setup_env "$@"
 
-docker_process_init_files /docker-entrypoint-initdb.d/*/*/*
+docker_process_init_files /docker-entrypoint-initdb.d/*/*
