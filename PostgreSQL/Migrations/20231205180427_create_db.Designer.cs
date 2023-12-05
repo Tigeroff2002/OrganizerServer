@@ -13,8 +13,8 @@ using PostgreSQL;
 namespace PostgreSQL.Migrations
 {
     [DbContext(typeof(CalendarDataContext))]
-    [Migration("20231024200621_mapping foreign keys")]
-    partial class mappingforeignkeys
+    [Migration("20231205180427_create_db")]
+    partial class create_db
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,7 +25,7 @@ namespace PostgreSQL.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "decision_type", new[] { "none", "default", "apply", "deny" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "event_status", new[] { "none", "not_started", "live", "finished", "cancelled" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "event_status", new[] { "none", "not_started", "within_reminder_offset", "live", "finished", "cancelled" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "event_type", new[] { "none", "personal", "one_to_one", "stand_up", "meeting" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "group_type", new[] { "none", "educational", "job" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "report_type", new[] { "none", "events_report", "tasks_report" });

@@ -13,7 +13,31 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Models", "Models\Models.csp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Contracts", "Contracts\Contracts.csproj", "{1B219B28-9116-4749-B9E2-305955ECE3A5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ToDoCalendarServer.Tests", "ToDoCalendarServer.Tests\ToDoCalendarServer.Tests.csproj", "{48022AFD-2416-49B9-B049-1A84A43F1112}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ToDoCalendarServer.Tests", "ToDoCalendarServer.Tests\ToDoCalendarServer.Tests.csproj", "{48022AFD-2416-49B9-B049-1A84A43F1112}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{76A29C50-8D0D-474B-A39D-857D8DE13738}"
+	ProjectSection(SolutionItems) = preProject
+		docker-compose.yaml = docker-compose.yaml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Database", "Database", "{EF7BA596-7740-4064-B5F4-3CCBC964927B}"
+	ProjectSection(SolutionItems) = preProject
+		initdb.sh = initdb.sh
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Migrations", "Migrations", "{CAA2D358-E338-4576-9D84-2D0BE7D9E9F2}"
+	ProjectSection(SolutionItems) = preProject
+		0_init.sql = 0_init.sql
+		1_create_enums.sql = 1_create_enums.sql
+		2_create_tables.sql = 2_create_tables.sql
+		3_creating_indexes.sql = 3_creating_indexes.sql
+		4_data_feed.sql = 4_data_feed.sql
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dataset", "dataset", "{C0FF8D86-853C-453D-A9AB-F723DFB90FF8}"
+	ProjectSection(SolutionItems) = preProject
+		init.sql = init.sql
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -48,6 +72,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{CAA2D358-E338-4576-9D84-2D0BE7D9E9F2} = {EF7BA596-7740-4064-B5F4-3CCBC964927B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {1D7091E0-1335-47A0-98C1-E159E674D3EA}
