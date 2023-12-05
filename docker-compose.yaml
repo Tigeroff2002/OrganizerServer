@@ -40,20 +40,16 @@ services:
       POSTGRES_PASSWORD: root
       POSTGRES_DB: CalendarDatabase
       POSTGRES_HOST: postgres
+      PGDATA: /var/lib/postgresql/data/pgdata
 
     restart: always
 
     ports:
-        - 5433:5432
+        - 5432:5432
 
     volumes:
       - ./postgres-data:/var/lib/postgresql/data  
-
-      - ./Database/Migrations/0_init.sql:/docker-entrypoint-initdb.d/0_init.sql
-      - ./Database/Migrations/1_create_enums.sql:/docker-entrypoint-initdb.d/1_create_enums.sql
-      - ./Database/Migrations/2_create_tables.sql:/docker-entrypoint-initdb.d/2_create_tables.sql
-      - ./Database/Migrations/3_creating_indexes.sql:/docker-entrypoint-initdb.d/3_creating_indexes.sql
-      - ./Database/Migrations/4_data_feed.sql:/docker-entrypoint-initdb.d/4_data_feed.sql
+      - ./dataset:/docker-entrypoint-initdb.d
 
     networks:
       - postgres
@@ -68,7 +64,7 @@ services:
     image: todocalendar
 
     ports:
-       - 5000:80
+       - 4040:4040
 
     restart: always
 

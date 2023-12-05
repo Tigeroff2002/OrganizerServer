@@ -169,8 +169,3 @@ VALUES ('Empty report about Kirill`s events in december', 'events_report',
 INSERT INTO reports (description, report_type, begin_moment, end_moment, user_id)
 VALUES ('Empty report about Nikits`s tasks in december beginning', 'tasks_report',
         '2023-12-01 14:00:00.000 +0300', '2023-12-10 10:00:00.000 +0300', 3);
-
-COPY inflation_data
-FROM '/docker-entrypoint-initdb.d/inflation.csv'
-DELIMITER ','
-CSV HEADER;
