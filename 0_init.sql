@@ -1,3 +1,3 @@
-DROP DATABASE IF EXISTS CalendarDatabase
+DROP DATABASE IF EXISTS CalendarDatabase;
 
 CREATE DATABASE CalendarDatabase;

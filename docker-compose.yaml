@@ -36,10 +36,10 @@ services:
       - "pg_stat_statements.track=all"
 
     environment:
-      POSTGRES_USER: "postgres"
-      POSTGRES_PASSWORD: "root"
-      POSTGRES_DATABASE: "CalendarDatabase"
-      PGDATA: "/var/lib/postgresql/data/pgdata"
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: CalendarDatabase
+      POSTGRES_HOST: postgres
 
     restart: always
 
@@ -47,7 +47,13 @@ services:
         - 5433:5432
 
     volumes:
-      - ../Databases/:/docker-entrypoint-initdb.d/
+      - ./postgres-data:/var/lib/postgresql/data  
+
+      - ./Database/Migrations/0_init.sql:/docker-entrypoint-initdb.d/0_init.sql
+      - ./Database/Migrations/1_create_enums.sql:/docker-entrypoint-initdb.d/1_create_enums.sql
+      - ./Database/Migrations/2_create_tables.sql:/docker-entrypoint-initdb.d/2_create_tables.sql
+      - ./Database/Migrations/3_creating_indexes.sql:/docker-entrypoint-initdb.d/3_creating_indexes.sql
+      - ./Database/Migrations/4_data_feed.sql:/docker-entrypoint-initdb.d/4_data_feed.sql
 
     networks:
       - postgres
