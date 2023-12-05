@@ -1,0 +1,1 @@
+CREATE TYPE decision_type AS ENUM (    'none',    'default',    'apply',    'deny');CREATE TYPE event_status AS ENUM (    'none',    'not_started',    'live',    'finished',    'cancelled');
