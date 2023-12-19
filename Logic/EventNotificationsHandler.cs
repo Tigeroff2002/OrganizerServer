@@ -79,7 +79,7 @@ public sealed class EventNotificationsHandler
             return;
         }
 
-        foreach(var dbEvent in dbEvents)
+        foreach (var dbEvent in dbEvents)
         {
             if (dbEvent.ScheduledStart <= currentTiming) 
             {
@@ -88,13 +88,20 @@ public sealed class EventNotificationsHandler
                 {
                     var oldStatus = dbEvent.Status;
 
-                    dbEvent.Status = EventStatus.Live;
+                    if (dbEvent.Status is EventStatus.NotStarted 
+                        or EventStatus.WithinReminderOffset)
+                    {
+                        dbEvent.Status = EventStatus.Live;
+                    }
 
                     var endEvent = dbEvent.ScheduledStart.Add(dbEvent.Duration);
 
                     if (currentTiming >= endEvent)
                     {
-                        dbEvent.Status = EventStatus.Finished;
+                        if (dbEvent.Status != EventStatus.Finished)
+                        {
+                            dbEvent.Status = EventStatus.Finished;
+                        }
                     }
 
                     _logger.LogInformation(
@@ -125,7 +132,11 @@ public sealed class EventNotificationsHandler
 
         foreach (var dbEvent in dbEvents)
         {
-            if (dbEvent.ScheduledStart <= timingWithOffset)
+            var isNotificationRequired = 
+                dbEvent.ScheduledStart <= timingWithOffset 
+                && dbEvent.ScheduledStart > currentTiming;
+
+            if (isNotificationRequired)
             {
                 if (dbEvent.Status != EventStatus.Cancelled)
                 {
@@ -151,7 +162,9 @@ public sealed class EventNotificationsHandler
                         eventName.Append($"Event info:\n");
                         eventName.Append($"Caption: {dbEvent.Caption}\n");
                         eventName.Append($"Description: {dbEvent.Description}\n");
-                        eventName.Append($"Event timing borders: {dbEvent.ScheduledStart.ToLocalTime()} : {endOfEvent.ToLocalTime()}.");
+                        eventName.Append(
+                            $"Event timing borders: {dbEvent.ScheduledStart.ToLocalTime()}" +
+                            $" : {endOfEvent.ToLocalTime()}.");
 
                         await SendRemindersForUsersAsync(dbEvent.Id, eventName.ToString(), token);
                     }
