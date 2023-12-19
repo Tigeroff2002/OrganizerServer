@@ -30,9 +30,6 @@ public static class Registrations
             .AddSingleton<IUsersDataHandler, UsersDataHandler>()
             .AddSingleton<IUserEmailConfirmer, UserEmailConfirmer>()
             .AddConfigurations(configuration)
-            .AddSingleton<IGroupsHandler, GroupsHandler>()
-            .AddSingleton<IEventsHandler, EventsHandler>()
-            .AddSingleton<ITasksHandler, TasksHandler>()
             .AddSingleton<IReportsHandler, ReportsHandler>();
 
     public static IServiceCollection AddSerialization(this IServiceCollection services)
