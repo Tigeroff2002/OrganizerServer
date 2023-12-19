@@ -108,12 +108,14 @@ public sealed class UsersDataHandler
         if (!confirmResult)
         {
             _logger.LogInformation(
-                "Wrong user code confirmation received");
+                "User account link confirmation was not succesfull");
 
             var response2 = new Response();
             response2.Result = false;
 
-            builder.Append($"Wrong user code confirmation received from user with email {email}.");
+            builder.Append(
+                $"User account link confirmation was not succesfull" +
+                $" for user with email {email}.");
             response2.OutInfo = builder.ToString();
 
             return await Task.FromResult(response2);
