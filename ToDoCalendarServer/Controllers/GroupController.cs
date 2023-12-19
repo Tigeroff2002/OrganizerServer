@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Models;
 using Models.BusinessModels;
+using Models.Enums;
 using Newtonsoft.Json;
 using PostgreSQL.Abstractions;
 using System.Diagnostics;
@@ -76,19 +77,17 @@ public sealed class GroupController : ControllerBase
 
         var listGroupingUsersMap = new List<GroupingUsersMap>();
 
-        if (groupToCreate.Participants != null)
+        var existedUsers = await _usersRepository.GetAllUsersAsync(token);
+
+        if (groupToCreate.Type is GroupType.None)
         {
-            var existedUsers = await _usersRepository.GetAllUsersAsync(token);
-
-            foreach (var userId in groupToCreate.Participants)
+            foreach(var user in existedUsers)
             {
-                var currentUser = existedUsers.FirstOrDefault(x => x.Id == userId);
-
-                if (currentUser != null)
+                if (user != null)
                 {
                     var map = new GroupingUsersMap
                     {
-                        UserId = userId,
+                        UserId = user.Id,
                         GroupId = groupId,
                     };
 
@@ -97,8 +96,29 @@ public sealed class GroupController : ControllerBase
                     listGroupingUsersMap.Add(map);
                 }
             }
+        }
+        else
+        {
+            if (groupToCreate.Participants != null)
+            {
+                foreach (var userId in groupToCreate.Participants)
+                {
+                    var currentUser = existedUsers.FirstOrDefault(x => x.Id == userId);
 
-            _groupingUsersMapRepository.SaveChanges();
+                    if (currentUser != null)
+                    {
+                        var map = new GroupingUsersMap
+                        {
+                            UserId = userId,
+                            GroupId = groupId,
+                        };
+
+                        await _groupingUsersMapRepository.AddAsync(map, token);
+
+                        listGroupingUsersMap.Add(map);
+                    }
+                }
+            }
         }
 
         var selfUserMap = new GroupingUsersMap
