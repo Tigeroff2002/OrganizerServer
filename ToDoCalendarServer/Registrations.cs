@@ -28,7 +28,7 @@ public static class Registrations
         => services
             .AddSingleton<IEventNotificationsHandler, EventNotificationsHandler>()
             .AddSingleton<IUsersDataHandler, UsersDataHandler>()
-            .AddSingleton<IUsersCodeConfirmer, UsersCodeConfirmer>()
+            .AddSingleton<IUserEmailConfirmer, UserEmailConfirmer>()
             .AddConfigurations(configuration)
             .AddSingleton<IGroupsHandler, GroupsHandler>()
             .AddSingleton<IEventsHandler, EventsHandler>()

@@ -28,7 +28,7 @@ public sealed class UsersDataHandler
         IEventsUsersMapRepository eventsUsersMapRepository,
         IGroupingUsersMapRepository groupingUsersMapRepository,
         IReportsRepository reportsRepository,
-        IUsersCodeConfirmer usersCodeConfirmer,
+        IUserEmailConfirmer usersCodeConfirmer,
         ISerializer<UserInfoContent> userInfoSerializer,
         ILogger<UsersDataHandler> logger)
     {
@@ -485,7 +485,7 @@ public sealed class UsersDataHandler
     private readonly IEventsUsersMapRepository _eventsUsersMapRepository;
     private readonly IGroupingUsersMapRepository _groupingUsersMapRepository;
     private readonly IReportsRepository _reportsRepository;
-    private readonly IUsersCodeConfirmer _usersCodeConfirmer;
+    private readonly IUserEmailConfirmer _usersCodeConfirmer;
     private readonly ISerializer<UserInfoContent> _userInfoSerializer;
     private ILogger _logger;
 }
