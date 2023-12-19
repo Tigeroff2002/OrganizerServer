@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Models;
 using Models.BusinessModels;
+using Models.Enums;
 using Newtonsoft.Json;
 using PostgreSQL;
 using PostgreSQL.Abstractions;
@@ -103,20 +104,26 @@ public sealed class EventController : ControllerBase
 
         var listGuestsMaps = new List<EventsUsersMap>();
 
-        if (eventToCreate.GuestsIds != null)
-        {
-            var existedUsers = await _usersRepository.GetAllUsersAsync(token);
+        var existedUsers = await _usersRepository.GetAllUsersAsync(token);
 
-            foreach (var userId in eventToCreate.GuestsIds)
+        if (eventToCreate.EventType is EventType.Meeting or EventType.StandUp)
+        {
+            var allMaps = await _groupingUsersMapRepository.GetAllMapsAsync(token);
+
+            var usersInGroup = allMaps.Where(x => x.GroupId == groupId);
+
+            foreach (var userMap in usersInGroup)
             {
-                var currentUser = existedUsers.FirstOrDefault(x => x.Id == userId);
+                var currentUserId = userMap.UserId;
+
+                var currentUser = existedUsers.FirstOrDefault(x => x.Id == currentUserId);
 
                 if (currentUser != null)
                 {
                     var map = new EventsUsersMap
                     {
-                        UserId = userId,
-                        DecisionType = Models.Enums.DecisionType.Default,
+                        UserId = currentUserId,
+                        DecisionType = DecisionType.Default,
                         EventId = eventId
                     };
 
@@ -125,14 +132,36 @@ public sealed class EventController : ControllerBase
                     listGuestsMaps.Add(map);
                 }
             }
+        }
+        else
+        {
+            if (eventToCreate.GuestsIds != null)
+            {
+                foreach (var userId in eventToCreate.GuestsIds)
+                {
+                    var currentUser = existedUsers.FirstOrDefault(x => x.Id == userId);
 
-            _eventsUsersMapRepository.SaveChanges();
+                    if (currentUser != null)
+                    {
+                        var map = new EventsUsersMap
+                        {
+                            UserId = userId,
+                            DecisionType = DecisionType.Default,
+                            EventId = eventId
+                        };
+
+                        await _eventsUsersMapRepository.AddAsync(map, token);
+
+                        listGuestsMaps.Add(map);
+                    }
+                }
+            }
         }
 
         var managerMap = new EventsUsersMap
         {
             UserId = manager.Id,
-            DecisionType = Models.Enums.DecisionType.Apply,
+            DecisionType = DecisionType.Apply,
             EventId = eventId,
         };
 
