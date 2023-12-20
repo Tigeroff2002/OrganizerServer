@@ -238,6 +238,8 @@ public sealed class GroupController : ControllerBase
 
         Debug.Assert(groupDeleteParticipant != null);
 
+        /*
+
         if (groupDeleteParticipant.UserId != groupDeleteParticipant.Participant_Id)
         {
             var response1 = new Response();
@@ -246,6 +248,7 @@ public sealed class GroupController : ControllerBase
 
             return BadRequest(JsonConvert.SerializeObject(response1));
         }
+        */
 
         var groupId = groupDeleteParticipant.GroupId;
         var participantId = groupDeleteParticipant.Participant_Id;
