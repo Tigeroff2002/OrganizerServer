@@ -106,6 +106,13 @@ public sealed class EventController : ControllerBase
 
         var existedUsers = await _usersRepository.GetAllUsersAsync(token);
 
+        var managerMap = new EventsUsersMap
+        {
+            UserId = manager.Id,
+            DecisionType = DecisionType.Apply,
+            EventId = eventId,
+        };
+
         if (eventToCreate.EventType is EventType.Meeting or EventType.StandUp)
         {
             var allMaps = await _groupingUsersMapRepository.GetAllMapsAsync(token);
@@ -131,6 +138,10 @@ public sealed class EventController : ControllerBase
                 }
             }
         }
+        else if (eventToCreate.EventType == EventType.Personal)
+        {
+            listGuestsMaps.Add(managerMap);
+        }
         else
         {
             if (eventToCreate.GuestsIds != null)
@@ -153,13 +164,6 @@ public sealed class EventController : ControllerBase
                 }
             }
         }
-
-        var managerMap = new EventsUsersMap
-        {
-            UserId = manager.Id,
-            DecisionType = DecisionType.Apply,
-            EventId = eventId,
-        };
 
         if (listGuestsMaps.FirstOrDefault(x => x.UserId == manager.Id) == null)
         {
