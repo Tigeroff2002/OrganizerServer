@@ -72,6 +72,11 @@ public sealed class TaskController : ControllerBase
             ImplementerId = implementer.Id
         };
 
+        if (task.TaskType is TaskType.AbstractGoal or TaskType.MeetingPresense)
+        {
+            task.ImplementerId = task.ReporterId;
+        }
+
         await _tasksRepository.AddAsync(task, token);
 
         _tasksRepository.SaveChanges();
