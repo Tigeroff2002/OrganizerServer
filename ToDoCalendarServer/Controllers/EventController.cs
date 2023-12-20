@@ -71,7 +71,7 @@ public sealed class EventController : ControllerBase
 
         if (group == null)
         {
-            if (eventToCreate.EventType != Models.Enums.EventType.Personal)
+            if (eventToCreate.EventType != EventType.Personal)
             {
                 var response1 = new Response();
                 response1.Result = false;
@@ -127,8 +127,6 @@ public sealed class EventController : ControllerBase
                         EventId = eventId
                     };
 
-                    await _eventsUsersMapRepository.AddAsync(map, token);
-
                     listGuestsMaps.Add(map);
                 }
             }
@@ -150,8 +148,6 @@ public sealed class EventController : ControllerBase
                             EventId = eventId
                         };
 
-                        await _eventsUsersMapRepository.AddAsync(map, token);
-
                         listGuestsMaps.Add(map);
                     }
                 }
@@ -165,13 +161,17 @@ public sealed class EventController : ControllerBase
             EventId = eventId,
         };
 
-        await _eventsUsersMapRepository.AddAsync(managerMap, token);
+        if (listGuestsMaps.FirstOrDefault(x => x.UserId == manager.Id) == null)
+        {
+            listGuestsMaps.Add(managerMap);
+        }
+
+        foreach (var map in listGuestsMaps)
+        {
+            await _eventsUsersMapRepository.AddAsync(map, token);
+        }
 
         _eventsUsersMapRepository.SaveChanges();
-
-        listGuestsMaps.Add(managerMap);
-
-        @event.GuestsMap = listGuestsMaps;
 
         var response = new Response();
         response.Result = true;
@@ -219,7 +219,6 @@ public sealed class EventController : ControllerBase
 
             var manager = await _usersRepository.GetUserByIdAsync(userId, token);
 
-            existedEvent.Manager = manager!;
 
             if (existedEvent.Manager.Id != userId)
             {
@@ -248,14 +247,14 @@ public sealed class EventController : ControllerBase
                         {
                             UserId = guestId,
                             EventId = eventId,
-                            DecisionType = Models.Enums.DecisionType.Default
+                            DecisionType = DecisionType.Default
                         };
 
                         listGuestsMap.Add(map);
                     }
                 }
 
-                if (existedEvent.EventType != Models.Enums.EventType.Personal)
+                if (existedEvent.EventType != EventType.Personal)
                 {
                     foreach(var map in listGuestsMap)
                     {
@@ -263,15 +262,6 @@ public sealed class EventController : ControllerBase
                     }
 
                     _eventsUsersMapRepository.SaveChanges();
-
-                    if (existedEvent.GuestsMap == null)
-                    {
-                        existedEvent.GuestsMap = listGuestsMap;
-                    }
-                    else
-                    {
-                        existedEvent.GuestsMap.AddRange(listGuestsMap);
-                    }
                 }
             }
 
@@ -301,13 +291,13 @@ public sealed class EventController : ControllerBase
                 numbers_of_new_params++;
             }
 
-            if (updateEventParams.EventType != Models.Enums.EventType.None)
+            if (updateEventParams.EventType != EventType.None)
             {
                 existedEvent.EventType = updateEventParams.EventType;
                 numbers_of_new_params++;
             }
 
-            if (updateEventParams.EventStatus != Models.Enums.EventStatus.None)
+            if (updateEventParams.EventStatus != EventStatus.None)
             {
                 existedEvent.Status = updateEventParams.EventStatus;
                 numbers_of_new_params++;

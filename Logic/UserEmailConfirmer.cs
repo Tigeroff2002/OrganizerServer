@@ -72,12 +72,10 @@ public sealed class UserEmailConfirmer
 
         var body = new StringBuilder();
 
-        var emailLink = $"<a href=\"{randomLink}\">{randomLink}</a>";
-
         body.Append($"Hello, {shortUserInfo.UserName}!\n");
         body.Append("Bellow is your account confirmation link. You need to open it in your browser page...\n");
         body.Append($"Or maybe we can call your to your phone number: {shortUserInfo.UserPhone}\n");
-        body.Append($"Your confirmation link is here: {emailLink}.");
+        body.Append($"Your confirmation link is here: {randomLink}.");
 
         var mailMessage = new MailMessage(
             new MailAddress(_configuration.FromAdress),

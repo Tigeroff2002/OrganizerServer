@@ -65,8 +65,7 @@ public sealed class GroupController : ControllerBase
         var group = new Group()
         {
             GroupName = groupToCreate.GroupName,
-            Type = groupToCreate.Type,
-            ParticipantsMap = new List<GroupingUsersMap>()
+            Type = groupToCreate.Type
         };
 
         await _groupsRepository.AddAsync(group, token);
@@ -91,8 +90,6 @@ public sealed class GroupController : ControllerBase
                         GroupId = groupId,
                     };
 
-                    await _groupingUsersMapRepository.AddAsync(map, token);
-
                     listGroupingUsersMap.Add(map);
                 }
             }
@@ -113,21 +110,16 @@ public sealed class GroupController : ControllerBase
                             GroupId = groupId,
                         };
 
-                        await _groupingUsersMapRepository.AddAsync(map, token);
-
                         listGroupingUsersMap.Add(map);
                     }
                 }
             }
         }
 
-        var selfUserMap = new GroupingUsersMap
+        foreach(var map in listGroupingUsersMap)
         {
-            UserId = selfUser.Id,
-            GroupId = groupId,
-        };
-
-        await _groupingUsersMapRepository.AddAsync(selfUserMap, token);
+            await _groupingUsersMapRepository.AddAsync(map, token);
+        }
 
         _groupingUsersMapRepository.SaveChanges();
 
@@ -176,10 +168,10 @@ public sealed class GroupController : ControllerBase
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
 
+            var listGroupingUsersMap = new List<GroupingUsersMap>();
+
             if (updateGroupParams.Participants != null) 
             {
-                var listGroupingUsersMap = new List<GroupingUsersMap>();
-
                 var existedUsers = await _usersRepository.GetAllUsersAsync(token);
 
                 foreach (var userId in updateGroupParams.Participants)
@@ -194,22 +186,16 @@ public sealed class GroupController : ControllerBase
                             GroupId = groupId,
                         };
 
-                        await _groupingUsersMapRepository.AddAsync(map, token);
-
                         listGroupingUsersMap.Add(map);
                     }
                 }
 
-                _groupingUsersMapRepository.SaveChanges();
+                foreach (var map in listGroupingUsersMap)
+                {
+                    await _groupingUsersMapRepository.AddAsync(map, token);
+                }
 
-                if (existedGroup.ParticipantsMap == null)
-                {
-                    existedGroup.ParticipantsMap = listGroupingUsersMap;
-                }
-                else
-                {
-                    existedGroup.ParticipantsMap.AddRange(listGroupingUsersMap);
-                }
+                _groupingUsersMapRepository.SaveChanges();
             }
 
             if (!string.IsNullOrWhiteSpace(updateGroupParams.GroupName))
@@ -292,13 +278,6 @@ public sealed class GroupController : ControllerBase
             await _groupingUsersMapRepository.DeleteAsync(groupId, participantId, token);
 
             _groupingUsersMapRepository.SaveChanges();
-
-            existedGroup.ParticipantsMap = 
-                existedGroup.ParticipantsMap.Where(x => x.UserId != participantId).ToList();
-
-            await _groupsRepository.UpdateAsync(existedGroup, token);
-
-            _groupsRepository.SaveChanges();
 
             var response = new Response();
             response.Result = true;
