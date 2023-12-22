@@ -82,9 +82,10 @@ public sealed class UsersDataHandler
                 "User with email {Email} was already in DB",
                 email);
 
-            var response1 = new Response();
+            var response1 = new RegistrationResponse();
             response1.Result = false;
             response1.OutInfo = $"User with email {email} was already in DB";
+            response1.RegistrationCase = RegistrationCase.SuchUserExisted;
 
             return await Task.FromResult(response1);
         }
@@ -110,8 +111,9 @@ public sealed class UsersDataHandler
             _logger.LogInformation(
                 "User account link confirmation was not succesfull");
 
-            var response2 = new Response();
+            var response2 = new RegistrationResponse();
             response2.Result = false;
+            response2.RegistrationCase = RegistrationCase.ConfirmationFailed;
 
             builder.Append(
                 $"User account link confirmation was not succesfull" +
@@ -141,7 +143,7 @@ public sealed class UsersDataHandler
 
         _usersRepository.SaveChanges();
 
-        var response = new ResponseWithToken();
+        var response = new RegistrationResponse();
         response.Result = true;
 
         builder.Append(
@@ -152,6 +154,7 @@ public sealed class UsersDataHandler
         response.UserId = user.Id;
         response.Token = authToken;
         response.UserName = user.UserName;
+        response.RegistrationCase = RegistrationCase.ConfirmationSucceeded;
 
         return await Task.FromResult(response);
     }
