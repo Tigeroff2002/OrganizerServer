@@ -83,7 +83,7 @@ public sealed class UsersDataHandler
                 email);
 
             var response1 = new RegistrationResponse();
-            response1.Result = false;
+            response1.Result = true;
             response1.OutInfo = $"User with email {email} was already in DB";
             response1.RegistrationCase = RegistrationCase.SuchUserExisted;
 
@@ -112,7 +112,7 @@ public sealed class UsersDataHandler
                 "User account link confirmation was not succesfull");
 
             var response2 = new RegistrationResponse();
-            response2.Result = false;
+            response2.Result = true;
             response2.RegistrationCase = RegistrationCase.ConfirmationFailed;
 
             builder.Append(
@@ -150,6 +150,7 @@ public sealed class UsersDataHandler
             $"Registrating new user {user.Email} with id {user.Id}" +
             $" with creating new auth token {authToken}");
 
+        response.Result = true;
         response.OutInfo = builder.ToString();
         response.UserId = user.Id;
         response.Token = authToken;

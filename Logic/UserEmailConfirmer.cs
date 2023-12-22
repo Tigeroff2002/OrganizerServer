@@ -98,7 +98,7 @@ public sealed class UserEmailConfirmer
             $"Link confirmation was performed for user" +
             $" with email {email} with link: {randomLink}";
 
-        Task.Delay(30_000).GetAwaiter().GetResult();
+        //Task.Delay(30_000).GetAwaiter().GetResult();
 
         return confirmationResponse;
     }
