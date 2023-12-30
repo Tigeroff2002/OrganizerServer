@@ -83,9 +83,15 @@ public sealed class ReportsHandler
                         || x.TaskStatus == TaskCurrentStatus.Done)
                     .ToList();
 
-                var tasksNotStartedPercent = (notStartedTasks.Count / userTasks.Count) * 100;
-                var tasksInProgressPercent = (inProgressTasks.Count / userTasks.Count) * 100;
-                var tasksDonePercent = ((float)doneTasks.Count / userTasks.Count) * 100;
+                var tasksNotStartedPercent = userTasks.Count != 0
+                    ? (notStartedTasks.Count / userTasks.Count) * 100
+                    : 0;
+                var tasksInProgressPercent = userTasks.Count != 0
+                    ? (inProgressTasks.Count / userTasks.Count) * 100
+                    : 0;
+                var tasksDonePercent = userTasks.Count != 0
+                    ? ((float)doneTasks.Count / userTasks.Count) * 100
+                    : 0;
 
                 stringBuilder.Append($"Отчет был выполнен в {creationTime.ToLocalTime()}\n");
                 stringBuilder.Append($"Всего задач для имплементации пользователем - {userTasks.Count}\n");
@@ -171,7 +177,9 @@ public sealed class ReportsHandler
 
                 var totalHours = totalEventsMinutesDuration / 60;
 
-                var eventsAcceptedPercent = ((float) acceptedEventsCount / userEventsCount) * 100;
+                var eventsAcceptedPercent = userEventsCount == 0
+                    ? ((float)acceptedEventsCount / userEventsCount) * 100
+                    : 0;
 
                 stringBuilder.Append($"Отчет был выполнен в {creationTime.ToLocalTime()}\n");
                 stringBuilder.Append(
