@@ -13,12 +13,12 @@ using Models.BusinessModels;
 
 namespace Logic;
 
-public sealed class UsersCodeConfirmer
-    : IUsersCodeConfirmer
+public sealed class UserEmailConfirmer
+    : IUserEmailConfirmer
 {
-    public UsersCodeConfirmer(
+    public UserEmailConfirmer(
         IOptions<SmtpConfiguration> options,
-        ILogger<UsersCodeConfirmer> logger)
+        ILogger<UserEmailConfirmer> logger)
     {
         ArgumentNullException.ThrowIfNull(options);
         _configuration = options.Value;
@@ -66,17 +66,16 @@ public sealed class UsersCodeConfirmer
 
         _logger.LogInformation("Connected to smtp server");
 
-        var code =
-            RandomNumberGenerator.GetInt32(1_000_000).ToString().PadLeft(6, '0');
+        var randomLink = RandomURLGenerator.GenerateURL();
 
         var subject = "Registration new calendar app account";
 
         var body = new StringBuilder();
 
         body.Append($"Hello, {shortUserInfo.UserName}!\n");
-        body.Append("Bellow is your registration code. You need to write to your mobile app...\n");
+        body.Append("Bellow is your account confirmation link. You need to open it in your browser page...\n");
         body.Append($"Or maybe we can call your to your phone number: {shortUserInfo.UserPhone}\n");
-        body.Append($"Your 6-digit confirmation code: {code}.");
+        body.Append($"Your confirmation link is here: {randomLink}.");
 
         var mailMessage = new MailMessage(
             new MailAddress(_configuration.FromAdress),
@@ -96,8 +95,10 @@ public sealed class UsersCodeConfirmer
         var confirmationResponse = new Response();
         confirmationResponse.Result = true;
         confirmationResponse.OutInfo = 
-            $"Code confirmation was performed for user" +
-            $" with email {email} with code: {code}";
+            $"Link confirmation was performed for user" +
+            $" with email {email} with link: {randomLink}";
+
+        //Task.Delay(30_000).GetAwaiter().GetResult();
 
         return confirmationResponse;
     }

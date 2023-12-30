@@ -28,7 +28,7 @@ public sealed class UsersDataHandler
         IEventsUsersMapRepository eventsUsersMapRepository,
         IGroupingUsersMapRepository groupingUsersMapRepository,
         IReportsRepository reportsRepository,
-        IUsersCodeConfirmer usersCodeConfirmer,
+        IUserEmailConfirmer usersCodeConfirmer,
         ISerializer<UserInfoContent> userInfoSerializer,
         ILogger<UsersDataHandler> logger)
     {
@@ -82,9 +82,10 @@ public sealed class UsersDataHandler
                 "User with email {Email} was already in DB",
                 email);
 
-            var response1 = new Response();
-            response1.Result = false;
+            var response1 = new RegistrationResponse();
+            response1.Result = true;
             response1.OutInfo = $"User with email {email} was already in DB";
+            response1.RegistrationCase = RegistrationCase.SuchUserExisted;
 
             return await Task.FromResult(response1);
         }
@@ -108,12 +109,15 @@ public sealed class UsersDataHandler
         if (!confirmResult)
         {
             _logger.LogInformation(
-                "Wrong user code confirmation received");
+                "User account link confirmation was not succesfull");
 
-            var response2 = new Response();
-            response2.Result = false;
+            var response2 = new RegistrationResponse();
+            response2.Result = true;
+            response2.RegistrationCase = RegistrationCase.ConfirmationFailed;
 
-            builder.Append($"Wrong user code confirmation received from user with email {email}.");
+            builder.Append(
+                $"User account link confirmation was not succesfull" +
+                $" for user with email {email}.");
             response2.OutInfo = builder.ToString();
 
             return await Task.FromResult(response2);
@@ -139,17 +143,19 @@ public sealed class UsersDataHandler
 
         _usersRepository.SaveChanges();
 
-        var response = new ResponseWithToken();
+        var response = new RegistrationResponse();
         response.Result = true;
 
         builder.Append(
             $"Registrating new user {user.Email} with id {user.Id}" +
             $" with creating new auth token {authToken}");
 
+        response.Result = true;
         response.OutInfo = builder.ToString();
         response.UserId = user.Id;
         response.Token = authToken;
         response.UserName = user.UserName;
+        response.RegistrationCase = RegistrationCase.ConfirmationSucceeded;
 
         return await Task.FromResult(response);
     }
@@ -485,7 +491,7 @@ public sealed class UsersDataHandler
     private readonly IEventsUsersMapRepository _eventsUsersMapRepository;
     private readonly IGroupingUsersMapRepository _groupingUsersMapRepository;
     private readonly IReportsRepository _reportsRepository;
-    private readonly IUsersCodeConfirmer _usersCodeConfirmer;
+    private readonly IUserEmailConfirmer _usersCodeConfirmer;
     private readonly ISerializer<UserInfoContent> _userInfoSerializer;
     private ILogger _logger;
 }

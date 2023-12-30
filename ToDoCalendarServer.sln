@@ -34,11 +34,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Migrations", "Migrations", 
 		4_data_feed.sql = 4_data_feed.sql
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dataset", "dataset", "{C0FF8D86-853C-453D-A9AB-F723DFB90FF8}"
-	ProjectSection(SolutionItems) = preProject
-		init.sql = init.sql
-	EndProjectSection
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

@@ -3,7 +3,7 @@ using Models.BusinessModels;
 
 namespace Logic.Abstractions;
 
-public interface IUsersCodeConfirmer
+public interface IUserEmailConfirmer
 {
     Task<Response> ConfirmAsync(ShortUserInfo shortUserInfo, CancellationToken token);
 }

@@ -70,4 +70,3 @@
           CONSTRAINT fk_events_users_map_events_event_id FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE,
           CONSTRAINT fk_events_users_map_users_user_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
       );
-

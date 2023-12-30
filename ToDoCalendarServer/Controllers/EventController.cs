@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Models;
 using Models.BusinessModels;
+using Models.Enums;
 using Newtonsoft.Json;
 using PostgreSQL;
 using PostgreSQL.Abstractions;
@@ -70,7 +71,7 @@ public sealed class EventController : ControllerBase
 
         if (group == null)
         {
-            if (eventToCreate.EventType != Models.Enums.EventType.Personal)
+            if (eventToCreate.EventType != EventType.Personal)
             {
                 var response1 = new Response();
                 response1.Result = false;
@@ -103,46 +104,78 @@ public sealed class EventController : ControllerBase
 
         var listGuestsMaps = new List<EventsUsersMap>();
 
-        if (eventToCreate.GuestsIds != null)
-        {
-            var existedUsers = await _usersRepository.GetAllUsersAsync(token);
+        var existedUsers = await _usersRepository.GetAllUsersAsync(token);
 
-            foreach (var userId in eventToCreate.GuestsIds)
+        var managerMap = new EventsUsersMap
+        {
+            UserId = manager.Id,
+            DecisionType = DecisionType.Apply,
+            EventId = eventId,
+        };
+
+        if (eventToCreate.EventType is EventType.Meeting or EventType.StandUp)
+        {
+            var allMaps = await _groupingUsersMapRepository.GetAllMapsAsync(token);
+
+            var usersInGroup = allMaps.Where(x => x.GroupId == groupId);
+
+            foreach (var userMap in usersInGroup)
             {
-                var currentUser = existedUsers.FirstOrDefault(x => x.Id == userId);
+                var currentUserId = userMap.UserId;
+
+                var currentUser = existedUsers.FirstOrDefault(x => x.Id == currentUserId);
 
                 if (currentUser != null)
                 {
                     var map = new EventsUsersMap
                     {
-                        UserId = userId,
-                        DecisionType = Models.Enums.DecisionType.Default,
+                        UserId = currentUserId,
+                        DecisionType = DecisionType.Default,
                         EventId = eventId
                     };
-
-                    await _eventsUsersMapRepository.AddAsync(map, token);
 
                     listGuestsMaps.Add(map);
                 }
             }
+        }
+        else if (eventToCreate.EventType == EventType.Personal)
+        {
+            listGuestsMaps.Add(managerMap);
+        }
+        else
+        {
+            if (eventToCreate.GuestsIds != null)
+            {
+                foreach (var userId in eventToCreate.GuestsIds)
+                {
+                    var currentUser = existedUsers.FirstOrDefault(x => x.Id == userId);
 
-            _eventsUsersMapRepository.SaveChanges();
+                    if (currentUser != null)
+                    {
+                        var map = new EventsUsersMap
+                        {
+                            UserId = userId,
+                            DecisionType = DecisionType.Default,
+                            EventId = eventId
+                        };
+
+                        listGuestsMaps.Add(map);
+                    }
+                }
+            }
         }
 
-        var managerMap = new EventsUsersMap
+        if (listGuestsMaps.FirstOrDefault(x => x.UserId == manager.Id) == null)
         {
-            UserId = manager.Id,
-            DecisionType = Models.Enums.DecisionType.Apply,
-            EventId = eventId,
-        };
+            listGuestsMaps.Add(managerMap);
+        }
 
-        await _eventsUsersMapRepository.AddAsync(managerMap, token);
+        foreach (var map in listGuestsMaps)
+        {
+            await _eventsUsersMapRepository.AddAsync(map, token);
+        }
 
         _eventsUsersMapRepository.SaveChanges();
-
-        listGuestsMaps.Add(managerMap);
-
-        @event.GuestsMap = listGuestsMaps;
 
         var response = new Response();
         response.Result = true;
@@ -190,7 +223,6 @@ public sealed class EventController : ControllerBase
 
             var manager = await _usersRepository.GetUserByIdAsync(userId, token);
 
-            existedEvent.Manager = manager!;
 
             if (existedEvent.Manager.Id != userId)
             {
@@ -219,14 +251,14 @@ public sealed class EventController : ControllerBase
                         {
                             UserId = guestId,
                             EventId = eventId,
-                            DecisionType = Models.Enums.DecisionType.Default
+                            DecisionType = DecisionType.Default
                         };
 
                         listGuestsMap.Add(map);
                     }
                 }
 
-                if (existedEvent.EventType != Models.Enums.EventType.Personal)
+                if (existedEvent.EventType != EventType.Personal)
                 {
                     foreach(var map in listGuestsMap)
                     {
@@ -234,15 +266,6 @@ public sealed class EventController : ControllerBase
                     }
 
                     _eventsUsersMapRepository.SaveChanges();
-
-                    if (existedEvent.GuestsMap == null)
-                    {
-                        existedEvent.GuestsMap = listGuestsMap;
-                    }
-                    else
-                    {
-                        existedEvent.GuestsMap.AddRange(listGuestsMap);
-                    }
                 }
             }
 
@@ -272,13 +295,13 @@ public sealed class EventController : ControllerBase
                 numbers_of_new_params++;
             }
 
-            if (updateEventParams.EventType != Models.Enums.EventType.None)
+            if (updateEventParams.EventType != EventType.None)
             {
                 existedEvent.EventType = updateEventParams.EventType;
                 numbers_of_new_params++;
             }
 
-            if (updateEventParams.EventStatus != Models.Enums.EventStatus.None)
+            if (updateEventParams.EventStatus != EventStatus.None)
             {
                 existedEvent.Status = updateEventParams.EventStatus;
                 numbers_of_new_params++;
