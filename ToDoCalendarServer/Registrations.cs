@@ -30,7 +30,7 @@ public static class Registrations
             .AddSingleton<IUsersDataHandler, UsersDataHandler>()
             .AddSingleton<IUserEmailConfirmer, UserEmailConfirmer>()
             .AddConfigurations(configuration)
-            .AddSingleton<IReportsHandler, ReportsHandler>();
+            .AddSingleton<ISnapshotsHandler, SnapshotsHandler>();
 
     public static IServiceCollection AddSerialization(this IServiceCollection services)
         => services
@@ -50,7 +50,7 @@ public static class Registrations
             .AddSingleton<IGroupsRepository, GroupsRepository>()
             .AddSingleton<IEventsRepository, EventsRepository>()
             .AddSingleton<ITasksRepository, TasksRepository>()
-            .AddSingleton<IReportsRepository, ReportsRepository>()
+            .AddSingleton<ISnapshotsRepository, SnapshotsRepository>()
             .AddSingleton<IGroupingUsersMapRepository, GroupingUsersMapRepository>()
             .AddSingleton<IEventsUsersMapRepository, EventsUsersMapRepository>();
 

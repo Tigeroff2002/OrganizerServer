@@ -14,7 +14,7 @@ public interface IRepositoryContext
 
     DbSet<UserTask> Tasks { get; }
 
-    DbSet<Report> Reports { get; }
+    DbSet<Snapshot> Snapshots { get; }
 
     DbSet<GroupingUsersMap> GroupingUsersMaps { get; }
 

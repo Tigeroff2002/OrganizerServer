@@ -24,6 +24,7 @@ public sealed class UserController : ControllerBase
     {
         _logger = logger 
             ?? throw new ArgumentNullException(nameof(logger));
+
         _usersDataHandler = usersDataHandler 
             ?? throw new ArgumentNullException(nameof(usersDataHandler));
 
@@ -40,7 +41,7 @@ public sealed class UserController : ControllerBase
     [Route("register")]
     public async Task<IActionResult> RegisterUserAsyns(CancellationToken token)
     {
-        var body = await ReadRequestBodyAsync();
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
         var userRegistrationData = 
             _usersRegistrationDataDeserializer.Deserialize(body);
@@ -57,7 +58,7 @@ public sealed class UserController : ControllerBase
     [Route("login")]
     public async Task<IActionResult> LoginUserAsyns(CancellationToken token)
     {
-        var body = await ReadRequestBodyAsync();
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
         var userLoginData = _usersLoginDataDeserializer.Deserialize(body);
 
@@ -73,7 +74,7 @@ public sealed class UserController : ControllerBase
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> GetInfoAsync(CancellationToken token)
     {
-        var body = await ReadRequestBodyAsync();
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
         var userInfoByIdRequest = _userInfoByIdDeserializer.Deserialize(body);
         
@@ -90,7 +91,7 @@ public sealed class UserController : ControllerBase
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> UpdateUserInfo(CancellationToken token)
     {
-        var body = await ReadRequestBodyAsync();
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
         var updateUserInfo = JsonConvert.DeserializeObject<UserUpdateInfoDTO>(body);
 
@@ -101,13 +102,6 @@ public sealed class UserController : ControllerBase
         var get_json = JsonConvert.SerializeObject(response);
 
         return Ok(get_json);
-    }
-
-    private async Task<string> ReadRequestBodyAsync()
-    {
-        using var reader = new StreamReader(Request.Body);
-
-        return await reader.ReadToEndAsync();
     }
 
     private readonly ILogger<UserController> _logger;

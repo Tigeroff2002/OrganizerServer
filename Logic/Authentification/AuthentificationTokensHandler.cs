@@ -62,7 +62,7 @@ public sealed class AuthentificationTokensHandler
 
         if (string.IsNullOrEmpty(token))
         {
-            return await Task.FromResult(AuthenticateResult.Fail("Token is null"));
+            return await Task.FromResult(AuthenticateResult.Fail("Token is null or empty"));
         }
 
         var authResponse = await ValidateUserToken(userId, token);
@@ -105,7 +105,8 @@ public sealed class AuthentificationTokensHandler
         {
             var response1 = new Response();
             response1.Result = false;
-            response1.OutInfo = $"Cant authentificate user with id {userId} cause its not existing";
+            response1.OutInfo = $"Cant authentificate user with id {userId}" +
+                $" cause it is not existed in db";
 
             return await Task.FromResult(response1);
         }

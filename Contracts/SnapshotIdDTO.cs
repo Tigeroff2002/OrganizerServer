@@ -3,8 +3,8 @@ using Newtonsoft.Json;
 
 namespace Contracts;
 
-public class ReportIdDTO : RequestWithToken
+public class SnapshotIdDTO : RequestWithToken
 {
-    [JsonProperty("report_id", Required = Required.Always)]
+    [JsonProperty("snapshot_id", Required = Required.Always)]
     public required int ReportId { get; init; }
 }

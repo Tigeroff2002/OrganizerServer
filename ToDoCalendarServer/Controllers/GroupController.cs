@@ -45,7 +45,7 @@ public sealed class GroupController : ControllerBase
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> CreateGroup(CancellationToken token)
     {
-        var body = await ReadRequestBodyAsync();
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
         var groupToCreate = JsonConvert.DeserializeObject<GroupInputDTO>(body);
 
@@ -138,7 +138,7 @@ public sealed class GroupController : ControllerBase
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> AddParticipants(CancellationToken token)
     {
-        var body = await ReadRequestBodyAsync();
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
         var updateGroupParams = JsonConvert.DeserializeObject<UpdateGroupParams>(body);
 
@@ -232,14 +232,13 @@ public sealed class GroupController : ControllerBase
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> DeleteParticipant(CancellationToken token)
     {
-        var body = await ReadRequestBodyAsync();
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
         var groupDeleteParticipant = JsonConvert.DeserializeObject<GroupDeleteParticipant>(body);
 
         Debug.Assert(groupDeleteParticipant != null);
 
         /*
-
         if (groupDeleteParticipant.UserId != groupDeleteParticipant.Participant_Id)
         {
             var response1 = new Response();
@@ -301,7 +300,7 @@ public sealed class GroupController : ControllerBase
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> GetGroupInfo(CancellationToken token)
     {
-        var body = await ReadRequestBodyAsync();
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
         var groupByIdRequest = JsonConvert.DeserializeObject<GroupDetailsRequest>(body);
 
@@ -399,7 +398,7 @@ public sealed class GroupController : ControllerBase
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> GetGroupParticipantCalendarInfo(CancellationToken token)
     {
-        var body = await ReadRequestBodyAsync();
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
         var participantCalendarRequest = JsonConvert.DeserializeObject<AnotherUserCalendarRequest>(body);
 
@@ -513,13 +512,6 @@ public sealed class GroupController : ControllerBase
         response2.OutInfo = $"No such group with id {participantCalendarRequest.GroupId}";
 
         return BadRequest(JsonConvert.SerializeObject(response2));
-    }
-
-    private async Task<string> ReadRequestBodyAsync()
-    {
-        using var reader = new StreamReader(Request.Body);
-
-        return await reader.ReadToEndAsync();
     }
 
     private readonly IGroupsRepository _groupsRepository;

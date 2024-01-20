@@ -47,7 +47,7 @@ public sealed class EventController : ControllerBase
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> ScheduleNewEvent(CancellationToken token)
     {
-        var body = await ReadRequestBodyAsync();
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
         var eventToCreate = JsonConvert.DeserializeObject<EventInputDTO>(body);
 
@@ -194,7 +194,7 @@ public sealed class EventController : ControllerBase
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> UpdateEventParams(CancellationToken token)
     {
-        var body = await ReadRequestBodyAsync();
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
         var updateEventParams = JsonConvert.DeserializeObject<EventInputWithIdDTO>(body);
 
@@ -338,7 +338,7 @@ public sealed class EventController : ControllerBase
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> ChangeUserDecisionForEvent(CancellationToken token)
     {
-        var body = await ReadRequestBodyAsync();
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
         var updateEventParams = JsonConvert.DeserializeObject<EventUserDecisionDTO>(body);
 
@@ -415,7 +415,7 @@ public sealed class EventController : ControllerBase
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> DeleteEvent(CancellationToken token)
     {
-        var body = await ReadRequestBodyAsync();
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
         var eventDeleteParams = JsonConvert.DeserializeObject<EventIdDTO>(body);
 
@@ -476,7 +476,7 @@ public sealed class EventController : ControllerBase
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> GetEventInfo(CancellationToken token)
     {
-        var body = await ReadRequestBodyAsync();
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
         var eventByIdRequest = JsonConvert.DeserializeObject<EventIdDTO>(body);
 
@@ -620,13 +620,6 @@ public sealed class EventController : ControllerBase
         response2.OutInfo = $"No such event with id {eventByIdRequest.EventId}";
 
         return BadRequest(JsonConvert.SerializeObject(response2));
-    }
-
-    private async Task<string> ReadRequestBodyAsync()
-    {
-        using var reader = new StreamReader(Request.Body);
-
-        return await reader.ReadToEndAsync();
     }
 
     private readonly IEventsRepository _eventsRepository;

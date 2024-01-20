@@ -3,14 +3,14 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Models;
 
-public class Report
+public class Snapshot
 {
     [Key]
     public int Id { get; set; }
 
     public string Description { get; set; }
 
-    public ReportType ReportType { get; set; }
+    public SnapshotType SnapshotType { get; set; }
 
     public DateTimeOffset BeginMoment { get; set; }
 
@@ -20,5 +20,5 @@ public class Report
 
     public int UserId { get; set; }
 
-    public Report() { }
+    public Snapshot() { }
 }

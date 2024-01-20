@@ -116,7 +116,7 @@ namespace PostgreSQL.Migrations
                     id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     description = table.Column<string>(type: "text", nullable: false),
-                    report_type = table.Column<ReportType>(type: "report_type", nullable: false),
+                    report_type = table.Column<SnapshotType>(type: "report_type", nullable: false),
                     begin_moment = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     end_moment = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     user_id = table.Column<int>(type: "integer", nullable: false)
