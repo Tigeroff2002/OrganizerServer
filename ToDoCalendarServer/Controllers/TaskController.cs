@@ -48,7 +48,9 @@ public sealed class TaskController : ControllerBase
         {
             var response1 = new Response();
             response1.Result = false;
-            response1.OutInfo = $"Task has not been created cause current user was not found";
+            response1.OutInfo = 
+                $"Task has not been created cause" +
+                $" current user with id {reporterId} was not found";
 
             return BadRequest(JsonConvert.SerializeObject(response1));
         }
@@ -57,7 +59,9 @@ public sealed class TaskController : ControllerBase
         {
             var response1 = new Response();
             response1.Result = false;
-            response1.OutInfo = $"Task has not been created cause implementer was not found";
+            response1.OutInfo = 
+                $"Task has not been created cause" +
+                $" user with id {implementerId} was not found";
 
             return BadRequest(JsonConvert.SerializeObject(response1));
         }
@@ -127,7 +131,9 @@ public sealed class TaskController : ControllerBase
             {
                 var response1 = new Response();
                 response1.Result = false;
-                response1.OutInfo = $"Task has not been modified cause user not relate to thats reporter";
+                response1.OutInfo = 
+                    $"Task has not been modified cause" +
+                    $" current user with id {taskUpdateParams.UserId} not relate to thats reporter";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
@@ -212,12 +218,24 @@ public sealed class TaskController : ControllerBase
             {
                 existedTask.Reporter = reporter;
             }
-
-            if (taskToDelete.UserId != existedTask.Reporter.Id)
+            else
             {
                 var response1 = new Response();
                 response1.Result = false;
-                response1.OutInfo = $"Task has not been deleted cause user is not its reporter";
+                response1.OutInfo =
+                    $"Task has not been deleted cause" +
+                    $" current user with id {reporterId} was not found";
+
+                return BadRequest(JsonConvert.SerializeObject(response1));
+            }
+
+            if (reporterId != existedTask.Reporter.Id)
+            {
+                var response1 = new Response();
+                response1.Result = false;
+                response1.OutInfo = 
+                    $"Task has not been deleted cause" +
+                    $" current user with id {reporterId} is not its reporter";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
@@ -267,13 +285,24 @@ public sealed class TaskController : ControllerBase
                 existedTask.Reporter = reporter;
                 existedTask.Implementer = implementer;
             }
+            else if (reporter == null)
+            {
+                var response1 = new Response();
+                response1.Result = false;
+                response1.OutInfo =
+                    $"Task info has not been received cause" +
+                    $" current user with id {reporterId} was not found";
+
+                return BadRequest(JsonConvert.SerializeObject(response1));
+            }
 
             if (taskWithIdRequest.UserId != existedTask.Reporter.Id 
                 && taskWithIdRequest.UserId != existedTask.Implementer.Id)
             {
                 var response1 = new Response();
                 response1.Result = false;
-                response1.OutInfo = $"Cant take info about task {taskId} cause user" +
+                response1.OutInfo = 
+                    $"Cant take info about task {taskId} cause user" +
                     $" is not its reporter or implementer";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
@@ -283,7 +312,8 @@ public sealed class TaskController : ControllerBase
             {
                 var response1 = new Response();
                 response1.Result = false;
-                response1.OutInfo = $"Task info has not been received" +
+                response1.OutInfo = 
+                    $"Task info has not been received" +
                     $" cause reporter of it was not found";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
@@ -293,7 +323,8 @@ public sealed class TaskController : ControllerBase
             {
                 var response1 = new Response();
                 response1.Result = false;
-                response1.OutInfo = $"Task info has not been received" +
+                response1.OutInfo = 
+                    $"Task info has not been received" +
                     $" cause implementer of it was not found";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));

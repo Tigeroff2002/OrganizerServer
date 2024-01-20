@@ -1,17 +1,13 @@
 ﻿using Contracts;
-using Contracts.Request.RequestById;
 using Contracts.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Models;
 using Models.BusinessModels;
 using Models.Enums;
 using Newtonsoft.Json;
-using PostgreSQL;
 using PostgreSQL.Abstractions;
 using System.Diagnostics;
-using System.Text.RegularExpressions;
 
 namespace ToDoCalendarServer.Controllers;
 
@@ -62,7 +58,9 @@ public sealed class EventController : ControllerBase
         {
             var response1 = new Response();
             response1.Result = false;
-            response1.OutInfo = $"Event has not been scheduled cause current user was not found";
+            response1.OutInfo = 
+                $"Event has not been scheduled cause" +
+                $" current user with id {managerId} was not found";
 
             return BadRequest(JsonConvert.SerializeObject(response1));
         }
@@ -75,7 +73,9 @@ public sealed class EventController : ControllerBase
             {
                 var response1 = new Response();
                 response1.Result = false;
-                response1.OutInfo = $"Event has not been scheduled cause related group was not found";
+                response1.OutInfo = 
+                    $"Event has not been scheduled cause related" +
+                    $" group with id {groupId} was not found";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
@@ -214,7 +214,9 @@ public sealed class EventController : ControllerBase
             {
                 var response1 = new Response();
                 response1.Result = false;
-                response1.OutInfo = $"Event has not been modified cause current user was not found";
+                response1.OutInfo = 
+                    $"Event has not been modified cause" +
+                    $" current user with id {userId} was not found";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
@@ -358,7 +360,9 @@ public sealed class EventController : ControllerBase
             {
                 var response1 = new Response();
                 response1.Result = false;
-                response1.OutInfo = $"Event has not been modified cause current user was not found";
+                response1.OutInfo = 
+                    $"Event has not been modified cause" +
+                    $" current user with id {userId} was not found";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
@@ -436,7 +440,9 @@ public sealed class EventController : ControllerBase
             {
                 var response1 = new Response();
                 response1.Result = false;
-                response1.OutInfo = $"Event has not been modified cause current user was not found";
+                response1.OutInfo = 
+                    $"Event has not been modified cause" +
+                    $" current user with id {userId} was not found";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
@@ -446,7 +452,8 @@ public sealed class EventController : ControllerBase
                 var response1 = new Response();
                 response1.Result = false;
                 response1.OutInfo =
-                    $"Event has not been modified cause current user with id {userId}" +
+                    $"Event has not been modified" +
+                    $" cause current user with id {userId}" +
                     $" is not manager: 'managerId = {managerId}' of this event";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
@@ -502,7 +509,8 @@ public sealed class EventController : ControllerBase
                 var response1 = new Response();
                 response1.Result = true;
                 response1.OutInfo =
-                    $"Info about event with id {eventId} was not accessed" +
+                    $"Info about event with id {eventId}" +
+                    $" was not accessed" +
                     $" cause user with id {userId} not related to that";
 
                 var json1 = JsonConvert.SerializeObject(response1);

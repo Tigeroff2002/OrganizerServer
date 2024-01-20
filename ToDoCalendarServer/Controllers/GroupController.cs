@@ -51,13 +51,17 @@ public sealed class GroupController : ControllerBase
 
         Debug.Assert(groupToCreate != null);
 
-        var selfUser = await _usersRepository.GetUserByIdAsync(groupToCreate.UserId, token);
+        var currentUserId = groupToCreate.UserId;
+
+        var selfUser = await _usersRepository.GetUserByIdAsync(currentUserId, token);
 
         if (selfUser == null)
         {
             var response1 = new Response();
             response1.Result = false;
-            response1.OutInfo = $"Group has not been created cause current user was not found";
+            response1.OutInfo = 
+                $"Group has not been created" +
+                $" cause current user with id {currentUserId} was not found";
 
             return BadRequest(JsonConvert.SerializeObject(response1));
         }
@@ -147,6 +151,19 @@ public sealed class GroupController : ControllerBase
         var groupId = updateGroupParams.GroupId;
         var currentUserId = updateGroupParams.UserId;
 
+        var currentUserFromRequest = await _usersRepository.GetUserByIdAsync(currentUserId, token);
+
+        if (currentUserFromRequest == null)
+        {
+            var response1 = new Response();
+            response1.Result = false;
+            response1.OutInfo =
+                $"Group has not been modified cause" +
+                $" current user with id {currentUserId} was not found";
+
+            return BadRequest(JsonConvert.SerializeObject(response1));
+        }
+
         var existedGroup = await _groupsRepository.GetGroupByIdAsync(groupId, token);
 
         if (existedGroup != null)
@@ -163,7 +180,9 @@ public sealed class GroupController : ControllerBase
             {
                 var response1 = new Response();
                 response1.Result = false;
-                response1.OutInfo = $"Group has not been modified cause user not relate to that";
+                response1.OutInfo = 
+                    $"Group has not been modified" +
+                    $" cause user with id {currentUserId} not relate to that";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
@@ -254,7 +273,21 @@ public sealed class GroupController : ControllerBase
 
         var existedGroup = await _groupsRepository.GetGroupByIdAsync(groupId, token);
 
-        var existedUser = await _usersRepository.GetUserByIdAsync(groupDeleteParticipant.Participant_Id, token);
+        var requestParticipantId = groupDeleteParticipant.Participant_Id;
+
+        var existedUser = await _usersRepository
+            .GetUserByIdAsync(requestParticipantId, token);
+
+        if (existedUser == null)
+        {
+            var response1 = new Response();
+            response1.Result = false;
+            response1.OutInfo =
+                $"Group has not been modified cause" +
+                $" current participant with id {requestParticipantId} was not found";
+
+            return BadRequest(JsonConvert.SerializeObject(response1));
+        }
 
         if (existedGroup != null && existedUser != null)
         {
@@ -283,7 +316,8 @@ public sealed class GroupController : ControllerBase
 
             var response = new Response();
             response.Result = true;
-            response.OutInfo = $"Participant with id {groupDeleteParticipant.Participant_Id}" +
+            response.OutInfo = 
+                $"Participant with id {groupDeleteParticipant.Participant_Id}" +
                 $" has been deleted from group with id {groupDeleteParticipant.GroupId}";
 
             return Ok(JsonConvert.SerializeObject(response));
@@ -308,6 +342,19 @@ public sealed class GroupController : ControllerBase
 
         var userId = groupByIdRequest.UserId;
         var groupId = groupByIdRequest.GroupId;
+
+        var existedUser = await _usersRepository.GetUserByIdAsync(userId, token);
+
+        if (existedUser == null)
+        {
+            var response1 = new Response();
+            response1.Result = false;
+            response1.OutInfo =
+                $"Group info has not been received cause" +
+                $" current user with id {userId} was not found";
+
+            return BadRequest(JsonConvert.SerializeObject(response1));
+        }
 
         var existedGroup = await _groupsRepository.GetGroupByIdAsync(groupId, token);
 
@@ -414,7 +461,7 @@ public sealed class GroupController : ControllerBase
         {
             var existedUser = await _usersRepository.GetUserByIdAsync(userId, token);
 
-            if (existedUser != null )
+            if (existedUser != null)
             {
                 var participant = await _usersRepository.GetUserByIdAsync(participantId, token);
 

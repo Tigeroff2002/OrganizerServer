@@ -52,7 +52,9 @@ public sealed class SnapshotController : ControllerBase
         {
             var response1 = new Response();
             response1.Result = false;
-            response1.OutInfo = $"Snapshot has not been created cause current user was not found";
+            response1.OutInfo = 
+                $"Snapshot has not been created cause" +
+                $" current user with id {userId} was not found";
 
             return BadRequest(JsonConvert.SerializeObject(response1));
         }
@@ -111,7 +113,9 @@ public sealed class SnapshotController : ControllerBase
             {
                 var response1 = new Response();
                 response1.Result = false;
-                response1.OutInfo = $"Snapshot has not been deleted cause user is not its manager";
+                response1.OutInfo = 
+                    $"Snapshot has not been deleted cause" +
+                    $" current user with id {userId} is not its manager";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
@@ -158,7 +162,9 @@ public sealed class SnapshotController : ControllerBase
             {
                 var response1 = new Response();
                 response1.Result = false;
-                response1.OutInfo = $"Cant take info about snapshot cause user with id {userId} is not found";
+                response1.OutInfo = 
+                    $"Cant take info about snapshot" +
+                    $" cause user with id {userId} is not found";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
@@ -167,7 +173,9 @@ public sealed class SnapshotController : ControllerBase
             {
                 var response1 = new Response();
                 response1.Result = false;
-                response1.OutInfo = $"Cant take info about snapshot cause user is not its manager";
+                response1.OutInfo = 
+                    $"Cant take info about snapshot cause" +
+                    $" user with id {snapshotWithIdRequest.UserId} is not its manager";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
