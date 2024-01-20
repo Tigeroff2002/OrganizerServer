@@ -99,7 +99,7 @@ public sealed class SnapshotController : ControllerBase
 
         Debug.Assert(snapshotToDelete != null);
 
-        var snapshotId = snapshotToDelete.ReportId;
+        var snapshotId = snapshotToDelete.SnapshotId;
 
         var existedSnapshot = await _snapshotsRepository.GetSnapshotByIdAsync(snapshotId, token);
 
@@ -144,7 +144,7 @@ public sealed class SnapshotController : ControllerBase
 
         Debug.Assert(snapshotWithIdRequest != null);
 
-        var snapshotId = snapshotWithIdRequest.ReportId;
+        var snapshotId = snapshotWithIdRequest.SnapshotId;
 
         var existedSnapshot = await _snapshotsRepository.GetSnapshotByIdAsync(snapshotId, token);
 
