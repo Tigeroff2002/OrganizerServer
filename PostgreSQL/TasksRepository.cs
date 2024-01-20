@@ -38,11 +38,11 @@ public sealed class TasksRepository
         return await _repositoryContext.Tasks.FirstOrDefaultAsync(x => x.Id == taskId);
     }
 
-    public Task<List<UserTask>> GetAllTasksAsync(CancellationToken token)
+    public async Task<List<UserTask>> GetAllTasksAsync(CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
 
-        return _repositoryContext.Tasks.ToListAsync(token);
+        return await _repositoryContext.Tasks.ToListAsync(token);
     }
 
     public async Task DeleteAsync(int taskId, CancellationToken token)

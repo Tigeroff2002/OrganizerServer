@@ -29,6 +29,9 @@ public sealed class RepositoryContext
     public DbSet<Snapshot> Snapshots => _context.Snapshots;
 
     /// <inheritdoc/>
+    public DbSet<Issue> Issues => _context.Issues;
+
+    /// <inheritdoc/>
     public DbSet<GroupingUsersMap> GroupingUsersMaps => _context.GroupingUsersMaps;
 
     /// <inheritdoc/>

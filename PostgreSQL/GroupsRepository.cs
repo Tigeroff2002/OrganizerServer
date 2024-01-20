@@ -38,11 +38,11 @@ public sealed class GroupsRepository
         return await _repositoryContext.Groups.FirstOrDefaultAsync(x => x.Id == groupId);
     }
 
-    public Task<List<Group>> GetAllGroupsAsync(CancellationToken token)
+    public async Task<List<Group>> GetAllGroupsAsync(CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
 
-        return _repositoryContext.Groups.ToListAsync(token);
+        return await _repositoryContext.Groups.ToListAsync(token);
     }
 
     public async Task DeleteAsync(int groupId, CancellationToken token)

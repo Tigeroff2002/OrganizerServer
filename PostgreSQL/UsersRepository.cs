@@ -51,11 +51,11 @@ public sealed class UsersRepository
             .FirstOrDefaultAsync(x => x.Email.Equals(email));
     }
 
-    public Task<List<User>> GetAllUsersAsync(CancellationToken token)
+    public async Task<List<User>> GetAllUsersAsync(CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
 
-        return _repositoryContext.Users.ToListAsync(token);
+        return await _repositoryContext.Users.ToListAsync(token);
     }
 
     public async Task DeleteAsync(int id, CancellationToken token)

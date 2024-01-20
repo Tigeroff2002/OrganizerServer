@@ -127,7 +127,8 @@ public sealed class UsersDataHandler
         user.GroupingMaps = new List<GroupingUsersMap>();
         user.TasksForImplementation = new List<UserTask>();
         user.EventMaps = new List<EventsUsersMap>();
-        user.Reports = new List<Snapshot>();
+        user.Snapshots = new List<Snapshot>();
+        //user.Issues = new List<Issue>();
 
         string authToken = GenerateNewAuthToken();
 

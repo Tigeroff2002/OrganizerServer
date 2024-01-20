@@ -38,11 +38,11 @@ public sealed class EventsRepository
         return await _repositoryContext.Events.FirstOrDefaultAsync(x => x.Id == eventId);
     }
 
-    public Task<List<Event>> GetAllEventsAsync(CancellationToken token)
+    public async Task<List<Event>> GetAllEventsAsync(CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
 
-        return _repositoryContext.Events.ToListAsync(token);
+        return await _repositoryContext.Events.ToListAsync(token);
     }
 
     public async Task DeleteAsync(int eventId, CancellationToken token)

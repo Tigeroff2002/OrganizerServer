@@ -35,14 +35,15 @@ public sealed class SnapshotsRepository
     {
         token.ThrowIfCancellationRequested();
 
-        return await _repositoryContext.Snapshots.FirstOrDefaultAsync(x => x.Id == snapshotId);
+        return await _repositoryContext.Snapshots
+            .FirstOrDefaultAsync(x => x.Id == snapshotId);
     }
 
-    public Task<List<Snapshot>> GetAllSnapshotsAsync(CancellationToken token)
+    public async Task<List<Snapshot>> GetAllSnapshotsAsync(CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
 
-        return _repositoryContext.Snapshots.ToListAsync(token);
+        return await _repositoryContext.Snapshots.ToListAsync(token);
     }
 
     public async Task DeleteAsync(int snapshotId, CancellationToken token)
