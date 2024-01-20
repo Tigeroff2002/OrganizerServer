@@ -6,12 +6,7 @@ using Logic.Transport.Abstractions;
 using Microsoft.Extensions.Logging;
 using Models;
 using Models.BusinessModels;
-using Models.Enums;
-using Newtonsoft.Json;
-using Org.BouncyCastle.Asn1.Tsp;
 using PostgreSQL.Abstractions;
-using System.Diagnostics;
-using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -27,7 +22,8 @@ public sealed class UsersDataHandler
         IEventsRepository eventsRepository,
         IEventsUsersMapRepository eventsUsersMapRepository,
         IGroupingUsersMapRepository groupingUsersMapRepository,
-        IReportsRepository reportsRepository,
+        ISnapshotsRepository snapshotsRepository,
+
         IUserEmailConfirmer usersCodeConfirmer,
         ISerializer<UserInfoContent> userInfoSerializer,
         ILogger<UsersDataHandler> logger)
@@ -50,8 +46,8 @@ public sealed class UsersDataHandler
         _groupingUsersMapRepository = groupingUsersMapRepository
             ?? throw new ArgumentNullException(nameof(groupingUsersMapRepository));
 
-        _reportsRepository = reportsRepository
-            ?? throw new ArgumentNullException(nameof(reportsRepository));
+        _snapshotsRepository = snapshotsRepository
+            ?? throw new ArgumentNullException(nameof(snapshotsRepository));
 
         _usersCodeConfirmer = usersCodeConfirmer
             ?? throw new ArgumentNullException(nameof(usersCodeConfirmer));
@@ -131,7 +127,7 @@ public sealed class UsersDataHandler
         user.GroupingMaps = new List<GroupingUsersMap>();
         user.TasksForImplementation = new List<UserTask>();
         user.EventMaps = new List<EventsUsersMap>();
-        user.Reports = new List<Report>();
+        user.Reports = new List<Snapshot>();
 
         string authToken = GenerateNewAuthToken();
 
@@ -210,7 +206,8 @@ public sealed class UsersDataHandler
 
         var response = new ResponseWithToken();
         response.Result = true;
-        response.OutInfo = $"Login existed user {userName} with new auth token {authToken}";
+        response.OutInfo = $"Login existed user {userName}" +
+            $" with new auth token {authToken}";
         response.UserId = existedUser.Id;
         response.Token = authToken;
         response.UserName = userName;
@@ -240,7 +237,8 @@ public sealed class UsersDataHandler
 
         var response = new GetResponse();
         response.Result = true;
-        response.OutInfo = $"Info about user with with id {userInfoById.UserId} has been received";
+        response.OutInfo = $"Info about user with with id" +
+            $" {userInfoById.UserId} has been received";
         response.RequestedInfo = _userInfoSerializer.Serialize(userInfoContent);
 
         return response;
@@ -297,7 +295,8 @@ public sealed class UsersDataHandler
 
             var response1 = new GetResponse();
             response1.Result = true;
-            response1.OutInfo = $"Updating info existed user with id = {userId}" +
+            response1.OutInfo = 
+                $"Updating info existed user with id = {userId}" +
                 $" and email {existedUser.Email}" +
                 $" with new auth token {authToken}";
 
@@ -380,33 +379,33 @@ public sealed class UsersDataHandler
 
         var allEvents = await _eventsRepository.GetAllEventsAsync(token);
 
-        var allReports = await _reportsRepository.GetAllReportsAsync(token);
+        var allSnapshots = await _snapshotsRepository.GetAllSnapshotsAsync(token);
 
-        var userReportsModels = allReports
-            .Where(report => report.UserId == userId)
+        var userSnapshotsModels = allSnapshots
+            .Where(snapshot => snapshot.UserId == userId)
             .ToList();
 
-        var userReports = new List<ReportInfoResponse>();
+        var userSnapshots = new List<SnapshotInfoResponse>();
 
-        foreach (var report in userReportsModels)
+        foreach (var snapshot in userSnapshotsModels)
         {
-            var reportId = report.Id;
+            var snapshotId = snapshot.Id;
 
-            var currentReport = await _reportsRepository
-                .GetReportByIdAsync(reportId, token);
+            var currentSnapshot = await _snapshotsRepository
+                .GetSnapshotByIdAsync(snapshotId, token);
 
-            if (currentReport != null)
+            if (currentSnapshot != null)
             {
-                var reportInfo = new ReportInfoResponse
+                var snapshotInfo = new SnapshotInfoResponse
                 {
-                    BeginMoment = currentReport.BeginMoment,
-                    EndMoment = currentReport.EndMoment,
-                    ReportType = currentReport.ReportType,
+                    BeginMoment = currentSnapshot.BeginMoment,
+                    EndMoment = currentSnapshot.EndMoment,
+                    SnapshotType = currentSnapshot.SnapshotType,
                     CreationTime = DateTimeOffset.Now,
-                    Content = currentReport.Description
+                    Content = currentSnapshot.Description
                 };
 
-                userReports.Add(reportInfo);
+                userSnapshots.Add(snapshotInfo);
             }
         }
 
@@ -473,7 +472,7 @@ public sealed class UsersDataHandler
             Groups = userGroups,
             Events = userEvents,
             Tasks = userTasks,
-            Reports = userReports
+            Snapshots = userSnapshots
         };
     }
 
@@ -490,7 +489,8 @@ public sealed class UsersDataHandler
     private readonly IEventsRepository _eventsRepository;
     private readonly IEventsUsersMapRepository _eventsUsersMapRepository;
     private readonly IGroupingUsersMapRepository _groupingUsersMapRepository;
-    private readonly IReportsRepository _reportsRepository;
+    private readonly ISnapshotsRepository _snapshotsRepository;
+
     private readonly IUserEmailConfirmer _usersCodeConfirmer;
     private readonly ISerializer<UserInfoContent> _userInfoSerializer;
     private ILogger _logger;

@@ -17,8 +17,7 @@ public class CalendarDataContext : DbContext
 
     public virtual DbSet<UserTask> Tasks { get; set; } = default!;
 
-    public virtual DbSet<Report> Reports { get; set; } = default!;
-
+    public virtual DbSet<Snapshot> Snapshots { get; set; } = default!;
 
     // дополнительные сущности для отношений many-to-many
     public virtual DbSet<GroupingUsersMap> GroupingUsersMaps { get; set; } = default!;
@@ -33,7 +32,7 @@ public class CalendarDataContext : DbContext
             .MapEnum<GroupType>()
             .MapEnum<TaskType>()
             .MapEnum<TaskCurrentStatus>()
-            .MapEnum<ReportType>()
+            .MapEnum<SnapshotType>()
             .MapEnum<DecisionType>();
 
     public CalendarDataContext(DbContextOptions<CalendarDataContext> options)
@@ -56,14 +55,14 @@ public class CalendarDataContext : DbContext
             .HasPostgresEnum<GroupType>()
             .HasPostgresEnum<TaskType>()
             .HasPostgresEnum<TaskCurrentStatus>()
-            .HasPostgresEnum<ReportType>()
+            .HasPostgresEnum<SnapshotType>()
             .HasPostgresEnum<DecisionType>();
 
         CreateUsersModels(modelBuilder);
         CreateGroupsModels(modelBuilder);
         CreateEventsModels(modelBuilder);
         CreateTasksModels(modelBuilder);
-        CreateReportsModels(modelBuilder);
+        CreateSnapshotsModels(modelBuilder);
         CreateGroupingUsersMapModels(modelBuilder);
         CreateEventUsersMapModels(modelBuilder);
 
@@ -174,21 +173,21 @@ public class CalendarDataContext : DbContext
             .Property(x => x.TaskStatus);
     }
 
-    private static void CreateReportsModels(ModelBuilder modelBuilder)
+    private static void CreateSnapshotsModels(ModelBuilder modelBuilder)
     {
-        _ = modelBuilder.Entity<Report>()
+        _ = modelBuilder.Entity<Snapshot>()
             .HasKey(x => x.Id);
 
-        _ = modelBuilder.Entity<Report>()
+        _ = modelBuilder.Entity<Snapshot>()
             .Property(x => x.Description);
 
-        _ = modelBuilder.Entity<Report>()
-            .Property(x => x.ReportType);
+        _ = modelBuilder.Entity<Snapshot>()
+            .Property(x => x.SnapshotType);
 
-        _ = modelBuilder.Entity<Report>()
+        _ = modelBuilder.Entity<Snapshot>()
             .Property(x => x.BeginMoment);
 
-        _ = modelBuilder.Entity<Report>()
+        _ = modelBuilder.Entity<Snapshot>()
             .Property(x => x.EndMoment);
     }
 

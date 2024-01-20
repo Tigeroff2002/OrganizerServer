@@ -32,7 +32,7 @@ public sealed class TaskController : ControllerBase
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> CreateTask(CancellationToken token)
     {
-        var body = await ReadRequestBodyAsync();
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
         var taskToCreate = JsonConvert.DeserializeObject<TaskInputDTO>(body);
 
@@ -98,7 +98,7 @@ public sealed class TaskController : ControllerBase
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> UpdateTaskParams(CancellationToken token)
     {
-        var body = await ReadRequestBodyAsync();
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
         var taskUpdateParams = JsonConvert.DeserializeObject<TaskInputWithIdDTO>(body);
 
@@ -192,7 +192,7 @@ public sealed class TaskController : ControllerBase
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> DeleteTaskByReporter(CancellationToken token)
     {
-        var body = await ReadRequestBodyAsync();
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
         var taskToDelete = JsonConvert.DeserializeObject<TaskIdDTO>(body);
 
@@ -244,7 +244,7 @@ public sealed class TaskController : ControllerBase
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> GetTaskInfo(CancellationToken token)
     {
-        var body = await ReadRequestBodyAsync();
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
         var taskWithIdRequest = JsonConvert.DeserializeObject<TaskIdDTO>(body);
 
@@ -283,7 +283,8 @@ public sealed class TaskController : ControllerBase
             {
                 var response1 = new Response();
                 response1.Result = false;
-                response1.OutInfo = $"Task info has not been received cause reporter of it was not found";
+                response1.OutInfo = $"Task info has not been received" +
+                    $" cause reporter of it was not found";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
@@ -292,7 +293,8 @@ public sealed class TaskController : ControllerBase
             {
                 var response1 = new Response();
                 response1.Result = false;
-                response1.OutInfo = $"Task info has not been received cause implementer of it was not found";
+                response1.OutInfo = $"Task info has not been received" +
+                    $" cause implementer of it was not found";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
@@ -337,13 +339,6 @@ public sealed class TaskController : ControllerBase
         response2.OutInfo = $"No such task with id {taskId}";
 
         return BadRequest(JsonConvert.SerializeObject(response2));
-    }
-
-    private async Task<string> ReadRequestBodyAsync()
-    {
-        using var reader = new StreamReader(Request.Body);
-
-        return await reader.ReadToEndAsync();
     }
 
     private readonly ITasksRepository _tasksRepository;

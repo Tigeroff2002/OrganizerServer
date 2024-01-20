@@ -21,5 +21,5 @@ public sealed class UserInfoContent
 
     public List<TaskInfoResponse> Tasks { get; set; } = null!;
 
-    public List<ReportInfoResponse> Reports { get; set; } = null!;
+    public List<SnapshotInfoResponse> Snapshots { get; set; } = null!;
 }

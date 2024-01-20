@@ -32,7 +32,7 @@ public sealed class UserInfoSerializer
             UserGroups = user.Groups,
             UserEvents = user.Events,
             UserTasks = user.Tasks,
-            UserReports = user.Reports
+            UserSnapshots = user.Snapshots
         };
     }
 }

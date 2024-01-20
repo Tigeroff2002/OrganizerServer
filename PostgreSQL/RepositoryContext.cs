@@ -26,7 +26,7 @@ public sealed class RepositoryContext
     public DbSet<UserTask> Tasks => _context.Tasks;
 
     /// <inheritdoc/>
-    public DbSet<Report> Reports => _context.Reports;
+    public DbSet<Snapshot> Snapshots => _context.Snapshots;
 
     /// <inheritdoc/>
     public DbSet<GroupingUsersMap> GroupingUsersMaps => _context.GroupingUsersMaps;

@@ -9,15 +9,14 @@ using System.Threading.Tasks;
 
 namespace Logic;
 
-public sealed class ReportsHandler
-    : IReportsHandler
+public sealed class SnapshotsHandler
+    : ISnapshotsHandler
 {
-    public ReportsHandler(
+    public SnapshotsHandler(
         IUsersRepository usersRepository,
         IEventsRepository eventsRepository,
         IEventsUsersMapRepository eventsUsersMapRepository,
         ITasksRepository tasksRepository,
-        IGroupsRepository groupsRepository,
         IGroupingUsersMapRepository groupingUsersMapRepository)
     {
         _usersRepository = usersRepository 
@@ -32,32 +31,29 @@ public sealed class ReportsHandler
         _tasksRepository = tasksRepository
             ?? throw new ArgumentNullException(nameof(tasksRepository));
 
-        _groupsRepository = groupsRepository
-            ?? throw new ArgumentNullException(nameof(groupsRepository));
-
         _groupingUsersMapRepository = groupingUsersMapRepository
             ?? throw new ArgumentNullException(nameof(groupingUsersMapRepository));
     }
 
-    public async Task<ReportDescriptionResult> CreateReportDescriptionAsync(
+    public async Task<SnapshotDescriptionResult> CreateSnapshotDescriptionAsync(
         int userId, 
-        ReportInputDTO inputReport,
+        SnapshotInputDTO inputSnapshot,
         CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
 
         var user = await _usersRepository.GetUserByIdAsync(userId, token);
 
-        var beginMoment = inputReport.BeginMoment;
-        var endMoment = inputReport.EndMoment;
+        var beginMoment = inputSnapshot.BeginMoment;
+        var endMoment = inputSnapshot.EndMoment;
 
-        var reportType = inputReport.ReportType;
+        var snapshotType = inputSnapshot.SnapshotType;
 
         var creationTime = DateTimeOffset.UtcNow;
 
         if (user != null)
         {
-            if (reportType == ReportType.TasksReport)
+            if (snapshotType == SnapshotType.TasksSnapshot)
             {
                 var dbTasks = await _tasksRepository.GetAllTasksAsync(token);
 
@@ -99,18 +95,18 @@ public sealed class ReportsHandler
                 stringBuilder.Append($"Процент задач в процессе выполнения - {tasksInProgressPercent}%\n");
                 stringBuilder.Append($"Процент задач, выполненных пользователем - {tasksDonePercent}%\n");
 
-                var reportTasksResult = new ReportDescriptionResult
+                var snapshotTasksResult = new SnapshotDescriptionResult
                 {
-                    ReportType = reportType,
+                    SnapshotType = snapshotType,
                     BeginMoment = beginMoment,
                     EndMoment = endMoment,
                     Content = stringBuilder.ToString()
                 };
 
-                return reportTasksResult;
+                return snapshotTasksResult;
             }
 
-            else if (reportType == ReportType.EventsReport)
+            else if (snapshotType == SnapshotType.EventsSnapshot)
             {
                 var groupsUsersMaps =
                     await _groupingUsersMapRepository.GetAllMapsAsync(token);
@@ -189,20 +185,47 @@ public sealed class ReportsHandler
                 stringBuilder.Append(
                     $"Процент посещенных мероприятий пользователем - {eventsAcceptedPercent}%\n");
 
-                var reportEventsResult = new ReportDescriptionResult
+                var snapshotEventsResult = new SnapshotDescriptionResult
                 {
-                    ReportType = reportType,
+                    SnapshotType = snapshotType,
                     BeginMoment = beginMoment,
                     EndMoment = endMoment,
                     Content = stringBuilder.ToString()
                 };
 
-                return reportEventsResult;
+                return snapshotEventsResult;
             }
+
+            else if (snapshotType == SnapshotType.IssuesSnapshot)
+            {
+                var snapshotIssuesResult = new SnapshotDescriptionResult
+                {
+                    SnapshotType = snapshotType,
+                    BeginMoment = beginMoment,
+                    EndMoment = endMoment,
+                    Content = "Empty user issues content for current implementation stage"
+                };
+
+                return snapshotIssuesResult;
+            }
+
+            else if (snapshotType == SnapshotType.ReportsSnapshot)
+            {
+                var snapshotReportsResult = new SnapshotDescriptionResult
+                {
+                    SnapshotType = snapshotType,
+                    BeginMoment = beginMoment,
+                    EndMoment = endMoment,
+                    Content = "Empty user reports content for current implementation stage"
+                };
+
+                return snapshotReportsResult;
+            }
+
             else
             {
                 throw new InvalidOperationException(
-                    $"Such type as {reportType} is not supported" +
+                    $"Such type as {snapshotType} is not supported" +
                     $" for receiving report content now");
             }
         }
@@ -214,6 +237,5 @@ public sealed class ReportsHandler
     private readonly IEventsRepository _eventsRepository;
     private readonly IEventsUsersMapRepository _eventsUsersMapRepository;
     private readonly ITasksRepository _tasksRepository;
-    private readonly IGroupsRepository _groupsRepository;
     private readonly IGroupingUsersMapRepository _groupingUsersMapRepository;
 }

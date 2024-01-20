@@ -4,11 +4,11 @@ using Newtonsoft.Json.Converters;
 
 namespace Contracts.Response;
 
-public sealed class ReportDescriptionResult
+public sealed class SnapshotDescriptionResult
 {
     [JsonConverter(typeof(StringEnumConverter))]
-    [JsonProperty("report_type", Required = Required.Always)]
-    public required ReportType ReportType { get; init; }
+    [JsonProperty("snapshot_type", Required = Required.Always)]
+    public required SnapshotType SnapshotType { get; init; }
 
     [JsonProperty("begin_moment", Required = Required.Always)]
     public required DateTimeOffset BeginMoment { get; init; }

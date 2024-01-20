@@ -4,10 +4,10 @@ using Models.Enums;
 
 namespace Logic.Abstractions; 
 
-public interface IReportsHandler
+public interface ISnapshotsHandler
 {
-    public Task<ReportDescriptionResult> CreateReportDescriptionAsync(
+    public Task<SnapshotDescriptionResult> CreateSnapshotDescriptionAsync(
         int userId,
-        ReportInputDTO inputReport,
+        SnapshotInputDTO inputSnapshot,
         CancellationToken token);
 }

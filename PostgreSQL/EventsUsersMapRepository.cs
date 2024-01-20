@@ -13,7 +13,7 @@ public sealed class EventsUsersMapRepository
 {
     public EventsUsersMapRepository(
         IServiceProvider provider,
-        ILogger<EventsRepository> logger)
+        ILogger<EventsUsersMapRepository> logger)
     {
         _provider = provider ?? throw new ArgumentNullException(nameof(provider));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));

@@ -176,7 +176,7 @@ namespace PostgreSQL.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("end_moment");
 
-                    b.Property<ReportType>("ReportType")
+                    b.Property<SnapshotType>("ReportType")
                         .HasColumnType("report_type")
                         .HasColumnName("report_type");
 
