@@ -271,6 +271,8 @@ public sealed class EventController : ControllerBase
                 }
             }
 
+            var response = new Response();
+
             var numbers_of_new_params = 0;
 
             if (!string.IsNullOrWhiteSpace(updateEventParams.Caption))
@@ -314,15 +316,21 @@ public sealed class EventController : ControllerBase
                 await _eventsRepository.UpdateAsync(existedEvent, token);
 
                 _eventsRepository.SaveChanges();
+
+                response.OutInfo = existedEvent.RelatedGroup != null
+                    ? $"Existed event with id = {eventId} related" +
+                        $" to group {existedEvent.RelatedGroup.Id} has been modified"
+                    : $"Existed event with id = {eventId} personal for manager " +
+                        $"with id {existedEvent.Manager.Id} has been modified";
+            }
+            else
+            {
+                response.OutInfo = 
+                    $"Existed event with id {eventId} has all same parameters" +
+                    $" so it has not been modified";
             }
 
-            var response = new Response();
             response.Result = true;
-            response.OutInfo = existedEvent.RelatedGroup != null
-                ? $"Existed event with id = {eventId} related" +
-                    $" to group {existedEvent.RelatedGroup.Id} has been modified"
-                : $"Existed event with id = {eventId} personal for manager " +
-                    $"with id {existedEvent.Manager.Id} has been modified";
 
             var json = JsonConvert.SerializeObject(response);
 

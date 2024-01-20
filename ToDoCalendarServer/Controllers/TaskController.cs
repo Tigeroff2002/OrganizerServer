@@ -1,5 +1,4 @@
 ﻿using Contracts;
-using Contracts.Request;
 using Contracts.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -138,49 +137,73 @@ public sealed class TaskController : ControllerBase
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
 
+            var response = new Response();
+
+            var numbers_of_new_params = 0;
+
             if (!string.IsNullOrWhiteSpace(taskUpdateParams.TaskCaption))
             {
                 existedTask.Caption = taskUpdateParams.TaskCaption;
+                numbers_of_new_params++;
             }
 
             if (!string.IsNullOrWhiteSpace(taskUpdateParams.TaskDescription))
             {
                 existedTask.Description = taskUpdateParams.TaskDescription;
+                numbers_of_new_params++;
             }
 
             if (taskUpdateParams.TaskType != TaskType.None)
             {
                 existedTask.TaskType = taskUpdateParams.TaskType;
+                numbers_of_new_params++;
             }          
 
             if (taskUpdateParams.TaskStatus != TaskCurrentStatus.None)
             {
                 existedTask.TaskStatus = taskUpdateParams.TaskStatus;
+                numbers_of_new_params++;
             }
 
             if (taskUpdateParams.ImplementerId != -1)
             {
-                implementer = await _usersRepository.GetUserByIdAsync(taskUpdateParams.ImplementerId, token);
+                var currentImplementerId = taskUpdateParams.ImplementerId;
+
+                implementer = await _usersRepository
+                    .GetUserByIdAsync(currentImplementerId, token);
 
                 if (implementer == null)
                 {
                     var response1 = new Response();
                     response1.Result = false;
-                    response1.OutInfo = $"Task has not been modified cause new implementer was not found";
+                    response1.OutInfo = 
+                        $"Task has not been modified cause" +
+                        $" new implementer with id {currentImplementerId} was not found";
 
                     return BadRequest(JsonConvert.SerializeObject(response1));
                 }
 
                 existedTask.Implementer = implementer;
+
+                numbers_of_new_params++;
             }
 
-            await _tasksRepository.UpdateAsync(existedTask, token);
+            if (numbers_of_new_params > 0)
+            {
+                await _tasksRepository.UpdateAsync(existedTask, token);
 
-            _tasksRepository.SaveChanges();
+                _tasksRepository.SaveChanges();
 
-            var response = new Response();
+                response.OutInfo = $"Task with id {taskId} has been modified";
+            }
+            else
+            {
+                response.OutInfo = 
+                    $"Task with id {taskId} has all same parameters" +
+                    $" so it has not been modified";
+            }
+
             response.Result = true;
-            response.OutInfo = $"New info was added to task with id {taskId}";
 
             var json = JsonConvert.SerializeObject(response);
 

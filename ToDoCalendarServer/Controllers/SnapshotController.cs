@@ -9,7 +9,6 @@ using System.Diagnostics;
 using Contracts.Request;
 using Microsoft.AspNetCore.Authorization;
 using Logic.Abstractions;
-using Models.Enums;
 
 namespace ToDoCalendarServer.Controllers;
 

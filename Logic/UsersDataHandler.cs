@@ -1,7 +1,6 @@
 ﻿using Contracts.Request;
 using Contracts.Response;
 using Logic.Abstractions;
-using Logic.Transport;
 using Logic.Transport.Abstractions;
 using Microsoft.Extensions.Logging;
 using Models;
@@ -207,7 +206,8 @@ public sealed class UsersDataHandler
 
         var response = new ResponseWithToken();
         response.Result = true;
-        response.OutInfo = $"Login existed user {userName}" +
+        response.OutInfo = 
+            $"Login existed user {userName}" +
             $" with new auth token {authToken}";
         response.UserId = existedUser.Id;
         response.Token = authToken;
@@ -216,7 +216,8 @@ public sealed class UsersDataHandler
         return await Task.FromResult(response);
     }
 
-    public async Task<GetResponse> GetUserInfo(UserInfoById userInfoById, CancellationToken token)
+    public async Task<GetResponse> GetUserInfo(
+        UserInfoById userInfoById, CancellationToken token)
     {
         ArgumentNullException.ThrowIfNull(userInfoById);
 
@@ -229,7 +230,7 @@ public sealed class UsersDataHandler
         {
             var response1 = new GetResponse();
             response1.Result = false;
-            response1.OutInfo = $"No such user with id {userInfoById.UserId} in system";
+            response1.OutInfo = $"No such user with id {userInfoById.UserId} found in db";
 
             return await Task.FromResult(response1);
         }
@@ -238,8 +239,10 @@ public sealed class UsersDataHandler
 
         var response = new GetResponse();
         response.Result = true;
-        response.OutInfo = $"Info about user with with id" +
+        response.OutInfo = 
+            $"Info about user with with id" +
             $" {userInfoById.UserId} has been received";
+
         response.RequestedInfo = _userInfoSerializer.Serialize(userInfoContent);
 
         return response;
@@ -259,31 +262,39 @@ public sealed class UsersDataHandler
         {
             var response1 = new GetResponse();
             response1.Result = false;
-            response1.OutInfo = $"No such user with id {userId} in system";
+            response1.OutInfo = $"No such user with id {userId} found in db";
 
             return await Task.FromResult(response1);
         }
 
         if (existedUser != null)
         {
+            var response1 = new GetResponse();
+
+            var numbers_of_new_params = 0;
+
             if (!string.IsNullOrWhiteSpace(userUpdateInfo.UserName))
             {
                 existedUser.UserName = userUpdateInfo.UserName;
+                numbers_of_new_params++;
             }
 
             if (!string.IsNullOrWhiteSpace(userUpdateInfo.Email))
             {
                 existedUser.Email = userUpdateInfo.Email;
+                numbers_of_new_params++;
             }
 
             if (!string.IsNullOrWhiteSpace(userUpdateInfo.Password))
             {
                 existedUser.Password = userUpdateInfo.Password;
+                numbers_of_new_params++;
             }
 
             if (!string.IsNullOrWhiteSpace(userUpdateInfo.PhoneNumber))
             {
                 existedUser.PhoneNumber = userUpdateInfo.PhoneNumber;
+                numbers_of_new_params++;
             }
 
             string authToken = GenerateNewAuthToken();
@@ -294,12 +305,21 @@ public sealed class UsersDataHandler
 
             _usersRepository.SaveChanges();
 
-            var response1 = new GetResponse();
             response1.Result = true;
-            response1.OutInfo = 
-                $"Updating info existed user with id = {userId}" +
-                $" and email {existedUser.Email}" +
-                $" with new auth token {authToken}";
+
+            if (numbers_of_new_params > 0)
+            {
+                response1.OutInfo =
+                    $"Updating info existed user with id {userId}" +
+                    $" and email {existedUser.Email}" +
+                    $" with new auth token {authToken}";
+            }
+            else
+            {
+                response1.OutInfo =
+                    $"There are no new data for user with id {userId}." +
+                    $" Only new auth token {authToken} has been created";
+            }
 
             var shortUserInfo = new ShortUserInfo
             {

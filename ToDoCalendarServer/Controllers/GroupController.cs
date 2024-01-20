@@ -1,7 +1,6 @@
 ﻿using Contracts.Request;
 using Contracts.Request.RequestById;
 using Contracts.Response;
-using Logic.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Models;

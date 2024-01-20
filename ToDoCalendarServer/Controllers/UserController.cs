@@ -1,10 +1,8 @@
 ﻿using Contracts.Request;
-using Contracts.Response;
 using Logic.Abstractions;
 using Logic.Transport.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Models;
 using Models.BusinessModels;
 using Newtonsoft.Json;
 using System.Diagnostics;

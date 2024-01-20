@@ -1,15 +1,12 @@
 ﻿using Contracts;
 using Contracts.Request;
 using Contracts.Response;
-using Logic;
-using Logic.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Models;
 using Models.BusinessModels;
 using Models.Enums;
 using Newtonsoft.Json;
-using PostgreSQL;
 using PostgreSQL.Abstractions;
 using System.Diagnostics;
 
@@ -50,7 +47,9 @@ public sealed class IssueController : ControllerBase
         {
             var response1 = new Response();
             response1.Result = false;
-            response1.OutInfo = $"Issue has not been created cause current user was not found";
+            response1.OutInfo = 
+                $"Issue has not been created cause" +
+                $" current user with id {userId} was not found";
 
             return BadRequest(JsonConvert.SerializeObject(response1));
         }
@@ -127,33 +126,50 @@ public sealed class IssueController : ControllerBase
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
 
+            var response = new Response();
+
+            var numbers_of_new_params = 0;
+
             if (!string.IsNullOrWhiteSpace(issueUpdateParams.Title))
             {
                 existedIssue.Title = issueUpdateParams.Title;
+                numbers_of_new_params++;
             }
 
             if (!string.IsNullOrWhiteSpace(issueUpdateParams.Description))
             {
                 existedIssue.Description = issueUpdateParams.Description;
+                numbers_of_new_params++;
             }
 
             if (issueUpdateParams.IssueType != IssueType.None)
             {
                 existedIssue.IssueType = issueUpdateParams.IssueType;
+                numbers_of_new_params++;
             }
 
             if (!string.IsNullOrWhiteSpace(issueUpdateParams.ImgLink))
             {
                 existedIssue.ImgLink = issueUpdateParams.ImgLink;
+                numbers_of_new_params++;
             }
 
-            await _issuesRepository.UpdateAsync(existedIssue, token);
+            if (numbers_of_new_params > 0)
+            {
+                await _issuesRepository.UpdateAsync(existedIssue, token);
 
-            _issuesRepository.SaveChanges();
+                _issuesRepository.SaveChanges();
 
-            var response = new Response();
+                response.OutInfo = $"Issue with id {issueId} has been modified";
+            }
+            else
+            {
+                response.OutInfo =
+                    $"Issue with id {issueId} has all same parameters" +
+                    $" so it has not been modified";
+            }
+
             response.Result = true;
-            response.OutInfo = $"Issue with id {issueId} has been modified";
 
             var json = JsonConvert.SerializeObject(response);
 
@@ -189,7 +205,9 @@ public sealed class IssueController : ControllerBase
             {
                 var response1 = new Response();
                 response1.Result = false;
-                response1.OutInfo = $"Issue has not been deleted cause user is not its creator";
+                response1.OutInfo = 
+                    $"Issue has not been deleted cause" +
+                    $" current user with id {issueToDelete.UserId} is not its creator";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
@@ -236,8 +254,9 @@ public sealed class IssueController : ControllerBase
             {
                 var response1 = new Response();
                 response1.Result = false;
-                response1.OutInfo = $"Cant take info about issue cause " +
-                    $"user with id {userId} is not found";
+                response1.OutInfo = 
+                    $"Cant take info about issue cause " +
+                    $"user with id {userId} is not found in db";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
