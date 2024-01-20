@@ -16,6 +16,8 @@ public interface IRepositoryContext
 
     DbSet<Snapshot> Snapshots { get; }
 
+    DbSet<Issue> Issues { get; }
+
     DbSet<GroupingUsersMap> GroupingUsersMaps { get; }
 
     DbSet<EventsUsersMap> EventsUsersMaps { get; }

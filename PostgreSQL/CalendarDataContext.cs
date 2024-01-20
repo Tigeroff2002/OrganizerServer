@@ -19,6 +19,8 @@ public class CalendarDataContext : DbContext
 
     public virtual DbSet<Snapshot> Snapshots { get; set; } = default!;
 
+    public virtual DbSet<Issue> Issues { get; set; } = default!;
+
     // дополнительные сущности для отношений many-to-many
     public virtual DbSet<GroupingUsersMap> GroupingUsersMaps { get; set; } = default!;
 
@@ -33,7 +35,8 @@ public class CalendarDataContext : DbContext
             .MapEnum<TaskType>()
             .MapEnum<TaskCurrentStatus>()
             .MapEnum<SnapshotType>()
-            .MapEnum<DecisionType>();
+            .MapEnum<DecisionType>()
+            .MapEnum<IssueType>();
 
     public CalendarDataContext(DbContextOptions<CalendarDataContext> options)
         : base(options)
@@ -56,13 +59,15 @@ public class CalendarDataContext : DbContext
             .HasPostgresEnum<TaskType>()
             .HasPostgresEnum<TaskCurrentStatus>()
             .HasPostgresEnum<SnapshotType>()
-            .HasPostgresEnum<DecisionType>();
+            .HasPostgresEnum<DecisionType>()
+            .HasPostgresEnum<IssueType>();
 
         CreateUsersModels(modelBuilder);
         CreateGroupsModels(modelBuilder);
         CreateEventsModels(modelBuilder);
         CreateTasksModels(modelBuilder);
         CreateSnapshotsModels(modelBuilder);
+        CreateIssuesModels(modelBuilder);
         CreateGroupingUsersMapModels(modelBuilder);
         CreateEventUsersMapModels(modelBuilder);
 
@@ -101,7 +106,13 @@ public class CalendarDataContext : DbContext
             .HasForeignKey(x => x.ImplementerId);
 
         _ = modelBuilder.Entity<User>()
-            .HasMany(x => x.Reports)
+            .HasMany(x => x.Snapshots)
+            .WithOne(x => x.User)
+            .HasForeignKey(x => x.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        _ = modelBuilder.Entity<User>()
+            .HasMany(x => x.Issues)
             .WithOne(x => x.User)
             .HasForeignKey(x => x.UserId)
             .OnDelete(DeleteBehavior.Cascade);
@@ -189,6 +200,27 @@ public class CalendarDataContext : DbContext
 
         _ = modelBuilder.Entity<Snapshot>()
             .Property(x => x.EndMoment);
+    }
+
+    private static void CreateIssuesModels(ModelBuilder modelBuilder)
+    {
+        _ = modelBuilder.Entity<Issue>()
+            .HasKey(x => x.Id);
+
+        _ = modelBuilder.Entity<Issue>()
+            .Property(x => x.Title);
+
+        _ = modelBuilder.Entity<Issue>()
+            .Property(x => x.IssueType);
+
+        _ = modelBuilder.Entity<Issue>()
+            .Property(x => x.Description);
+
+        _ = modelBuilder.Entity<Issue>()
+            .Property(x => x.ImgLink);
+
+        _ = modelBuilder.Entity<Issue>()
+            .Property(x => x.IssueMoment);
     }
 
     private static void CreateGroupingUsersMapModels(ModelBuilder modelBuilder)

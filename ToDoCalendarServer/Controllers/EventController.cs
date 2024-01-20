@@ -1,17 +1,13 @@
 ﻿using Contracts;
-using Contracts.Request.RequestById;
 using Contracts.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Models;
 using Models.BusinessModels;
 using Models.Enums;
 using Newtonsoft.Json;
-using PostgreSQL;
 using PostgreSQL.Abstractions;
 using System.Diagnostics;
-using System.Text.RegularExpressions;
 
 namespace ToDoCalendarServer.Controllers;
 
@@ -62,7 +58,9 @@ public sealed class EventController : ControllerBase
         {
             var response1 = new Response();
             response1.Result = false;
-            response1.OutInfo = $"Event has not been scheduled cause current user was not found";
+            response1.OutInfo = 
+                $"Event has not been scheduled cause" +
+                $" current user with id {managerId} was not found";
 
             return BadRequest(JsonConvert.SerializeObject(response1));
         }
@@ -75,7 +73,9 @@ public sealed class EventController : ControllerBase
             {
                 var response1 = new Response();
                 response1.Result = false;
-                response1.OutInfo = $"Event has not been scheduled cause related group was not found";
+                response1.OutInfo = 
+                    $"Event has not been scheduled cause related" +
+                    $" group with id {groupId} was not found";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
@@ -214,7 +214,9 @@ public sealed class EventController : ControllerBase
             {
                 var response1 = new Response();
                 response1.Result = false;
-                response1.OutInfo = $"Event has not been modified cause current user was not found";
+                response1.OutInfo = 
+                    $"Event has not been modified cause" +
+                    $" current user with id {userId} was not found";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
@@ -269,6 +271,8 @@ public sealed class EventController : ControllerBase
                 }
             }
 
+            var response = new Response();
+
             var numbers_of_new_params = 0;
 
             if (!string.IsNullOrWhiteSpace(updateEventParams.Caption))
@@ -312,15 +316,21 @@ public sealed class EventController : ControllerBase
                 await _eventsRepository.UpdateAsync(existedEvent, token);
 
                 _eventsRepository.SaveChanges();
+
+                response.OutInfo = existedEvent.RelatedGroup != null
+                    ? $"Existed event with id = {eventId} related" +
+                        $" to group {existedEvent.RelatedGroup.Id} has been modified"
+                    : $"Existed event with id = {eventId} personal for manager " +
+                        $"with id {existedEvent.Manager.Id} has been modified";
+            }
+            else
+            {
+                response.OutInfo = 
+                    $"Existed event with id {eventId} has all same parameters" +
+                    $" so it has not been modified";
             }
 
-            var response = new Response();
             response.Result = true;
-            response.OutInfo = existedEvent.RelatedGroup != null
-                ? $"Existed event with id = {eventId} related" +
-                    $" to group {existedEvent.RelatedGroup.Id} has been modified"
-                : $"Existed event with id = {eventId} personal for manager " +
-                    $"with id {existedEvent.Manager.Id} has been modified";
 
             var json = JsonConvert.SerializeObject(response);
 
@@ -358,7 +368,9 @@ public sealed class EventController : ControllerBase
             {
                 var response1 = new Response();
                 response1.Result = false;
-                response1.OutInfo = $"Event has not been modified cause current user was not found";
+                response1.OutInfo = 
+                    $"Event has not been modified cause" +
+                    $" current user with id {userId} was not found";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
@@ -436,7 +448,9 @@ public sealed class EventController : ControllerBase
             {
                 var response1 = new Response();
                 response1.Result = false;
-                response1.OutInfo = $"Event has not been modified cause current user was not found";
+                response1.OutInfo = 
+                    $"Event has not been modified cause" +
+                    $" current user with id {userId} was not found";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
@@ -446,7 +460,8 @@ public sealed class EventController : ControllerBase
                 var response1 = new Response();
                 response1.Result = false;
                 response1.OutInfo =
-                    $"Event has not been modified cause current user with id {userId}" +
+                    $"Event has not been modified" +
+                    $" cause current user with id {userId}" +
                     $" is not manager: 'managerId = {managerId}' of this event";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
@@ -502,7 +517,8 @@ public sealed class EventController : ControllerBase
                 var response1 = new Response();
                 response1.Result = true;
                 response1.OutInfo =
-                    $"Info about event with id {eventId} was not accessed" +
+                    $"Info about event with id {eventId}" +
+                    $" was not accessed" +
                     $" cause user with id {userId} not related to that";
 
                 var json1 = JsonConvert.SerializeObject(response1);

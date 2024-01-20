@@ -27,7 +27,9 @@ namespace Models
 
         public virtual List<Event> ManagedEvents { get; set; }
 
-        public virtual List<Snapshot> Reports { get; set; }
+        public virtual List<Snapshot> Snapshots { get; set; }
+
+        public virtual List<Issue> Issues { get; set; }
 
         public User() { }
     }

@@ -54,7 +54,8 @@ public sealed class EventsUsersMapRepository
         }
     }
 
-    public async Task<EventsUsersMap?> GetEventUserMapByIdsAsync(int eventId, int userId, CancellationToken token)
+    public async Task<EventsUsersMap?> GetEventUserMapByIdsAsync(
+        int eventId, int userId, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
 
