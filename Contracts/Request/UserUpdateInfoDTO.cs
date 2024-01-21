@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Models.Enums;
+using Newtonsoft.Json;
 
 namespace Contracts.Request;
 
@@ -15,4 +16,7 @@ public class UserUpdateInfoDTO : RequestWithToken
 
     [JsonProperty("phone_number", Required = Required.Default)]
     public string PhoneNumber { get; set; } = default!;
+
+    [JsonProperty("user_role", Required = Required.Default)]
+    public UserRole Role { get; set; } = UserRole.None;
 }

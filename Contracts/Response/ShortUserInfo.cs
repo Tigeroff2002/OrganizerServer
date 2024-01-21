@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Models.Enums;
+using Newtonsoft.Json;
 
 namespace Contracts.Response;
 
@@ -15,4 +16,7 @@ public class ShortUserInfo
 
     [JsonProperty("phone_number", Required = Required.Always)]
     public required string UserPhone { get; init; }
+
+    [JsonProperty("user_role", Required = Required.Default)]
+    public UserRole Role { get; init; }
 }

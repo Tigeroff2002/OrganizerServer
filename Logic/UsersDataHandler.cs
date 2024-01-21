@@ -5,6 +5,7 @@ using Logic.Transport.Abstractions;
 using Microsoft.Extensions.Logging;
 using Models;
 using Models.BusinessModels;
+using Models.Enums;
 using PostgreSQL.Abstractions;
 using System.Security.Cryptography;
 using System.Text;
@@ -22,6 +23,7 @@ public sealed class UsersDataHandler
         IEventsUsersMapRepository eventsUsersMapRepository,
         IGroupingUsersMapRepository groupingUsersMapRepository,
         ISnapshotsRepository snapshotsRepository,
+        IIssuesRepository issuesRepository,
 
         IUserEmailConfirmer usersCodeConfirmer,
         ISerializer<UserInfoContent> userInfoSerializer,
@@ -47,6 +49,9 @@ public sealed class UsersDataHandler
 
         _snapshotsRepository = snapshotsRepository
             ?? throw new ArgumentNullException(nameof(snapshotsRepository));
+
+        _issuesRepository = issuesRepository
+            ?? throw new ArgumentNullException(nameof(issuesRepository));
 
         _usersCodeConfirmer = usersCodeConfirmer
             ?? throw new ArgumentNullException(nameof(usersCodeConfirmer));
@@ -119,6 +124,9 @@ public sealed class UsersDataHandler
         }
 
         var user = new User();
+
+        user.Role = DEFAULT_USER_ROLE;
+
         user.Email = email;
         user.UserName = registrationData.UserName;
         user.Password = registrationData.Password;
@@ -127,7 +135,7 @@ public sealed class UsersDataHandler
         user.TasksForImplementation = new List<UserTask>();
         user.EventMaps = new List<EventsUsersMap>();
         user.Snapshots = new List<Snapshot>();
-        //user.Issues = new List<Issue>();
+        user.Issues = new List<Issue>();
 
         string authToken = GenerateNewAuthToken();
 
@@ -297,6 +305,12 @@ public sealed class UsersDataHandler
                 numbers_of_new_params++;
             }
 
+            if (userUpdateInfo.Role != UserRole.None)
+            {
+                existedUser.Role = userUpdateInfo.Role;
+                numbers_of_new_params++;
+            }
+
             string authToken = GenerateNewAuthToken();
 
             existedUser.AuthToken = authToken;
@@ -326,7 +340,8 @@ public sealed class UsersDataHandler
                 UserId = existedUser.Id,
                 UserEmail = existedUser.Email,
                 UserName = existedUser.UserName,
-                UserPhone = existedUser.PhoneNumber
+                UserPhone = existedUser.PhoneNumber,
+                Role = existedUser.Role
             };
 
             response1.RequestedInfo = shortUserInfo;
@@ -369,11 +384,7 @@ public sealed class UsersDataHandler
 
         foreach (var task in userTasksModels)
         {
-            var taskId = task.Id;
-
-            var currentTask = await _tasksRepository.GetTaskByIdAsync(taskId, token);
-
-            var reporterId = currentTask!.ReporterId;
+            var reporterId = task.ReporterId;
 
             var reporter = await _usersRepository.GetUserByIdAsync(reporterId, token);
 
@@ -387,11 +398,11 @@ public sealed class UsersDataHandler
 
             var taskInfo = new TaskInfoResponse
             {
-                TaskId = taskId,
-                TaskCaption = currentTask!.Caption,
-                TaskDescription = currentTask!.Description,
-                TaskType = currentTask!.TaskType,
-                TaskStatus = currentTask!.TaskStatus,
+                TaskId = task.Id,
+                TaskCaption = task!.Caption,
+                TaskDescription = task!.Description,
+                TaskType = task!.TaskType,
+                TaskStatus = task!.TaskStatus,
                 Reporter = reporterInfo
             };
 
@@ -410,24 +421,39 @@ public sealed class UsersDataHandler
 
         foreach (var snapshot in userSnapshotsModels)
         {
-            var snapshotId = snapshot.Id;
-
-            var currentSnapshot = await _snapshotsRepository
-                .GetSnapshotByIdAsync(snapshotId, token);
-
-            if (currentSnapshot != null)
+            var snapshotInfo = new SnapshotInfoResponse
             {
-                var snapshotInfo = new SnapshotInfoResponse
-                {
-                    BeginMoment = currentSnapshot.BeginMoment,
-                    EndMoment = currentSnapshot.EndMoment,
-                    SnapshotType = currentSnapshot.SnapshotType,
-                    CreationTime = DateTimeOffset.Now,
-                    Content = currentSnapshot.Description
-                };
+                BeginMoment = snapshot.BeginMoment,
+                EndMoment = snapshot.EndMoment,
+                SnapshotType = snapshot.SnapshotType,
+                CreationTime = DateTimeOffset.Now,
+                Content = snapshot.Description
+            };
 
-                userSnapshots.Add(snapshotInfo);
-            }
+            userSnapshots.Add(snapshotInfo);
+        }
+
+        var allIssues = await _issuesRepository.GetAllIssuesAsync(token);
+
+        var userIssuesModels = 
+            allIssues
+            .Where(x => x.UserId == userId)
+            .ToList();
+
+        var userIssues = new List<IssueInfoResponse>();
+
+        foreach (var issue in userIssuesModels)
+        {
+            var issueInfo = new IssueInfoResponse
+            {
+                Title = issue.Title,
+                Description = issue.Description,
+                IssueType = issue.IssueType,
+                ImgLink = issue.ImgLink,
+                CreateMoment = issue.IssueMoment
+            };
+
+            userIssues.Add(issueInfo);
         }
 
         var userGroups = new List<GroupInfoResponse>();
@@ -438,14 +464,17 @@ public sealed class UsersDataHandler
 
             var group = await _groupsRepository.GetGroupByIdAsync(groupId, token);
 
-            var groupInfo = new GroupInfoResponse
+            if (group != null)
             {
-                GroupId = groupId,
-                GroupName = group!.GroupName,
-                Type = group!.Type
-            };
+                var groupInfo = new GroupInfoResponse
+                {
+                    GroupId = groupId,
+                    GroupName = group!.GroupName,
+                    Type = group!.Type
+                };
 
-            userGroups.Add(groupInfo);
+                userGroups.Add(groupInfo);
+            }
         }
 
         var userEvents = new List<EventInfoResponse>();
@@ -456,36 +485,40 @@ public sealed class UsersDataHandler
 
             var @event = await _eventsRepository.GetEventByIdAsync(eventId, token);
 
-            var managerId = @event!.ManagerId;
-
-            var manager = await _usersRepository.GetUserByIdAsync(managerId, token);
-
-            var managerInfo = new ShortUserInfo
+            if (@event != null)
             {
-                UserId = manager!.Id,
-                UserEmail = manager!.Email,
-                UserName = manager!.UserName,
-                UserPhone = manager!.PhoneNumber
-            };
+                var managerId = @event!.ManagerId;
 
-            var eventInfo = new EventInfoResponse
-            {
-                EventId = eventId,
-                Caption = @event!.Caption,
-                Description = @event!.Description,
-                EventType = @event!.EventType,
-                EventStatus = @event!.Status,
-                ScheduledStart = @event!.ScheduledStart,
-                Duration = @event!.Duration,
-                Manager = managerInfo
-            };
+                var manager = await _usersRepository.GetUserByIdAsync(managerId, token);
 
-            userEvents.Add(eventInfo);
+                var managerInfo = new ShortUserInfo
+                {
+                    UserId = manager!.Id,
+                    UserEmail = manager!.Email,
+                    UserName = manager!.UserName,
+                    UserPhone = manager!.PhoneNumber
+                };
+
+                var eventInfo = new EventInfoResponse
+                {
+                    EventId = eventId,
+                    Caption = @event!.Caption,
+                    Description = @event!.Description,
+                    EventType = @event!.EventType,
+                    EventStatus = @event!.Status,
+                    ScheduledStart = @event!.ScheduledStart,
+                    Duration = @event!.Duration,
+                    Manager = managerInfo
+                };
+
+                userEvents.Add(eventInfo);
+            }
         }
 
         return new UserInfoContent
         {
             UserId = userId,
+            Role = user.Role,
             UserName = user.UserName,
             Email = user.Email,
             Password = user.Password,
@@ -493,7 +526,8 @@ public sealed class UsersDataHandler
             Groups = userGroups,
             Events = userEvents,
             Tasks = userTasks,
-            Snapshots = userSnapshots
+            Snapshots = userSnapshots,
+            Issues = userIssues
         };
     }
 
@@ -504,6 +538,8 @@ public sealed class UsersDataHandler
                 .PadLeft(10, '0');
     }
 
+    private const UserRole DEFAULT_USER_ROLE = UserRole.User;
+
     private readonly IUsersRepository _usersRepository;
     private readonly IGroupsRepository _groupsRepository;
     private readonly ITasksRepository _tasksRepository;
@@ -511,6 +547,7 @@ public sealed class UsersDataHandler
     private readonly IEventsUsersMapRepository _eventsUsersMapRepository;
     private readonly IGroupingUsersMapRepository _groupingUsersMapRepository;
     private readonly ISnapshotsRepository _snapshotsRepository;
+    private readonly IIssuesRepository _issuesRepository;
 
     private readonly IUserEmailConfirmer _usersCodeConfirmer;
     private readonly ISerializer<UserInfoContent> _userInfoSerializer;
