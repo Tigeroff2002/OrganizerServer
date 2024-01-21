@@ -36,7 +36,8 @@ public class CalendarDataContext : DbContext
             .MapEnum<TaskCurrentStatus>()
             .MapEnum<SnapshotType>()
             .MapEnum<DecisionType>()
-            .MapEnum<IssueType>();
+            .MapEnum<IssueType>()
+            .MapEnum<UserRole>();
 
     public CalendarDataContext(DbContextOptions<CalendarDataContext> options)
         : base(options)
@@ -60,7 +61,8 @@ public class CalendarDataContext : DbContext
             .HasPostgresEnum<TaskCurrentStatus>()
             .HasPostgresEnum<SnapshotType>()
             .HasPostgresEnum<DecisionType>()
-            .HasPostgresEnum<IssueType>();
+            .HasPostgresEnum<IssueType>()
+            .HasPostgresEnum<UserRole>();
 
         CreateUsersModels(modelBuilder);
         CreateGroupsModels(modelBuilder);
@@ -78,6 +80,9 @@ public class CalendarDataContext : DbContext
     {
         _ = modelBuilder.Entity<User>()
             .HasKey(x => x.Id);
+
+        _ = modelBuilder.Entity<User>()
+            .Property(x => x.Role);
 
         _ = modelBuilder.Entity<User>()
             .Property(x => x.UserName);
