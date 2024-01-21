@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Models.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace Models
 {
@@ -11,11 +12,15 @@ namespace Models
 
         public string Email { get; set; }
 
+        public UserRole Role { get; set; } = UserRole.User;
+
         public string Password { get; set; }
 
         public string PhoneNumber { get; set; }
 
         public string AuthToken { get; set; }
+
+        public DateTimeOffset AccountCreation { get; set; } 
 
         public virtual List<GroupingUsersMap> GroupingMaps { get; set; }
 

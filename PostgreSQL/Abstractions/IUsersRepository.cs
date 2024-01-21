@@ -1,4 +1,5 @@
 ﻿using Models;
+using Models.Enums;
 
 namespace PostgreSQL.Abstractions;
 
@@ -16,4 +17,6 @@ public interface IUsersRepository
     Task DeleteAsync(int id, CancellationToken token);
 
     Task UpdateAsync(User user, CancellationToken token);
+
+    Task UpdateRoleAsync(int userId, UserRole newRole, CancellationToken token);
 }

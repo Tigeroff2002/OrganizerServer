@@ -2,12 +2,12 @@ INSERT INTO groups (group_name, type) VALUES ('Add dot net pls', 'educational');
 INSERT INTO groups(group_name, type) VALUES ('ADF', 'job');
 INSERT INTO groups(group_name, type) VALUES ('pri120', 'educational');
 
-INSERT INTO users (user_name, email, password, phone_number, auth_token) 
-VALUES ('Kirill', 'kirill.parakhin@altenar.com', 'kirill2002', '+79042555027', '0347837483');
-INSERT INTO users (user_name, email, password, phone_number, auth_token) 
-VALUES ('Tigeroff', 'parahinkirill2002@yandex.ru', 'tigeroff2002', '+79032565027', '0745637489');
-INSERT INTO users (user_name, email, password, phone_number, auth_token) 
-VALUES ('Nikita', 'portnovnikitos2002@yandex.ru', 'nikita2002', '+79302555027', '0890837483');
+INSERT INTO users (user_name, role, email, password, phone_number, auth_token) 
+VALUES ('Kirill', 'user', 'kirill.parakhin@altenar.com', 'kirill2002', '+79042555027', '0347837483');
+INSERT INTO users (user_name, role, email, password, phone_number, auth_token) 
+VALUES ('Tigeroff', 'user', 'parahinkirill2002@yandex.ru', 'tigeroff2002', '+79032565027', '0745637489');
+INSERT INTO users (user_name, role, email, password, phone_number, auth_token) 
+VALUES ('Nikita', 'user', 'portnovnikitos2002@yandex.ru', 'nikita2002', '+79302555027', '0890837483');
 
 INSERT INTO events 
 (caption, description, scheduled_start, duration, event_type, status, related_group_id, manager_id)

@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Models;
+using Models.Enums;
 using PostgreSQL.Abstractions;
 
 namespace PostgreSQL;
@@ -84,6 +85,23 @@ public sealed class UsersRepository
         }
 
         localUser = user.Map<User>();
+    }
+
+    public async Task UpdateRoleAsync(int userId, UserRole newRole, CancellationToken token)
+    {
+        if (userId < 0)
+        {
+            throw new ArgumentException($"User id {userId} should be positive");
+        }
+
+        token.ThrowIfCancellationRequested();
+
+        var user = await _repositoryContext.Users.FirstOrDefaultAsync(x => x.Id == userId);
+
+        if (user != null)
+        {
+            _repositoryContext.Users.Entry(user).Entity.Role = newRole;
+        }
     }
 
     public void SaveChanges()

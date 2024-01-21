@@ -53,7 +53,8 @@ public static class Registrations
             .AddSingleton<ISnapshotsRepository, SnapshotsRepository>()
             .AddSingleton<IGroupingUsersMapRepository, GroupingUsersMapRepository>()
             .AddSingleton<IEventsUsersMapRepository, EventsUsersMapRepository>()
-            .AddSingleton<IIssuesRepository, IssuesRepository>();
+            .AddSingleton<IIssuesRepository, IssuesRepository>()
+            .AddSingleton<IUsersUnitOfWork, UsersUnitOfWork>();
 
     public static IServiceCollection AddConfigurations(
         this IServiceCollection services,
@@ -62,7 +63,9 @@ public static class Registrations
             .Configure<SmtpConfiguration>(
                 configuration.GetSection(nameof(SmtpConfiguration)))
             .Configure<NotificationConfiguration>(
-                configuration.GetSection(nameof(NotificationConfiguration)));
+                configuration.GetSection(nameof(NotificationConfiguration)))
+            .Configure<RootConfiguration>(
+                configuration.GetSection(nameof(RootConfiguration)));
 
     public static AuthenticationBuilder AddAuthBuilder(
         this IServiceCollection services)

@@ -1,5 +1,4 @@
 ﻿using Contracts.Request;
-using Models;
 using Models.BusinessModels;
 
 namespace Logic.Abstractions;
@@ -18,7 +17,11 @@ public interface IUsersDataHandler
         UserInfoById userInfoById,
         CancellationToken token);
 
-    public Task<GetResponse> UpdateUserInfo(
+    public Task<Response> UpdateUserInfo(
         UserUpdateInfoDTO userUpdateInfo,
+        CancellationToken token);
+
+    public Task<Response> UpdateUserRoleAsync(
+        UserUpdateRoleDTO userUpdateRoleDTO,
         CancellationToken token);
 }

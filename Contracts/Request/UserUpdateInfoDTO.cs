@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Models.Enums;
+using Newtonsoft.Json;
 
 namespace Contracts.Request;
 
