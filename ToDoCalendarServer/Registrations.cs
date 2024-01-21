@@ -53,7 +53,8 @@ public static class Registrations
             .AddSingleton<ISnapshotsRepository, SnapshotsRepository>()
             .AddSingleton<IGroupingUsersMapRepository, GroupingUsersMapRepository>()
             .AddSingleton<IEventsUsersMapRepository, EventsUsersMapRepository>()
-            .AddSingleton<IIssuesRepository, IssuesRepository>();
+            .AddSingleton<IIssuesRepository, IssuesRepository>()
+            .AddSingleton<IUsersUnitOfWork, UsersUnitOfWork>();
 
     public static IServiceCollection AddConfigurations(
         this IServiceCollection services,

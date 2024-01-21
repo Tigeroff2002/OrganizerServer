@@ -17,50 +17,21 @@ public sealed class UsersDataHandler
     : IUsersDataHandler
 {
     public UsersDataHandler(
-        IUsersRepository usersRepository, 
-        IGroupsRepository groupsRepository,
-        ITasksRepository tasksRepository,
-        IEventsRepository eventsRepository,
-        IEventsUsersMapRepository eventsUsersMapRepository,
-        IGroupingUsersMapRepository groupingUsersMapRepository,
-        ISnapshotsRepository snapshotsRepository,
-        IIssuesRepository issuesRepository,
-
+        IUsersUnitOfWork usersUnitOfWork,
         IOptions<RootConfiguration> rootConfiguration,
         IUserEmailConfirmer usersCodeConfirmer,
         ISerializer<UserInfoContent> userInfoSerializer,
         ILogger<UsersDataHandler> logger)
     {
-        _usersRepository = usersRepository 
-            ?? throw new ArgumentNullException(nameof(usersRepository));
-
-        _groupsRepository = groupsRepository
-            ?? throw new ArgumentNullException(nameof(groupsRepository));
-
-        _tasksRepository = tasksRepository
-            ?? throw new ArgumentNullException(nameof(tasksRepository));
-
-        _eventsRepository = eventsRepository
-            ?? throw new ArgumentNullException(nameof(eventsRepository));
-
-        _eventsUsersMapRepository = eventsUsersMapRepository
-            ?? throw new ArgumentNullException(nameof(eventsUsersMapRepository));
-
-        _groupingUsersMapRepository = groupingUsersMapRepository
-            ?? throw new ArgumentNullException(nameof(groupingUsersMapRepository));
-
-        _snapshotsRepository = snapshotsRepository
-            ?? throw new ArgumentNullException(nameof(snapshotsRepository));
-
-        _issuesRepository = issuesRepository
-            ?? throw new ArgumentNullException(nameof(issuesRepository));
-
-        _usersCodeConfirmer = usersCodeConfirmer
-            ?? throw new ArgumentNullException(nameof(usersCodeConfirmer));
-
         ArgumentNullException.ThrowIfNull(rootConfiguration);
 
         _rootConfiguration = rootConfiguration.Value;
+
+        _usersUnitOfWork = usersUnitOfWork
+            ?? throw new ArgumentNullException(nameof(usersUnitOfWork));
+
+        _usersCodeConfirmer = usersCodeConfirmer
+            ?? throw new ArgumentNullException(nameof(usersCodeConfirmer));
 
         _userInfoSerializer = userInfoSerializer
             ?? throw new ArgumentNullException(nameof(userInfoSerializer));
@@ -79,7 +50,7 @@ public sealed class UsersDataHandler
         var email = registrationData.Email;
 
         var existedUser = 
-           await _usersRepository
+           await _usersUnitOfWork.UsersRepository
                 .GetUserByEmailAsync(email, token);
 
         if (existedUser != null)
@@ -150,9 +121,9 @@ public sealed class UsersDataHandler
 
         _logger.LogInformation("Registrating new user {Email}", user.Email);
 
-        await _usersRepository.AddAsync(user, token);
+        await _usersUnitOfWork.UsersRepository.AddAsync(user, token);
 
-        _usersRepository.SaveChanges();
+        _usersUnitOfWork.SaveChanges();
 
         var response = new RegistrationResponse();
         response.Result = true;
@@ -182,7 +153,7 @@ public sealed class UsersDataHandler
         var email = loginData.Email;
 
         var existedUser =
-            await _usersRepository
+            await _usersUnitOfWork.UsersRepository
                 .GetUserByEmailAsync(email, token);
 
         if (existedUser == null)
@@ -213,9 +184,9 @@ public sealed class UsersDataHandler
 
         existedUser.AuthToken = authToken;
 
-        await _usersRepository.UpdateAsync(existedUser, token);
+        await _usersUnitOfWork.UsersRepository.UpdateAsync(existedUser, token);
 
-        _usersRepository.SaveChanges();
+        _usersUnitOfWork.SaveChanges();
 
         var userName = existedUser.UserName;
 
@@ -240,7 +211,8 @@ public sealed class UsersDataHandler
         token.ThrowIfCancellationRequested();
 
         var user = 
-            await _usersRepository.GetUserByIdAsync(userInfoById.UserId, token);
+            await _usersUnitOfWork.UsersRepository
+            .GetUserByIdAsync(userInfoById.UserId, token);
 
         if (user == null)
         {
@@ -272,7 +244,8 @@ public sealed class UsersDataHandler
 
         var userId = userUpdateInfo.UserId;
 
-        var existedUser = await _usersRepository.GetUserByIdAsync(userId, token);
+        var existedUser = await _usersUnitOfWork.UsersRepository
+            .GetUserByIdAsync(userId, token);
 
         if (existedUser == null) 
         {
@@ -317,9 +290,9 @@ public sealed class UsersDataHandler
 
             existedUser.AuthToken = authToken;
 
-            await _usersRepository.UpdateAsync(existedUser, token);
+            await _usersUnitOfWork.UsersRepository.UpdateAsync(existedUser, token);
 
-            _usersRepository.SaveChanges();
+            _usersUnitOfWork.UsersRepository.SaveChanges();
 
             response1.Result = true;
 
@@ -357,7 +330,8 @@ public sealed class UsersDataHandler
 
         var userId = userUpdateRoleDTO.UserId;
 
-        var existedUser = await _usersRepository.GetUserByIdAsync(userId, token);
+        var existedUser = await _usersUnitOfWork.UsersRepository
+            .GetUserByIdAsync(userId, token);
 
         if (existedUser == null)
         {
@@ -385,9 +359,9 @@ public sealed class UsersDataHandler
 
             existedUser.Role = requestedRole;
 
-            await _usersRepository.UpdateAsync(existedUser, token);
+            await _usersUnitOfWork.UsersRepository.UpdateAsync(existedUser, token);
 
-            _usersRepository.SaveChanges();
+            _usersUnitOfWork.SaveChanges();
 
             response1.Result = true;
             response1.OutInfo =
@@ -434,9 +408,9 @@ public sealed class UsersDataHandler
 
         existedUser.Role = requestedRole;
 
-        await _usersRepository.UpdateAsync(existedUser, token);
+        await _usersUnitOfWork.UsersRepository.UpdateAsync(existedUser, token);
 
-        _usersRepository.SaveChanges();
+        _usersUnitOfWork.SaveChanges();
 
         response.Result = true;
         response.OutInfo = 
@@ -452,9 +426,13 @@ public sealed class UsersDataHandler
     {
         var userId = user.Id;
 
-        var allGroupsMaps = await _groupingUsersMapRepository.GetAllMapsAsync(token);
+        var allGroupsMaps = 
+            await _usersUnitOfWork.GroupingUsersMapRepository
+            .GetAllMapsAsync(token);
 
-        var allEventsMaps = await _eventsUsersMapRepository.GetAllMapsAsync(token);
+        var allEventsMaps = 
+            await _usersUnitOfWork.EventsUsersMapRepository
+            .GetAllMapsAsync(token);
 
         var userGroupMaps = allGroupsMaps
             .Where(map => map.UserId == userId)
@@ -464,10 +442,30 @@ public sealed class UsersDataHandler
             .Where(map => map.UserId == userId)
             .ToList();
 
-        var allTasks = await _tasksRepository.GetAllTasksAsync(token);
+        var allEvents = await _usersUnitOfWork.EventsRepository
+            .GetAllEventsAsync(token);
+
+        var allTasks = 
+            await _usersUnitOfWork.TasksRepository
+            .GetAllTasksAsync(token);
 
         var userTasksModels = allTasks
             .Where(task => task.ImplementerId == userId)
+            .ToList();
+
+        var allIssues = await _usersUnitOfWork.IssuesRepository
+            .GetAllIssuesAsync(token);
+
+        var userIssuesModels =
+            allIssues
+            .Where(x => x.UserId == userId)
+            .ToList();
+
+        var allSnapshots = await _usersUnitOfWork.SnapshotsRepository
+            .GetAllSnapshotsAsync(token);
+
+        var userSnapshotsModels = allSnapshots
+            .Where(snapshot => snapshot.UserId == userId)
             .ToList();
 
         var userTasks = new List<TaskInfoResponse>();
@@ -476,7 +474,8 @@ public sealed class UsersDataHandler
         {
             var reporterId = task.ReporterId;
 
-            var reporter = await _usersRepository.GetUserByIdAsync(reporterId, token);
+            var reporter = await _usersUnitOfWork.UsersRepository
+                .GetUserByIdAsync(reporterId, token);
 
             var reporterInfo = new ShortUserInfo
             {
@@ -499,60 +498,14 @@ public sealed class UsersDataHandler
             userTasks.Add(taskInfo);
         }
 
-        var allEvents = await _eventsRepository.GetAllEventsAsync(token);
-
-        var allSnapshots = await _snapshotsRepository.GetAllSnapshotsAsync(token);
-
-        var userSnapshotsModels = allSnapshots
-            .Where(snapshot => snapshot.UserId == userId)
-            .ToList();
-
-        var userSnapshots = new List<SnapshotInfoResponse>();
-
-        foreach (var snapshot in userSnapshotsModels)
-        {
-            var snapshotInfo = new SnapshotInfoResponse
-            {
-                BeginMoment = snapshot.BeginMoment,
-                EndMoment = snapshot.EndMoment,
-                SnapshotType = snapshot.SnapshotType,
-                CreationTime = DateTimeOffset.Now,
-                Content = snapshot.Description
-            };
-
-            userSnapshots.Add(snapshotInfo);
-        }
-
-        var allIssues = await _issuesRepository.GetAllIssuesAsync(token);
-
-        var userIssuesModels = 
-            allIssues
-            .Where(x => x.UserId == userId)
-            .ToList();
-
-        var userIssues = new List<IssueInfoResponse>();
-
-        foreach (var issue in userIssuesModels)
-        {
-            var issueInfo = new IssueInfoResponse
-            {
-                Title = issue.Title,
-                Description = issue.Description,
-                IssueType = issue.IssueType,
-                ImgLink = issue.ImgLink,
-                CreateMoment = issue.IssueMoment
-            };
-
-            userIssues.Add(issueInfo);
-        }
-
         var userGroups = new List<GroupInfoResponse>();
 
         foreach (var groupMap in userGroupMaps)
         {
             var groupId = groupMap.GroupId;
 
-            var group = await _groupsRepository.GetGroupByIdAsync(groupId, token);
+            var group = await _usersUnitOfWork.GroupsRepository
+                .GetGroupByIdAsync(groupId, token);
 
             if (group != null)
             {
@@ -573,13 +526,15 @@ public sealed class UsersDataHandler
         {
             var eventId = eventMap.EventId;
 
-            var @event = await _eventsRepository.GetEventByIdAsync(eventId, token);
+            var @event = await _usersUnitOfWork.EventsRepository
+                .GetEventByIdAsync(eventId, token);
 
             if (@event != null)
             {
                 var managerId = @event!.ManagerId;
 
-                var manager = await _usersRepository.GetUserByIdAsync(managerId, token);
+                var manager = await _usersUnitOfWork.UsersRepository
+                    .GetUserByIdAsync(managerId, token);
 
                 var managerInfo = new ShortUserInfo
                 {
@@ -603,6 +558,38 @@ public sealed class UsersDataHandler
 
                 userEvents.Add(eventInfo);
             }
+        }
+
+        var userSnapshots = new List<SnapshotInfoResponse>();
+
+        foreach (var snapshot in userSnapshotsModels)
+        {
+            var snapshotInfo = new SnapshotInfoResponse
+            {
+                BeginMoment = snapshot.BeginMoment,
+                EndMoment = snapshot.EndMoment,
+                SnapshotType = snapshot.SnapshotType,
+                CreationTime = DateTimeOffset.Now,
+                Content = snapshot.Description
+            };
+
+            userSnapshots.Add(snapshotInfo);
+        }
+
+        var userIssues = new List<IssueInfoResponse>();
+
+        foreach (var issue in userIssuesModels)
+        {
+            var issueInfo = new IssueInfoResponse
+            {
+                Title = issue.Title,
+                Description = issue.Description,
+                IssueType = issue.IssueType,
+                ImgLink = issue.ImgLink,
+                CreateMoment = issue.IssueMoment
+            };
+
+            userIssues.Add(issueInfo);
         }
 
         return new UserInfoContent
@@ -631,14 +618,7 @@ public sealed class UsersDataHandler
 
     private const UserRole DEFAULT_USER_ROLE = UserRole.User;
 
-    private readonly IUsersRepository _usersRepository;
-    private readonly IGroupsRepository _groupsRepository;
-    private readonly ITasksRepository _tasksRepository;
-    private readonly IEventsRepository _eventsRepository;
-    private readonly IEventsUsersMapRepository _eventsUsersMapRepository;
-    private readonly IGroupingUsersMapRepository _groupingUsersMapRepository;
-    private readonly ISnapshotsRepository _snapshotsRepository;
-    private readonly IIssuesRepository _issuesRepository;
+    private readonly IUsersUnitOfWork _usersUnitOfWork;
 
     private readonly IUserEmailConfirmer _usersCodeConfirmer;
     private readonly ISerializer<UserInfoContent> _userInfoSerializer;
