@@ -54,7 +54,7 @@ services:
     container_name: todocalendar-app
     image: todocalendar
     ports:
-       - 4040:4040
+       - 8080:8080
     depends_on:
      - postgres
     restart: always
