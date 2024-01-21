@@ -1,17 +1,15 @@
-﻿using Contracts.Response;
-using Logic.Abstractions;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
-using Microsoft.Extensions.Configuration;
+﻿using Logic.Abstractions;
+using Logic.Transport.Senders;
+using MailKit.Net.Smtp;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MimeKit;
 using Models;
 using Models.Enums;
-using Org.BouncyCastle.Asn1.Ess;
+using Models.UserActionModels;
 using PostgreSQL.Abstractions;
 using System.Net.Mail;
-using System.Security.Cryptography;
 using System.Text;
 
 namespace Logic;
@@ -20,13 +18,16 @@ public sealed class EventNotificationsHandler
     : IEventNotificationsHandler
 {
     public EventNotificationsHandler(
+        ISMTPSender smtpSender,
         IUsersRepository usersRepository,
         IServiceProvider serviceProvider,
         IEventsUsersMapRepository eventsUsersMapRepository,
-        IOptions<SmtpConfiguration> smtpConfiguration,
         IOptions<NotificationConfiguration> notifyConfiguration,
         ILogger<EventNotificationsHandler> logger) 
     { 
+        _smtpSender = smtpSender
+            ?? throw new ArgumentNullException(nameof(smtpSender));
+
         _usersRepository = usersRepository 
             ?? throw new ArgumentNullException(nameof(usersRepository));
 
@@ -36,10 +37,8 @@ public sealed class EventNotificationsHandler
         _eventsUsersMapRepository = eventsUsersMapRepository
             ?? throw new ArgumentNullException(nameof(eventsUsersMapRepository));
 
-        ArgumentNullException.ThrowIfNull(smtpConfiguration);
         ArgumentNullException.ThrowIfNull(notifyConfiguration);
 
-        _smtpConfiguration = smtpConfiguration.Value;
         _notifyConfiguration = notifyConfiguration.Value;
 
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -203,62 +202,26 @@ public sealed class EventNotificationsHandler
                     userName,
                     email);
 
-                await SendMessageFromSmtpAsync(eventName, userName, email, token);
+                var subject = "Reminder for the near beginning of your event";
+
+                var reminderInfoModel = new UserReminderInfo(
+                    subject,
+                    eventName,
+                    userName,
+                    email,
+                    (int)_notifyConfiguration.ReminderOffset.TotalMinutes);
+
+                await _smtpSender.SendNotificationAsync(reminderInfoModel, token);
 
                 _logger.LogInformation("Reminder has been succesfully sent");
             }
         }
     }
 
-    private async Task SendMessageFromSmtpAsync(
-        string eventName,
-        string userName,
-        string email,
-        CancellationToken token)
-    {
-        token.ThrowIfCancellationRequested();
-
-        var smtpClient = new MailKit.Net.Smtp.SmtpClient();
-
-        await smtpClient.ConnectAsync(
-            _smtpConfiguration.Host,
-            _smtpConfiguration.Port,
-            useSsl: true,
-            token);
-
-        await smtpClient.AuthenticateAsync(
-            _smtpConfiguration.FromAdress,
-            _smtpConfiguration.FromPassword);
-
-        _logger.LogInformation("Connected to smtp server");
-
-        var subject = "Reminder for the near beginning of your event";
-
-        var body = new StringBuilder();
-        var numberMinutesOfOffset = _notifyConfiguration.ReminderOffset.TotalMinutes;
-
-        body.Append($"Hello, {userName}!\n");
-        body.Append(
-            $"We are sending you a reminder that your event" +
-            $" will start in less than {numberMinutesOfOffset} minutes.\n");
-        body.Append(eventName);
-
-        var mailMessage = new MailMessage(
-            new MailAddress(_smtpConfiguration.FromAdress),
-            new MailAddress(email))
-        {
-            Subject = subject,
-            Body = body.ToString()
-        };
-
-        var response = await smtpClient.SendAsync(
-            MimeMessage.CreateFromMailMessage(mailMessage), token);
-    }
-
+    private readonly ISMTPSender _smtpSender;
     private readonly IServiceProvider _serviceProvider;
     private readonly IUsersRepository _usersRepository;
     private readonly IEventsUsersMapRepository _eventsUsersMapRepository;
-    private readonly SmtpConfiguration _smtpConfiguration;
     private readonly NotificationConfiguration _notifyConfiguration;
     private readonly ILogger<EventNotificationsHandler> _logger;
 }

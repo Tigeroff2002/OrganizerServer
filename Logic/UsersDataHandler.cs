@@ -2,6 +2,7 @@
 using Contracts.Response;
 using Logic.Abstractions;
 using Logic.Transport.Abstractions;
+using Logic.Transport.Senders;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Models;
@@ -19,7 +20,7 @@ public sealed class UsersDataHandler
     public UsersDataHandler(
         IUsersUnitOfWork usersUnitOfWork,
         IOptions<RootConfiguration> rootConfiguration,
-        IUserEmailConfirmer usersCodeConfirmer,
+        ISMTPSender usersCodeConfirmer,
         ISerializer<UserInfoContent> userInfoSerializer,
         ILogger<UsersDataHandler> logger)
     {
@@ -620,7 +621,7 @@ public sealed class UsersDataHandler
 
     private readonly IUsersUnitOfWork _usersUnitOfWork;
 
-    private readonly IUserEmailConfirmer _usersCodeConfirmer;
+    private readonly ISMTPSender _usersCodeConfirmer;
     private readonly ISerializer<UserInfoContent> _userInfoSerializer;
     private readonly RootConfiguration _rootConfiguration;
     private ILogger _logger;

@@ -1,27 +1,23 @@
-﻿using Logic.Abstractions;
+﻿using Contracts.Response;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.Net;
-using System.Security.Cryptography;
+using MimeKit;
+using Models.BusinessModels;
+using Models.UserActionModels;
+using System.Net.Mail;
 using System.Text;
 
-using MailKit.Net.Smtp;
-using MimeKit;
-using System.Net.Mail;
-using Contracts.Response;
-using Models.BusinessModels;
+namespace Logic.Transport.Senders;
 
-namespace Logic;
-
-public sealed class UserEmailConfirmer
-    : IUserEmailConfirmer
+public sealed class SMTPSender
+    : ISMTPSender
 {
-    public UserEmailConfirmer(
+    public SMTPSender(
         IOptions<SmtpConfiguration> options,
-        ILogger<UserEmailConfirmer> logger)
+        ILogger<SMTPSender> logger)
     {
         ArgumentNullException.ThrowIfNull(options);
-        _configuration = options.Value;
+        _smtpConfiguration = options.Value;
 
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -51,18 +47,18 @@ public sealed class UserEmailConfirmer
 
             return await Task.FromResult(response1);
         }
-        
+
         var smtpClient = new MailKit.Net.Smtp.SmtpClient();
 
         await smtpClient.ConnectAsync(
-            _configuration.Host,
-            _configuration.Port,
+            _smtpConfiguration.Host,
+            _smtpConfiguration.Port,
             useSsl: true,
             token);
 
         await smtpClient.AuthenticateAsync(
-            _configuration.FromAdress,
-            _configuration.FromPassword);
+            _smtpConfiguration.FromAdress,
+            _smtpConfiguration.FromPassword);
 
         _logger.LogInformation("Connected to smtp server");
 
@@ -78,7 +74,7 @@ public sealed class UserEmailConfirmer
         body.Append($"Your confirmation link is here: {randomLink}.");
 
         var mailMessage = new MailMessage(
-            new MailAddress(_configuration.FromAdress),
+            new MailAddress(_smtpConfiguration.FromAdress),
             new MailAddress(email))
         {
             Subject = subject,
@@ -94,16 +90,71 @@ public sealed class UserEmailConfirmer
 
         var confirmationResponse = new Response();
         confirmationResponse.Result = true;
-        confirmationResponse.OutInfo = 
+        confirmationResponse.OutInfo =
             $"Link confirmation was performed for user" +
             $" with email {email} with link: {randomLink}";
 
-        //Task.Delay(30_000).GetAwaiter().GetResult();
+        Task.Delay(REGISTRATION_EMAIL_DELAY_SECONDS).GetAwaiter().GetResult();
 
         return confirmationResponse;
     }
 
-    bool IsValidEmail(string email)
+    public async Task SendNotificationAsync(UserReminderInfo model, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+
+        var body = new StringBuilder();
+        var numberMinutesOfOffset = model.TotalMinutes;
+
+        var email = model.Email;
+        var eventName = model.EventName;
+        var userName = model.UserName;
+        var subject = model.Subject;
+
+
+        body.Append($"Hello, {userName}!\n");
+        body.Append(
+            $"We are sending you a reminder that your event" +
+            $" will start in less than {numberMinutesOfOffset} minutes.\n");
+        body.Append(eventName);
+
+        var mailMessage = new MailMessage(
+            new MailAddress(_smtpConfiguration.FromAdress),
+            new MailAddress(email))
+        {
+            Subject = subject,
+            Body = body.ToString()
+        };
+
+        var smtpClient = new MailKit.Net.Smtp.SmtpClient();
+
+        try
+        {
+            await smtpClient.ConnectAsync(
+                _smtpConfiguration.Host,
+                _smtpConfiguration.Port,
+                useSsl: true,
+                token);
+
+            _logger.LogInformation("Connected to smtp server");
+
+            await smtpClient.AuthenticateAsync(
+                _smtpConfiguration.FromAdress,
+                _smtpConfiguration.FromPassword);
+
+            await smtpClient.SendAsync(
+                MimeMessage.CreateFromMailMessage(mailMessage), token);
+
+            _logger.LogInformation("New message to email {Email} was sended successfully", email);
+        }
+
+        catch (Exception ex)
+        {
+            _logger.LogWarning("Exception occured: {Message}", ex.Message);
+        }
+    }
+
+    private bool IsValidEmail(string email)
     {
         var trimmedEmail = email.Trim();
 
@@ -122,6 +173,8 @@ public sealed class UserEmailConfirmer
         }
     }
 
-    private readonly SmtpConfiguration _configuration;
+    private const int REGISTRATION_EMAIL_DELAY_SECONDS = 0;
+
+    private readonly SmtpConfiguration _smtpConfiguration;
     private readonly ILogger _logger;
 }

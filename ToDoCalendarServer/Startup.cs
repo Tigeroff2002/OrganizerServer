@@ -1,4 +1,6 @@
-﻿namespace ToDoCalendarServer;
+﻿using AdsPush.Extensions;
+
+namespace ToDoCalendarServer;
 
 public class Startup
 {
@@ -36,6 +38,8 @@ public class Startup
             .AddHealthChecks();
 
         _ = services.AddAuthBuilder();
+
+        _ = services.AddAdsPush(Configuration);
 
         _ = services.AddHostedServices();
     }
