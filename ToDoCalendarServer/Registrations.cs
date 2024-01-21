@@ -9,10 +9,10 @@ using PostgreSQL.Abstractions;
 using Logic.Transport.Abstractions;
 using Models.BusinessModels;
 using Logic.Transport;
-using Models;
 using Logic.Authentification;
 using Microsoft.AspNetCore.Authentication;
 using Contracts.Response;
+using Logic.Transport.Senders;
 
 namespace ToDoCalendarServer;
 
@@ -27,8 +27,9 @@ public static class Registrations
         IConfiguration configuration)
         => services
             .AddSingleton<IEventNotificationsHandler, EventNotificationsHandler>()
+            .AddSingleton<ISMTPSender, SMTPSender>()
+            .AddSingleton<IPushNotificationsSender, PushNotificationsSender>()
             .AddSingleton<IUsersDataHandler, UsersDataHandler>()
-            .AddSingleton<IUserEmailConfirmer, UserEmailConfirmer>()
             .AddConfigurations(configuration)
             .AddSingleton<ISnapshotsHandler, SnapshotsHandler>();
 
@@ -65,7 +66,12 @@ public static class Registrations
             .Configure<NotificationConfiguration>(
                 configuration.GetSection(nameof(NotificationConfiguration)))
             .Configure<RootConfiguration>(
-                configuration.GetSection(nameof(RootConfiguration)));
+                configuration.GetSection(nameof(RootConfiguration)))
+            .Configure<AdsPushConfiguration>(
+                configuration
+                    .GetSection("AdsPush")
+                    .GetSection("MyApp")
+                    .GetSection("FirebaseCloudMessaging"));
 
     public static AuthenticationBuilder AddAuthBuilder(
         this IServiceCollection services)
