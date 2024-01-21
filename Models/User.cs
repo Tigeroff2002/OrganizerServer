@@ -20,6 +20,8 @@ namespace Models
 
         public string AuthToken { get; set; }
 
+        public DateTimeOffset AccountCreation { get; set; } 
+
         public virtual List<GroupingUsersMap> GroupingMaps { get; set; }
 
         public virtual List<UserTask> ReportedTasks { get; set; }

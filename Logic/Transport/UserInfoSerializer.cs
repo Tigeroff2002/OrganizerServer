@@ -29,10 +29,13 @@ public sealed class UserInfoSerializer
             Password = user.Password,
             UserEmail = user.Email,
             PhoneNumber = user.PhoneNumber,
+            Role = user.Role,
+            AccountCreationTime = user.AccountCreationTime,
             UserGroups = user.Groups,
             UserEvents = user.Events,
             UserTasks = user.Tasks,
-            UserSnapshots = user.Snapshots
+            UserSnapshots = user.Snapshots,
+            UserIssues = user.Issues,
         };
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Models;
+using Models.Enums;
 using Newtonsoft.Json;
 
 namespace Contracts.Response;
@@ -20,6 +21,12 @@ public sealed class UserInfoResponse
     [JsonProperty("phone_number", Required = Required.Always)]
     public required string PhoneNumber { get; init; }
 
+    [JsonProperty("user_role", Required = Required.Always)]
+    public required UserRole Role { get; init; }
+
+    [JsonProperty("account_creation", Required = Required.Default)]
+    public DateTimeOffset AccountCreationTime { get; set; }
+
     [JsonProperty("user_groups", NullValueHandling = NullValueHandling.Ignore)]
     public List<GroupInfoResponse> UserGroups { get; set; } = default!;
 
@@ -31,4 +38,7 @@ public sealed class UserInfoResponse
 
     [JsonProperty("user_snapshots", NullValueHandling = NullValueHandling.Ignore)]
     public required List<SnapshotInfoResponse> UserSnapshots { get; set; } = default!;
+
+    [JsonProperty("user_issues", NullValueHandling = NullValueHandling.Ignore)]
+    public required List<IssueInfoResponse> UserIssues { get; set; } = default!;
 }

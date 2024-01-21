@@ -3,6 +3,7 @@ using Contracts.Response;
 using Logic.Abstractions;
 using Logic.Transport.Abstractions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Models;
 using Models.BusinessModels;
 using Models.Enums;
@@ -25,6 +26,7 @@ public sealed class UsersDataHandler
         ISnapshotsRepository snapshotsRepository,
         IIssuesRepository issuesRepository,
 
+        IOptions<RootConfiguration> rootConfiguration,
         IUserEmailConfirmer usersCodeConfirmer,
         ISerializer<UserInfoContent> userInfoSerializer,
         ILogger<UsersDataHandler> logger)
@@ -55,6 +57,10 @@ public sealed class UsersDataHandler
 
         _usersCodeConfirmer = usersCodeConfirmer
             ?? throw new ArgumentNullException(nameof(usersCodeConfirmer));
+
+        ArgumentNullException.ThrowIfNull(rootConfiguration);
+
+        _rootConfiguration = rootConfiguration.Value;
 
         _userInfoSerializer = userInfoSerializer
             ?? throw new ArgumentNullException(nameof(userInfoSerializer));
@@ -126,6 +132,7 @@ public sealed class UsersDataHandler
         var user = new User();
 
         user.Role = DEFAULT_USER_ROLE;
+        user.AccountCreation = DateTimeOffset.Now;
 
         user.Email = email;
         user.UserName = registrationData.UserName;
@@ -225,7 +232,8 @@ public sealed class UsersDataHandler
     }
 
     public async Task<GetResponse> GetUserInfo(
-        UserInfoById userInfoById, CancellationToken token)
+        UserInfoById userInfoById,
+        CancellationToken token)
     {
         ArgumentNullException.ThrowIfNull(userInfoById);
 
@@ -256,7 +264,7 @@ public sealed class UsersDataHandler
         return response;
     }
 
-    public async Task<GetResponse> UpdateUserInfo(
+    public async Task<Response> UpdateUserInfo(
         UserUpdateInfoDTO userUpdateInfo, 
         CancellationToken token)
     {
@@ -268,7 +276,7 @@ public sealed class UsersDataHandler
 
         if (existedUser == null) 
         {
-            var response1 = new GetResponse();
+            var response1 = new Response();
             response1.Result = false;
             response1.OutInfo = $"No such user with id {userId} found in db";
 
@@ -277,7 +285,7 @@ public sealed class UsersDataHandler
 
         if (existedUser != null)
         {
-            var response1 = new GetResponse();
+            var response1 = new Response();
 
             var numbers_of_new_params = 0;
 
@@ -305,12 +313,6 @@ public sealed class UsersDataHandler
                 numbers_of_new_params++;
             }
 
-            if (userUpdateInfo.Role != UserRole.None)
-            {
-                existedUser.Role = userUpdateInfo.Role;
-                numbers_of_new_params++;
-            }
-
             string authToken = GenerateNewAuthToken();
 
             existedUser.AuthToken = authToken;
@@ -335,23 +337,111 @@ public sealed class UsersDataHandler
                     $" Only new auth token {authToken} has been created";
             }
 
-            var shortUserInfo = new ShortUserInfo
-            {
-                UserId = existedUser.Id,
-                UserEmail = existedUser.Email,
-                UserName = existedUser.UserName,
-                UserPhone = existedUser.PhoneNumber,
-                Role = existedUser.Role
-            };
+            return await Task.FromResult(response1);
+        }
 
-            response1.RequestedInfo = shortUserInfo;
+        var response = new Response();
+        response.Result = true;
+        response.OutInfo = $"No such existed user with id {userId}";
+
+        return await Task.FromResult(response);
+    }
+
+    public async Task<Response> UpdateUserRoleAsync(
+        UserUpdateRoleDTO userUpdateRoleDTO,
+        CancellationToken token)
+    {
+        ArgumentNullException.ThrowIfNull(userUpdateRoleDTO);
+
+        token.ThrowIfCancellationRequested();
+
+        var userId = userUpdateRoleDTO.UserId;
+
+        var existedUser = await _usersRepository.GetUserByIdAsync(userId, token);
+
+        if (existedUser == null)
+        {
+            var response1 = new Response();
+            response1.Result = false;
+            response1.OutInfo = $"No such user with id {userId} found in db";
 
             return await Task.FromResult(response1);
         }
 
-        var response = new GetResponse();
+        var requestedRole = userUpdateRoleDTO.NewRole;
+
+        if (existedUser.Role == requestedRole)
+        {
+            var response1 = new GetResponse();
+            response1.Result = false;
+            response1.OutInfo = $"User with id {userId} already has a role {requestedRole}";
+
+            return await Task.FromResult(response1);
+        }
+
+        if (requestedRole is UserRole.User or UserRole.None)
+        {
+            var response1 = new Response();
+
+            existedUser.Role = requestedRole;
+
+            await _usersRepository.UpdateAsync(existedUser, token);
+
+            _usersRepository.SaveChanges();
+
+            response1.Result = true;
+            response1.OutInfo =
+                $"User with id {userId} has succesfully changed" +
+                $" his account type to {requestedRole}";
+
+            return await Task.FromResult(response1);
+        }
+
+        if (userUpdateRoleDTO.RootPassword != _rootConfiguration.RootPassword)
+        {
+            var response1 = new Response();
+            response1.Result = false;
+
+            if (string.IsNullOrWhiteSpace(userUpdateRoleDTO.RootPassword))
+            {
+                response1.OutInfo = $"Request was added with empty or white-spaces password";
+            }
+            else
+            {
+                response1.OutInfo = 
+                    $"Request has illegal root password" +
+                    $" {userUpdateRoleDTO.RootPassword}";
+            }
+
+            return await Task.FromResult(response1);
+        }
+
+
+        var difference = DateTimeOffset.UtcNow - existedUser.AccountCreation;
+
+        if (difference.TotalDays < _rootConfiguration.MinimalAccountAge)
+        {
+            var response1 = new GetResponse();
+            response1.Result = false;
+            response1.OutInfo = 
+                $"Requested user with id {userId}" +
+                $" has has an account that is too new";
+
+            return await Task.FromResult(response1);
+        }
+
+        var response = new Response();
+
+        existedUser.Role = requestedRole;
+
+        await _usersRepository.UpdateAsync(existedUser, token);
+
+        _usersRepository.SaveChanges();
+
         response.Result = true;
-        response.OutInfo = $"No such existed user with id {userId}";
+        response.OutInfo = 
+            $"User with id {userId} has succesfully changed" +
+            $" his account type to {requestedRole}";
 
         return await Task.FromResult(response);
     }
@@ -523,6 +613,7 @@ public sealed class UsersDataHandler
             Email = user.Email,
             Password = user.Password,
             PhoneNumber = user.PhoneNumber,
+            AccountCreationTime = user.AccountCreation,
             Groups = userGroups,
             Events = userEvents,
             Tasks = userTasks,
@@ -551,5 +642,6 @@ public sealed class UsersDataHandler
 
     private readonly IUserEmailConfirmer _usersCodeConfirmer;
     private readonly ISerializer<UserInfoContent> _userInfoSerializer;
+    private readonly RootConfiguration _rootConfiguration;
     private ILogger _logger;
 }

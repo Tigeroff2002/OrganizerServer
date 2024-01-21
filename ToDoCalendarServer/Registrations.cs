@@ -62,7 +62,9 @@ public static class Registrations
             .Configure<SmtpConfiguration>(
                 configuration.GetSection(nameof(SmtpConfiguration)))
             .Configure<NotificationConfiguration>(
-                configuration.GetSection(nameof(NotificationConfiguration)));
+                configuration.GetSection(nameof(NotificationConfiguration)))
+            .Configure<RootConfiguration>(
+                configuration.GetSection(nameof(RootConfiguration)));
 
     public static AuthenticationBuilder AddAuthBuilder(
         this IServiceCollection services)

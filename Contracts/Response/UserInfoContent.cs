@@ -16,6 +16,8 @@ public sealed class UserInfoContent
 
     public required string PhoneNumber { get; init; }
 
+    public DateTimeOffset AccountCreationTime { get; set; }
+
     public List<GroupInfoResponse> Groups { get; set; } = null!;
 
     public List<EventInfoResponse> Events { get; set; } = null!;

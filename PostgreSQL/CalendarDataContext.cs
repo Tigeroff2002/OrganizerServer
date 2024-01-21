@@ -100,6 +100,9 @@ public class CalendarDataContext : DbContext
             .Property(x => x.AuthToken);
 
         _ = modelBuilder.Entity<User>()
+            .Property(x => x.AccountCreation);
+
+        _ = modelBuilder.Entity<User>()
             .HasMany(x => x.ReportedTasks)
             .WithOne(x => x.Reporter)
             .HasForeignKey(x => x.ReporterId)
