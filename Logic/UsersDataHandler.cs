@@ -347,7 +347,7 @@ public sealed class UsersDataHandler
 
         if (existedUser.Role == requestedRole)
         {
-            var response1 = new GetResponse();
+            var response1 = new Response();
             response1.Result = false;
             response1.OutInfo = $"User with id {userId} already has a role {requestedRole}";
 
@@ -396,7 +396,7 @@ public sealed class UsersDataHandler
 
         if (difference.TotalDays < _rootConfiguration.MinimalAccountAge)
         {
-            var response1 = new GetResponse();
+            var response1 = new Response();
             response1.Result = false;
             response1.OutInfo = 
                 $"Requested user with id {userId}" +

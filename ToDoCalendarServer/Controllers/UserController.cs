@@ -97,9 +97,26 @@ public sealed class UserController : ControllerBase
 
         var response = await _usersDataHandler.UpdateUserInfo(updateUserInfo, token);
 
-        var get_json = JsonConvert.SerializeObject(response);
+        var json = JsonConvert.SerializeObject(response);
 
-        return Ok(get_json);
+        return Ok(json);
+    }
+
+    [Route("update_user_role")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
+    public async Task<IActionResult> UpdateUserRole(CancellationToken token)
+    {
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
+
+        var updateUserRole = JsonConvert.DeserializeObject<UserUpdateRoleDTO>(body);
+
+        Debug.Assert(updateUserRole != null);
+
+        var response = await _usersDataHandler.UpdateUserRoleAsync(updateUserRole, token);
+
+        var json = JsonConvert.SerializeObject(response);
+
+        return Ok(json);
     }
 
     private readonly ILogger<UserController> _logger;
