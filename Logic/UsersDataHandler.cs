@@ -394,13 +394,14 @@ public sealed class UsersDataHandler
 
         var difference = DateTimeOffset.UtcNow - existedUser.AccountCreation;
 
-        if (difference.TotalDays < _rootConfiguration.MinimalAccountAge)
+        if (difference.TotalDays < _rootConfiguration.MinimalAccountAgeDays)
         {
             var response1 = new Response();
             response1.Result = false;
             response1.OutInfo = 
                 $"Requested user with id {userId}" +
-                $" has has an account that is too new";
+                $" has has an account which was created" +
+                $" less than {_rootConfiguration.MinimalAccountAgeDays} ago";
 
             return await Task.FromResult(response1);
         }
