@@ -1,5 +1,6 @@
 ﻿using Contracts.Request;
 using Models.BusinessModels;
+using Models.UserActionModels;
 
 namespace Logic.Abstractions;
 
@@ -11,6 +12,10 @@ public interface IUsersDataHandler
 
     public Task<Response> TryLoginUser(
         UserLoginData loginData,
+        CancellationToken token);
+
+    public Task<Response> TryLogoutUser(
+        UserLogoutDeviceById logoutData,
         CancellationToken token);
 
     public Task<GetResponse> GetUserInfo(

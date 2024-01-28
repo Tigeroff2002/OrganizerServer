@@ -8,6 +8,7 @@ using Microsoft.Extensions.Options;
 using Models;
 using Models.BusinessModels;
 using Models.Enums;
+using Models.UserActionModels;
 using PostgreSQL.Abstractions;
 using System.Security.Cryptography;
 using System.Text;
@@ -226,6 +227,74 @@ public sealed class UsersDataHandler
         response.UserId = existedUser.Id;
         response.Token = authToken;
         response.UserName = userName;
+
+        return await Task.FromResult(response);
+    }
+
+    public async Task<Response> TryLogoutUser(
+        UserLogoutDeviceById logoutData,
+        CancellationToken token)
+    {
+        ArgumentNullException.ThrowIfNull(logoutData);
+
+        token.ThrowIfCancellationRequested();
+
+        var userId = logoutData.UserId;
+        var firebaseToken = logoutData.FirebaseToken;
+
+        var existedUser =
+            await _usersUnitOfWork.UsersRepository
+                .GetUserByIdAsync(userId, token);
+
+        if (existedUser == null)
+        {
+            _logger.LogInformation(
+                "User with id {Id} was not already in DB",
+                userId);
+
+            var response1 = new Response();
+            response1.Result = false;
+            response1.OutInfo = $"User with id {userId} was not already in DB";
+
+            return await Task.FromResult(response1);
+        }
+
+        var userDeviceMaps = await _usersUnitOfWork.UserDevicesRepository
+            .GetAllDevicesMapsAsync(token);
+
+        var existedDeviceMap = 
+            userDeviceMaps.FirstOrDefault(
+                x => x.UserId == userId && x.FirebaseToken == firebaseToken);
+
+        var userName = existedUser.UserName;
+
+        if (existedDeviceMap == null)
+        {
+            _logger.LogInformation(
+                "User with id {Id} not synchronized" +
+                " with firebase token {Token} was not already in DB",
+                userId,
+                firebaseToken);
+
+            var response1 = new Response();
+            response1.Result = true;
+            response1.OutInfo =
+                $"Existed user {userName}" +
+                $" not found in data of firebase auth system";
+
+            return await Task.FromResult(response1);
+        }
+
+        await _usersUnitOfWork.UserDevicesRepository
+            .DeleteAsync(userId, firebaseToken, token);
+
+        _usersUnitOfWork.SaveChanges();
+
+        var response = new Response();
+        response.Result = true;
+        response.OutInfo =
+            $"Existed user {userName}" +
+            $" has been successfuly logged out from firebase auth system";
 
         return await Task.FromResult(response);
     }
@@ -645,12 +714,12 @@ public sealed class UsersDataHandler
                 .PadLeft(10, '0');
     }
 
+
     private const UserRole DEFAULT_USER_ROLE = UserRole.User;
 
     private readonly IUsersUnitOfWork _usersUnitOfWork;
-
     private readonly ISMTPSender _usersCodeConfirmer;
     private readonly ISerializer<UserInfoContent> _userInfoSerializer;
     private readonly RootConfiguration _rootConfiguration;
-    private ILogger _logger;
+    private readonly ILogger _logger;
 }
