@@ -48,6 +48,7 @@ public static class Registrations
                 dbOpt.UseNpgsql(configuration.GetConnectionString("DefaultConnection")))
             .AddScoped<IRepositoryContext, RepositoryContext>()
             .AddSingleton<IUsersRepository, UsersRepository>()
+            .AddSingleton<IUserDevicesRepository, UserDevicesRepository>()
             .AddSingleton<IGroupsRepository, GroupsRepository>()
             .AddSingleton<IEventsRepository, EventsRepository>()
             .AddSingleton<ITasksRepository, TasksRepository>()

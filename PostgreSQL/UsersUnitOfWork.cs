@@ -8,6 +8,8 @@ public sealed class UsersUnitOfWork
 {
     public IUsersRepository UsersRepository { get; }
 
+    public IUserDevicesRepository UserDevicesRepository { get; }
+
     public IGroupsRepository GroupsRepository { get; }
 
     public ITasksRepository TasksRepository { get; }
@@ -24,6 +26,7 @@ public sealed class UsersUnitOfWork
 
     public UsersUnitOfWork(
         IUsersRepository usersRepository,
+        IUserDevicesRepository userDevicesRepository,
         IGroupsRepository groupsRepository,
         IEventsRepository eventsRepository,
         ITasksRepository tasksRepository,
@@ -35,6 +38,9 @@ public sealed class UsersUnitOfWork
     {
         UsersRepository = usersRepository
             ?? throw new ArgumentNullException(nameof(usersRepository));
+
+        UserDevicesRepository = userDevicesRepository
+            ?? throw new ArgumentNullException(nameof(userDevicesRepository));
 
         GroupsRepository = groupsRepository
             ?? throw new ArgumentNullException(nameof(groupsRepository));
@@ -61,6 +67,7 @@ public sealed class UsersUnitOfWork
     public void SaveChanges()
     {
         UsersRepository.SaveChanges();
+        UserDevicesRepository.SaveChanges();
         GroupsRepository.SaveChanges();
         EventsRepository.SaveChanges();
         TasksRepository.SaveChanges();

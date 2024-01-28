@@ -4,6 +4,8 @@ public interface IUsersUnitOfWork
 {
     public IUsersRepository UsersRepository { get; }
 
+    public IUserDevicesRepository UserDevicesRepository { get; }
+
     public IGroupsRepository GroupsRepository { get; }
 
     public ITasksRepository TasksRepository { get; }

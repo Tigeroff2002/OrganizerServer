@@ -8,6 +8,8 @@ public interface IRepositoryContext
 {
     DbSet<User> Users { get; }
 
+    DbSet<UserDeviceMap> UserDevices { get; }
+
     DbSet<Group> Groups { get; }
 
     DbSet<Event> Events { get; }

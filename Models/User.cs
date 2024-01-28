@@ -22,6 +22,8 @@ namespace Models
 
         public DateTimeOffset AccountCreation { get; set; } 
 
+        public virtual List<UserDeviceMap> Devices { get; set; }
+
         public virtual List<GroupingUsersMap> GroupingMaps { get; set; }
 
         public virtual List<UserTask> ReportedTasks { get; set; }
