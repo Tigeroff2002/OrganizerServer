@@ -26,8 +26,14 @@ public sealed class PushNotificationsSender
     }
 
 
-    public async Task SendNotificationAsync(UserReminderInfo model, CancellationToken token)
+    public async Task SendAdsPushNotificationAsync(
+        UserAdsPushReminderInfo model,
+        CancellationToken token)
     {
+        ArgumentNullException.ThrowIfNull(model);
+
+        token.ThrowIfCancellationRequested();
+
         var body = new StringBuilder();
 
         var numberMinutesOfOffset = model.TotalMinutes;

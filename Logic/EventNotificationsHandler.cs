@@ -19,23 +19,19 @@ public sealed class EventNotificationsHandler
 {
     public EventNotificationsHandler(
         ISMTPSender smtpSender,
-        IUsersRepository usersRepository,
-        IServiceProvider serviceProvider,
-        IEventsUsersMapRepository eventsUsersMapRepository,
+        IPushNotificationsSender pushNotificationsSender,
+        IUsersUnitOfWork usersUnitOfWork,
         IOptions<NotificationConfiguration> notifyConfiguration,
         ILogger<EventNotificationsHandler> logger) 
     { 
         _smtpSender = smtpSender
             ?? throw new ArgumentNullException(nameof(smtpSender));
 
-        _usersRepository = usersRepository 
-            ?? throw new ArgumentNullException(nameof(usersRepository));
+        _pushNotificationsSender = pushNotificationsSender
+            ?? throw new ArgumentNullException(nameof(pushNotificationsSender));
 
-        _serviceProvider = serviceProvider 
-            ?? throw new ArgumentNullException(nameof(serviceProvider));
-
-        _eventsUsersMapRepository = eventsUsersMapRepository
-            ?? throw new ArgumentNullException(nameof(eventsUsersMapRepository));
+        _usersUnitOfWork = usersUnitOfWork
+            ?? throw new ArgumentNullException(nameof(usersUnitOfWork));
 
         ArgumentNullException.ThrowIfNull(notifyConfiguration);
 
@@ -50,17 +46,13 @@ public sealed class EventNotificationsHandler
         
         while (!token.IsCancellationRequested)
         {
-            using var scope = _serviceProvider.GetRequiredService<IServiceScopeFactory>().CreateScope();
-
-            var eventRepository = scope.ServiceProvider.GetRequiredService<IEventsRepository>();
-
-            var dbEvents = await eventRepository.GetAllEventsAsync(token);
+            var dbEvents = await _usersUnitOfWork.EventsRepository.GetAllEventsAsync(token);
 
             await HandleEventsNotificationsAsync(dbEvents, token);
 
             HandleEventStatuses(dbEvents, token);
 
-            eventRepository.SaveChanges();
+            _usersUnitOfWork.SaveChanges();
 
             Task.Delay(_notifyConfiguration.IterationDelay, token).GetAwaiter().GetResult();
         }
@@ -165,6 +157,7 @@ public sealed class EventNotificationsHandler
                             $"Event timing borders: {dbEvent.ScheduledStart.ToLocalTime()}" +
                             $" : {endOfEvent.ToLocalTime()}.");
 
+                        // отправка уведомлений по SMTP и ADS PUSH
                         await SendRemindersForUsersAsync(dbEvent.Id, eventName.ToString(), token);
                     }
                 }
@@ -177,16 +170,24 @@ public sealed class EventNotificationsHandler
     {
         token.ThrowIfCancellationRequested();
 
-        var guestsMaps = await _eventsUsersMapRepository
-            .GetAllMapsAsync(token);
+        var guestsMaps = await 
+            _usersUnitOfWork.EventsUsersMapRepository
+                .GetAllMapsAsync(token);
 
-        var guestsMapsRelatedToEvent = guestsMaps
-            .Where(map => map.EventId == eventId)
-            .ToList();
+        var guestsMapsRelatedToEvent = 
+            guestsMaps
+                .Where(map => map.EventId == eventId)
+                .ToList();
 
-        var users = await _usersRepository.GetAllUsersAsync(token);
+        var users = await 
+            _usersUnitOfWork.UsersRepository
+                .GetAllUsersAsync(token);
 
-        foreach(var map in guestsMapsRelatedToEvent)
+        var allDevicesMaps = 
+            await _usersUnitOfWork.UserDevicesRepository
+                .GetAllDevicesMapsAsync(token);
+
+        foreach (var map in guestsMapsRelatedToEvent)
         {
             var userId = map.UserId;
 
@@ -204,24 +205,74 @@ public sealed class EventNotificationsHandler
 
                 var subject = "Reminder for the near beginning of your event";
 
-                var reminderInfoModel = new UserReminderInfo(
-                    subject,
-                    eventName,
-                    userName,
-                    email,
-                    (int)_notifyConfiguration.ReminderOffset.TotalMinutes);
+                var totalMinutes = (int)_notifyConfiguration.ReminderOffset.TotalMinutes;
 
-                await _smtpSender.SendNotificationAsync(reminderInfoModel, token);
+                var reminderSMTPInfo = 
+                    new UserEmailReminderInfo(
+                        subject,
+                        eventName,
+                        userName,
+                        email,
+                        totalMinutes);
 
-                _logger.LogInformation("Reminder has been succesfully sent");
+                var adsPushReminderMessages =
+                    CreateAdsPushReminderMessages(
+                        userId,
+                        subject,
+                        eventName, 
+                        userName,
+                        totalMinutes,
+                        allDevicesMaps);
+
+                await _smtpSender.SendSMTPNotificationAsync(reminderSMTPInfo, token);
+
+                _logger.LogInformation(
+                    "Reminder for SMTP for user" +
+                    " with email {Email} has been succesfully sent",
+                    email);
+
+                await Task.WhenAll(
+                    adsPushReminderMessages.Select(
+                        ads => Task.Run(
+                            async () => await _pushNotificationsSender
+                                .SendAdsPushNotificationAsync(ads, token))));
+
+                _logger.LogInformation(
+                    "Reminders of ads push for user" +
+                    " with name {UserName} has been succesfully sent",
+                    userName);
             }
         }
     }
 
+    private List<UserAdsPushReminderInfo> CreateAdsPushReminderMessages(
+        int userId,
+        string subject,
+        string eventName,
+        string userName,
+        int totalMinutes,
+        List<UserDeviceMap> allDeviceMaps)
+    {
+        var userMaps = 
+            allDeviceMaps
+                .Where(x => x.UserId == userId && x.IsActive)
+                .ToList();
+
+        return userMaps
+            .Select(x => 
+                new UserAdsPushReminderInfo(
+                    subject, 
+                    eventName,
+                    userName,
+                    x.FirebaseToken,
+                    totalMinutes))
+            .ToList();
+    }
+
     private readonly ISMTPSender _smtpSender;
+    private readonly IPushNotificationsSender _pushNotificationsSender;
     private readonly IServiceProvider _serviceProvider;
-    private readonly IUsersRepository _usersRepository;
-    private readonly IEventsUsersMapRepository _eventsUsersMapRepository;
+    private readonly IUsersUnitOfWork _usersUnitOfWork;
     private readonly NotificationConfiguration _notifyConfiguration;
     private readonly ILogger<EventNotificationsHandler> _logger;
 }
