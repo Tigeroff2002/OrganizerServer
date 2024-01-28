@@ -152,6 +152,7 @@ public sealed class UsersDataHandler
         response.OutInfo = builder.ToString();
         response.UserId = user.Id;
         response.Token = authToken;
+        response.FirebaseToken = currentFirebaseToken;
         response.UserName = user.UserName;
         response.RegistrationCase = RegistrationCase.ConfirmationSucceeded;
 
@@ -178,7 +179,7 @@ public sealed class UsersDataHandler
                 "User with email {Email} was not already in DB",
                 email);
 
-            var response1 = new Response();
+            var response1 = new LoginResponse();
             response1.Result = false;
             response1.OutInfo = $"User with email {email} was not already in DB";
 
@@ -189,7 +190,7 @@ public sealed class UsersDataHandler
         {
             _logger.LogInformation("Password not equals");
 
-            var response2 = new Response();
+            var response2 = new LoginResponse();
             response2.Result = false;
             response2.OutInfo = "Password not equals";
 
@@ -219,13 +220,15 @@ public sealed class UsersDataHandler
 
         var userName = existedUser.UserName;
 
-        var response = new ResponseWithToken();
+        var response = new LoginResponse();
+
         response.Result = true;
         response.OutInfo = 
             $"Login existed user {userName}" +
             $" with new auth token {authToken}";
         response.UserId = existedUser.Id;
         response.Token = authToken;
+        response.FirebaseToken = currentFirebaseToken;
         response.UserName = userName;
 
         return await Task.FromResult(response);

@@ -1,9 +1,9 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+﻿using Models.BusinessModels;
+using Newtonsoft.Json;
 
-namespace Models.BusinessModels;
+namespace Models.UserActionModels;
 
-public sealed class RegistrationResponse : Response
+public sealed class LoginResponse : Response
 {
     [JsonProperty("user_id", Required = Required.Default)]
     public int UserId { get; set; }
@@ -16,8 +16,4 @@ public sealed class RegistrationResponse : Response
 
     [JsonProperty("firebase_token", Required = Required.Default)]
     public string FirebaseToken { get; set; }
-
-    [JsonConverter(typeof(StringEnumConverter))]
-    [JsonProperty("case", Required = Required.Default)]
-    public RegistrationCase RegistrationCase { get; set; }
 }
