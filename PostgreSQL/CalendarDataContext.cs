@@ -67,6 +67,7 @@ public class CalendarDataContext : DbContext
             .HasPostgresEnum<UserRole>();
 
         CreateUsersModels(modelBuilder);
+        CreateUserDevicesMap(modelBuilder);
         CreateGroupsModels(modelBuilder);
         CreateEventsModels(modelBuilder);
         CreateTasksModels(modelBuilder);
