@@ -8,6 +8,9 @@ public sealed class UserRegistrationDataDTO
     [JsonProperty("email", Required = Required.Always)]
     public required string Email { get; init; }
 
+    [JsonProperty("firebase_token", Required = Required.Always)]
+    public required string FirebaseToken { get; init; }
+
     [JsonProperty("name", Required = Required.Always)]
     public required string UserName { get; init; }
 
@@ -22,6 +25,11 @@ public sealed class UserRegistrationDataDTO
         if (string.IsNullOrWhiteSpace(Email))
         {
             throw new ArgumentException(nameof(Email));
+        }
+
+        if (string.IsNullOrWhiteSpace(FirebaseToken))
+        {
+            throw new ArgumentException(nameof(FirebaseToken));
         }
 
         if (string.IsNullOrWhiteSpace(UserName))
@@ -41,6 +49,7 @@ public sealed class UserRegistrationDataDTO
 
         return new(
             Email,
+            FirebaseToken,
             UserName, 
             Password, 
             PhoneNumber);

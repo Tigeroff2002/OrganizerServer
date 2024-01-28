@@ -103,9 +103,10 @@ public sealed class UsersDataHandler
 
         var user = new User();
 
-        user.Role = DEFAULT_USER_ROLE;
-        user.AccountCreation = DateTimeOffset.Now;
+        var registrationTime = DateTimeOffset.UtcNow;
 
+        user.Role = DEFAULT_USER_ROLE;
+        user.AccountCreation = registrationTime;
         user.Email = email;
         user.UserName = registrationData.UserName;
         user.Password = registrationData.Password;
@@ -123,6 +124,19 @@ public sealed class UsersDataHandler
         _logger.LogInformation("Registrating new user {Email}", user.Email);
 
         await _usersUnitOfWork.UsersRepository.AddAsync(user, token);
+
+        _usersUnitOfWork.SaveChanges();
+
+        var currentFirebaseToken = registrationData.FirebaseToken;
+
+        var userDeviceMap = new UserDeviceMap();
+
+        userDeviceMap.UserId = user.Id;
+        userDeviceMap.FirebaseToken = currentFirebaseToken;
+        userDeviceMap.TokenSetMoment = registrationTime;
+        userDeviceMap.IsActive = true;
+
+        await _usersUnitOfWork.UserDevicesRepository.AddAsync(userDeviceMap, token);
 
         _usersUnitOfWork.SaveChanges();
 
@@ -186,6 +200,19 @@ public sealed class UsersDataHandler
         existedUser.AuthToken = authToken;
 
         await _usersUnitOfWork.UsersRepository.UpdateAsync(existedUser, token);
+
+        var loginTime = DateTimeOffset.UtcNow;
+
+        var currentFirebaseToken = loginData.FirebaseToken;
+
+        var userDeviceMap = new UserDeviceMap();
+
+        userDeviceMap.UserId = existedUser.Id;
+        userDeviceMap.FirebaseToken = currentFirebaseToken;
+        userDeviceMap.TokenSetMoment = loginTime;
+        userDeviceMap.IsActive = true;
+
+        await _usersUnitOfWork.UserDevicesRepository.AddAsync(userDeviceMap, token);
 
         _usersUnitOfWork.SaveChanges();
 
