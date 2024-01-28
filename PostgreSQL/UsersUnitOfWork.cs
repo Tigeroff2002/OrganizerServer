@@ -62,6 +62,8 @@ public sealed class UsersUnitOfWork
 
         IssuesRepository = issuesRepository
             ?? throw new ArgumentNullException(nameof(issuesRepository));
+
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public void SaveChanges()

@@ -271,7 +271,6 @@ public sealed class EventNotificationsHandler
 
     private readonly ISMTPSender _smtpSender;
     private readonly IPushNotificationsSender _pushNotificationsSender;
-    private readonly IServiceProvider _serviceProvider;
     private readonly IUsersUnitOfWork _usersUnitOfWork;
     private readonly NotificationConfiguration _notifyConfiguration;
     private readonly ILogger<EventNotificationsHandler> _logger;
