@@ -17,6 +17,9 @@ public sealed class RepositoryContext
     public DbSet<User> Users => _context.Users;
 
     /// <inheritdoc/>
+    public DbSet<UserDeviceMap> UserDevices => _context.UserDevices;
+
+    /// <inheritdoc/>
     public DbSet<Group> Groups => _context.Groups;
 
     /// <inheritdoc/>

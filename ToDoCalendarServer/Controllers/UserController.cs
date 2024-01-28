@@ -4,6 +4,7 @@ using Logic.Transport.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Models.BusinessModels;
+using Models.UserActionModels;
 using Newtonsoft.Json;
 using System.Diagnostics;
 
@@ -18,7 +19,8 @@ public sealed class UserController : ControllerBase
         IUsersDataHandler usersDataHandler,
         IDeserializer<UserRegistrationData> usersRegistrationDataDeserializer,
         IDeserializer<UserLoginData> usersLoginDataDeserializer,
-        IDeserializer<UserInfoById> userInfoByIdDeserializer) 
+        IDeserializer<UserInfoById> userInfoByIdDeserializer,
+        IDeserializer<UserLogoutDeviceById> userLogoutByIdDeserializer) 
     {
         _logger = logger 
             ?? throw new ArgumentNullException(nameof(logger));
@@ -33,6 +35,9 @@ public sealed class UserController : ControllerBase
 
         _userInfoByIdDeserializer = userInfoByIdDeserializer
             ?? throw new ArgumentNullException(nameof(userInfoByIdDeserializer));
+
+        _userLogoutByIdDeserializer = userLogoutByIdDeserializer
+            ?? throw new ArgumentNullException(nameof(userLogoutByIdDeserializer));
     }
 
     [HttpPost]
@@ -62,6 +67,21 @@ public sealed class UserController : ControllerBase
 
         var result =
             await _usersDataHandler.TryLoginUser(userLoginData, token);
+
+        var json = JsonConvert.SerializeObject(result);
+
+        return result.Result ? Ok(json) : BadRequest(json);
+    }
+
+    [HttpPost]
+    [Route("logout")]
+    public async Task<IActionResult> LogoutUserAsync(CancellationToken token)
+    {
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
+
+        var logoutData = _userLogoutByIdDeserializer.Deserialize(body);
+
+        var result = await _usersDataHandler.TryLogoutUser(logoutData, token);
 
         var json = JsonConvert.SerializeObject(result);
 
@@ -124,4 +144,5 @@ public sealed class UserController : ControllerBase
     private readonly IDeserializer<UserRegistrationData> _usersRegistrationDataDeserializer;
     private readonly IDeserializer<UserLoginData> _usersLoginDataDeserializer;
     private readonly IDeserializer<UserInfoById> _userInfoByIdDeserializer;
+    private readonly IDeserializer<UserLogoutDeviceById> _userLogoutByIdDeserializer;
 }

@@ -26,8 +26,14 @@ public sealed class PushNotificationsSender
     }
 
 
-    public async Task SendNotificationAsync(UserReminderInfo model, CancellationToken token)
+    public async Task SendAdsPushNotificationAsync(
+        UserAdsPushReminderInfo model,
+        CancellationToken token)
     {
+        ArgumentNullException.ThrowIfNull(model);
+
+        token.ThrowIfCancellationRequested();
+
         var body = new StringBuilder();
 
         var numberMinutesOfOffset = model.TotalMinutes;
@@ -41,7 +47,7 @@ public sealed class PushNotificationsSender
 
         var message = new Message()
         {
-            Token = PUSH_TOKEN,
+            Token = model.FirebaseToken,
             Android = new AndroidConfig()
             {
                 Priority = Priority.High,
@@ -76,8 +82,6 @@ public sealed class PushNotificationsSender
             _logger.LogWarning("Exception occured: {Message}", ex.Message);
         }
     }
-
-    private const string PUSH_TOKEN = "79eb1b9e623bbca0d2b218f44a18d7b8ef59dac4da5baa9949c3e99a48eb259a";
 
     private readonly IAdsPushSender _adsPushSender;
     private readonly AdsPushConfiguration _adsPushConfiguration;

@@ -11,6 +11,8 @@ public class CalendarDataContext : DbContext
 {
     public virtual DbSet<User> Users { get; set; } = default!;
 
+    public virtual DbSet<UserDeviceMap> UserDevices { get; set; }
+
     public virtual DbSet<Group> Groups { get; set; } = default!;
 
     public virtual DbSet<Event> Events { get; set; } = default!;
@@ -65,6 +67,7 @@ public class CalendarDataContext : DbContext
             .HasPostgresEnum<UserRole>();
 
         CreateUsersModels(modelBuilder);
+        CreateUserDevicesMap(modelBuilder);
         CreateGroupsModels(modelBuilder);
         CreateEventsModels(modelBuilder);
         CreateTasksModels(modelBuilder);
@@ -121,6 +124,12 @@ public class CalendarDataContext : DbContext
 
         _ = modelBuilder.Entity<User>()
             .HasMany(x => x.Issues)
+            .WithOne(x => x.User)
+            .HasForeignKey(x => x.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        _ = modelBuilder.Entity<User>()
+            .HasMany(x => x.Devices)
             .WithOne(x => x.User)
             .HasForeignKey(x => x.UserId)
             .OnDelete(DeleteBehavior.Cascade);
@@ -208,6 +217,24 @@ public class CalendarDataContext : DbContext
 
         _ = modelBuilder.Entity<Snapshot>()
             .Property(x => x.EndMoment);
+    }
+
+    private static void CreateUserDevicesMap(ModelBuilder modelBuilder)
+    {
+        _ = modelBuilder.Entity<UserDeviceMap>()
+            .HasKey(map => new { map.UserId, map.FirebaseToken });
+
+        _ = modelBuilder.Entity<UserDeviceMap>()
+            .Property(map => map.UserId);
+
+        _ = modelBuilder.Entity<UserDeviceMap>()
+            .Property(map => map.FirebaseToken);
+
+        _ = modelBuilder.Entity<UserDeviceMap>()
+            .Property(map => map.TokenSetMoment);
+
+        _ = modelBuilder.Entity<UserDeviceMap>()
+            .Property(map => map.IsActive);
     }
 
     private static void CreateIssuesModels(ModelBuilder modelBuilder)

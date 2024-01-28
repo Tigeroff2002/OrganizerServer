@@ -99,8 +99,12 @@ public sealed class SMTPSender
         return confirmationResponse;
     }
 
-    public async Task SendNotificationAsync(UserReminderInfo model, CancellationToken token)
+    public async Task SendSMTPNotificationAsync(
+        UserEmailReminderInfo model,
+        CancellationToken token)
     {
+        ArgumentNullException.ThrowIfNull(model);
+
         token.ThrowIfCancellationRequested();
 
         var body = new StringBuilder();
