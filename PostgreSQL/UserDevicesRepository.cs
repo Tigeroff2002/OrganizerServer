@@ -78,7 +78,9 @@ public sealed class UserDevicesRepository
 
     public void SaveChanges()
     {
-        throw new NotImplementedException();
+        _repositoryContext.SaveChanges();
+
+        _logger.LogInformation("The changes of users devices were sent to DB");
     }
 
     private readonly IServiceProvider _provider;
