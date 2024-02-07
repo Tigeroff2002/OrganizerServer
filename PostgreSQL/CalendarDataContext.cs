@@ -140,13 +140,13 @@ public class CalendarDataContext : DbContext
             .OnDelete(DeleteBehavior.Cascade);
 
         _ = modelBuilder.Entity<User>()
-            .HasMany(x => x.DirectChats)
+            .HasMany(x => x.DirectChatsForUserHome)
             .WithOne(x => x.User1)
             .HasForeignKey(x => x.User1Id)
             .OnDelete(DeleteBehavior.Cascade);
 
         _ = modelBuilder.Entity<User>()
-            .HasMany(x => x.DirectChats)
+            .HasMany(x => x.DirectChatsForUserAway)
             .WithOne(x => x.User2)
             .HasForeignKey(x => x.User2Id)
             .OnDelete(DeleteBehavior.Cascade);
