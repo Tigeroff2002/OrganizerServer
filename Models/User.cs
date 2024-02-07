@@ -38,6 +38,10 @@ namespace Models
 
         public virtual List<Issue> Issues { get; set; }
 
+        public virtual List<DirectChat> DirectChats { get; set; }
+
+        public virtual List<DirectMessage> Messages { get; set; }
+
         public User() { }
     }
 }
