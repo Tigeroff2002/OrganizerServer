@@ -19,7 +19,7 @@ public sealed class UsersDataHandler
     : IUsersDataHandler
 {
     public UsersDataHandler(
-        IUsersUnitOfWork usersUnitOfWork,
+        ICommonUsersUnitOfWork usersUnitOfWork,
         IOptions<RootConfiguration> rootConfiguration,
         ISMTPSender usersCodeConfirmer,
         ISerializer<UserInfoContent> userInfoSerializer,
@@ -720,7 +720,7 @@ public sealed class UsersDataHandler
 
     private const UserRole DEFAULT_USER_ROLE = UserRole.User;
 
-    private readonly IUsersUnitOfWork _usersUnitOfWork;
+    private readonly ICommonUsersUnitOfWork _usersUnitOfWork;
     private readonly ISMTPSender _usersCodeConfirmer;
     private readonly ISerializer<UserInfoContent> _userInfoSerializer;
     private readonly RootConfiguration _rootConfiguration;

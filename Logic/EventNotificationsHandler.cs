@@ -20,7 +20,7 @@ public sealed class EventNotificationsHandler
     public EventNotificationsHandler(
         ISMTPSender smtpSender,
         IPushNotificationsSender pushNotificationsSender,
-        IUsersUnitOfWork usersUnitOfWork,
+        ICommonUsersUnitOfWork usersUnitOfWork,
         IOptions<NotificationConfiguration> notifyConfiguration,
         ILogger<EventNotificationsHandler> logger) 
     { 
@@ -271,7 +271,7 @@ public sealed class EventNotificationsHandler
 
     private readonly ISMTPSender _smtpSender;
     private readonly IPushNotificationsSender _pushNotificationsSender;
-    private readonly IUsersUnitOfWork _usersUnitOfWork;
+    private readonly ICommonUsersUnitOfWork _usersUnitOfWork;
     private readonly NotificationConfiguration _notifyConfiguration;
     private readonly ILogger<EventNotificationsHandler> _logger;
 }
