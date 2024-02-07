@@ -78,6 +78,8 @@ public class CalendarDataContext : DbContext
         CreateTasksModels(modelBuilder);
         CreateSnapshotsModels(modelBuilder);
         CreateIssuesModels(modelBuilder);
+        CreateDirectChatsModels(modelBuilder);
+        CreateMessagesModels(modelBuilder);
         CreateGroupingUsersMapModels(modelBuilder);
         CreateEventUsersMapModels(modelBuilder);
 
