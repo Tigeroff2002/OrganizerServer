@@ -38,6 +38,23 @@ namespace Models
 
         public virtual List<Issue> Issues { get; set; }
 
-        public User() { }
+        public virtual List<DirectChat> DirectChatsForUserHome { get; set; }
+
+        public virtual List<DirectChat> DirectChatsForUserAway { get; set; }
+
+        public virtual List<DirectChat> DirectChats { get; set; }
+
+        public virtual List<DirectMessage> Messages { get; set; }
+
+        public User()
+        {
+            if (DirectChatsForUserHome != null 
+                && DirectChatsForUserAway != null)
+            {
+                DirectChats = DirectChatsForUserAway
+                    .Concat(DirectChatsForUserAway)
+                    .ToList();
+            }
+        }
     }
 }

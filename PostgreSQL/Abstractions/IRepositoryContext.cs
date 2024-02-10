@@ -20,6 +20,10 @@ public interface IRepositoryContext
 
     DbSet<Issue> Issues { get; }
 
+    DbSet<DirectChat> DirectChats { get; }
+
+    DbSet<DirectMessage> Messages { get; }
+
     DbSet<GroupingUsersMap> GroupingUsersMaps { get; }
 
     DbSet<EventsUsersMap> EventsUsersMaps { get; }

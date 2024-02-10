@@ -58,7 +58,11 @@ public static class Registrations
             .AddSingleton<IGroupingUsersMapRepository, GroupingUsersMapRepository>()
             .AddSingleton<IEventsUsersMapRepository, EventsUsersMapRepository>()
             .AddSingleton<IIssuesRepository, IssuesRepository>()
-            .AddSingleton<IUsersUnitOfWork, UsersUnitOfWork>();
+            .AddSingleton<IChatRepository, ChatRepository>()
+            .AddSingleton<IMessageRepository, MessageRepository>()
+
+            .AddSingleton<ICommonUsersUnitOfWork, CommonUsersUnitOfWork>()
+            .AddSingleton<IUsersMessagingUnitOfWork, UsersMessagingUnitOfWork>();
 
     public static IServiceCollection AddConfigurations(
         this IServiceCollection services,

@@ -1,6 +1,6 @@
 ﻿namespace PostgreSQL.Abstractions;
 
-public interface IUsersUnitOfWork
+public interface ICommonUsersUnitOfWork
 {
     public IUsersRepository UsersRepository { get; }
 

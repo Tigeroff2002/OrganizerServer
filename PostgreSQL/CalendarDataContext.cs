@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using FirebaseAdmin.Messaging;
+using Microsoft.EntityFrameworkCore;
 
 using Models;
 using Models.Enums;
@@ -22,6 +23,10 @@ public class CalendarDataContext : DbContext
     public virtual DbSet<Snapshot> Snapshots { get; set; } = default!;
 
     public virtual DbSet<Issue> Issues { get; set; } = default!;
+
+    public virtual DbSet<DirectChat> DirectChats { get; set; }
+
+    public virtual DbSet<DirectMessage> Messages { get; set; }
 
     // дополнительные сущности для отношений many-to-many
     public virtual DbSet<GroupingUsersMap> GroupingUsersMaps { get; set; } = default!;
@@ -73,6 +78,8 @@ public class CalendarDataContext : DbContext
         CreateTasksModels(modelBuilder);
         CreateSnapshotsModels(modelBuilder);
         CreateIssuesModels(modelBuilder);
+        CreateDirectChatsModels(modelBuilder);
+        CreateMessagesModels(modelBuilder);
         CreateGroupingUsersMapModels(modelBuilder);
         CreateEventUsersMapModels(modelBuilder);
 
@@ -130,6 +137,24 @@ public class CalendarDataContext : DbContext
 
         _ = modelBuilder.Entity<User>()
             .HasMany(x => x.Devices)
+            .WithOne(x => x.User)
+            .HasForeignKey(x => x.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        _ = modelBuilder.Entity<User>()
+            .HasMany(x => x.DirectChatsForUserHome)
+            .WithOne(x => x.User1)
+            .HasForeignKey(x => x.User1Id)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        _ = modelBuilder.Entity<User>()
+            .HasMany(x => x.DirectChatsForUserAway)
+            .WithOne(x => x.User2)
+            .HasForeignKey(x => x.User2Id)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        _ = modelBuilder.Entity<User>()
+            .HasMany(x => x.Messages)
             .WithOne(x => x.User)
             .HasForeignKey(x => x.UserId)
             .OnDelete(DeleteBehavior.Cascade);
@@ -256,6 +281,39 @@ public class CalendarDataContext : DbContext
 
         _ = modelBuilder.Entity<Issue>()
             .Property(x => x.IssueMoment);
+    }
+
+    private static void CreateDirectChatsModels(ModelBuilder modelBuilder)
+    {
+        _ = modelBuilder.Entity<DirectChat>()
+            .HasKey(x => x.Id);
+
+        _ = modelBuilder.Entity<DirectChat>()
+            .Property(x => x.Caption);
+
+        _ = modelBuilder.Entity<DirectChat>()
+            .Property(x => x.CreateTime);
+
+        _ = modelBuilder.Entity<DirectChat>()
+            .HasMany(x => x.DirectMessages)
+            .WithOne(x => x.Chat)
+            .HasForeignKey(x => x.ChatId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    private static void CreateMessagesModels(ModelBuilder modelBuilder)
+    {
+        _ = modelBuilder.Entity<DirectMessage>()
+            .HasKey(x => x.Id);
+
+        _ = modelBuilder.Entity<DirectMessage>()
+            .Property(x => x.SendTime);
+
+        _ = modelBuilder.Entity<DirectMessage>()
+            .Property(x => x.Text);
+
+        _ = modelBuilder.Entity<DirectMessage>()
+            .Property(x => x.isEdited);
     }
 
     private static void CreateGroupingUsersMapModels(ModelBuilder modelBuilder)

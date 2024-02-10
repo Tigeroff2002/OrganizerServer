@@ -3,8 +3,8 @@ using PostgreSQL.Abstractions;
 
 namespace PostgreSQL;
 
-public sealed class UsersUnitOfWork
-    : IUsersUnitOfWork
+public sealed class CommonUsersUnitOfWork
+    : ICommonUsersUnitOfWork
 {
     public IUsersRepository UsersRepository { get; }
 
@@ -24,7 +24,7 @@ public sealed class UsersUnitOfWork
 
     public IIssuesRepository IssuesRepository { get; }
 
-    public UsersUnitOfWork(
+    public CommonUsersUnitOfWork(
         IUsersRepository usersRepository,
         IUserDevicesRepository userDevicesRepository,
         IGroupsRepository groupsRepository,
@@ -34,7 +34,7 @@ public sealed class UsersUnitOfWork
         IGroupingUsersMapRepository groupingUsersMapRepository,
         ISnapshotsRepository snapshotsRepository,
         IIssuesRepository issuesRepository,
-        ILogger<UsersUnitOfWork> logger)
+        ILogger<CommonUsersUnitOfWork> logger)
     {
         UsersRepository = usersRepository
             ?? throw new ArgumentNullException(nameof(usersRepository));

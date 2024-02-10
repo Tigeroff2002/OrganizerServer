@@ -211,7 +211,7 @@ public sealed class TaskController : ControllerBase
         }
 
         var response2 = new Response();
-        response2.Result = true;
+        response2.Result = false;
         response2.OutInfo = $"No such task with id {taskId}";
 
         return BadRequest(JsonConvert.SerializeObject(response2));
@@ -275,7 +275,7 @@ public sealed class TaskController : ControllerBase
         }
 
         var response2 = new Response();
-        response2.Result = true;
+        response2.Result = false;
         response2.OutInfo = $"No such task with id {taskId}";
 
         return BadRequest(JsonConvert.SerializeObject(response2));
@@ -389,7 +389,7 @@ public sealed class TaskController : ControllerBase
         }
 
         var response2 = new Response();
-        response2.Result = true;
+        response2.Result = false;
         response2.OutInfo = $"No such task with id {taskId}";
 
         return BadRequest(JsonConvert.SerializeObject(response2));
