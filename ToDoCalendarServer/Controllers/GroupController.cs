@@ -240,7 +240,7 @@ public sealed class GroupController : ControllerBase
         }
 
         var response2 = new Response();
-        response2.Result = true;
+        response2.Result = false;
         response2.OutInfo = $"No such group with id {groupId}";
 
         return BadRequest(JsonConvert.SerializeObject(response2));
@@ -385,7 +385,7 @@ public sealed class GroupController : ControllerBase
 
             var listOfUsersInfo = new List<ShortUserInfo>();
 
-            foreach(var userMap in existedMaps)
+            foreach (var userMap in existedMaps)
             {
                 var participantId = userMap.UserId;
 

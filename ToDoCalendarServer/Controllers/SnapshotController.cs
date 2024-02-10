@@ -131,7 +131,7 @@ public sealed class SnapshotController : ControllerBase
         }
 
         var response2 = new Response();
-        response2.Result = true;
+        response2.Result = false;
         response2.OutInfo = $"No such snapshot with id {snapshotId}";
 
         return BadRequest(JsonConvert.SerializeObject(response2));
@@ -208,7 +208,7 @@ public sealed class SnapshotController : ControllerBase
         }
 
         var response2 = new Response();
-        response2.Result = true;
+        response2.Result = false;
         response2.OutInfo = $"No such snapshot with id {snapshotId}";
 
         return BadRequest(JsonConvert.SerializeObject(response2));

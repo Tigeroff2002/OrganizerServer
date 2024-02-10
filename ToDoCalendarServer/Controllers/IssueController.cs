@@ -177,7 +177,7 @@ public sealed class IssueController : ControllerBase
         }
 
         var response2 = new Response();
-        response2.Result = true;
+        response2.Result = false;
         response2.OutInfo = $"No such issue with id {issueId}";
 
         return BadRequest(JsonConvert.SerializeObject(response2));
@@ -224,7 +224,7 @@ public sealed class IssueController : ControllerBase
         }
 
         var response2 = new Response();
-        response2.Result = true;
+        response2.Result = false;
         response2.OutInfo = $"No such issue with id {issueId}";
 
         return BadRequest(JsonConvert.SerializeObject(response2));
@@ -294,7 +294,7 @@ public sealed class IssueController : ControllerBase
         }
 
         var response2 = new Response();
-        response2.Result = true;
+        response2.Result = false;
         response2.OutInfo = $"No such issue with id {issueId}";
 
         return BadRequest(JsonConvert.SerializeObject(response2));
