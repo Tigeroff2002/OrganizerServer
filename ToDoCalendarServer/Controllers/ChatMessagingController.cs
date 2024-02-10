@@ -10,6 +10,8 @@ using PostgreSQL;
 using PostgreSQL.Abstractions;
 using System.Diagnostics;
 using Microsoft.AspNetCore.Authorization;
+using Contracts.Request.RequestById;
+using Google.Apis.Util;
 
 namespace ToDoCalendarServer.Controllers;
 
@@ -23,146 +25,244 @@ public sealed class ChatMessagingController : ControllerBase
     }
 
     [HttpPost]
-    [Route("add_first_message")]
+    [Route("add_first_chat_message")]
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
-    public async Task<IActionResult> CreateIssue(CancellationToken token)
+    public async Task<IActionResult> AddFirstMessage(CancellationToken token)
     {
         var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
-        var issueToCreate = JsonConvert.DeserializeObject<IssueInputDTO>(body);
+        var messageToCreate = JsonConvert.DeserializeObject<ChatFirstMessageDTO>(body);
 
-        Debug.Assert(issueToCreate != null);
+        Debug.Assert(messageToCreate != null);
 
-        var userId = issueToCreate.UserId;
-        var issueType = issueToCreate.IssueType;
+        var userId = messageToCreate.UserId;
+        var receiverId = messageToCreate.ReceiverId;
 
-        var user = await _usersRepository.GetUserByIdAsync(userId, token);
+        Debug.Assert(userId != receiverId);
+
+        var messageText = messageToCreate.Text;
+
+        var user = await _unitOfWork.UsersRepository.GetUserByIdAsync(userId, token);
 
         if (user == null)
         {
             var response1 = new Response();
             response1.Result = false;
             response1.OutInfo =
-                $"Issue has not been created cause" +
+                $"New message has not been posted cause" +
                 $" current user with id {userId} was not found";
 
             return BadRequest(JsonConvert.SerializeObject(response1));
         }
 
-        var issueMoment = DateTimeOffset.UtcNow;
+        var receiver = await _unitOfWork.UsersRepository.GetUserByIdAsync(receiverId, token);
 
-        var issue = new Issue
+        if (receiver == null)
         {
-            Title = issueToCreate.Title,
-            IssueType = issueType,
-            Description = issueToCreate.Description,
-            IssueMoment = issueMoment,
-            ImgLink = issueToCreate.ImgLink,
+            var response1 = new Response();
+            response1.Result = false;
+            response1.OutInfo =
+                $"New message has not been posted cause" +
+                $" related receiver with id {receiverId} was not found";
+
+            return BadRequest(JsonConvert.SerializeObject(response1));
+        }
+
+        var writeMoment = DateTimeOffset.UtcNow;
+
+        var existedChat = await _unitOfWork
+            .ChatRepository
+            .GetChatByBothUserIdsAsync(userId, receiverId, token);
+
+        var message = new DirectMessage
+        {
+            SendTime = writeMoment,
+            Text = messageText,
+            isEdited = false,
             UserId = user.Id
         };
 
-        await _issuesRepository.AddAsync(issue, token);
+        int chatId;
 
-        _issuesRepository.SaveChanges();
+        if (existedChat == null)
+        {
+            var newChat = new DirectChat
+            {
+                CreateTime = writeMoment,
+                User1Id = userId,
+                User2Id = receiverId,
+                Caption = $"{user.UserName}/{receiver.UserName} chat"
+            };
 
-        var issueId = issue.Id;
+            await _unitOfWork.ChatRepository.AddAsync(newChat, token);
+
+            _unitOfWork.SaveChanges();
+
+            chatId = newChat.Id;
+        }
+        else
+        {
+            chatId = existedChat.Id;
+        }
+
+        message.ChatId = chatId;
+
+        await _unitOfWork.MessageRepository.AddAsync(message, token);
+
+        _unitOfWork.SaveChanges();
+
+        var newMessageId = message.Id;
 
         var response = new Response();
         response.Result = true;
         response.OutInfo =
-            $"New snapshot with id = {issueId}" +
+            $"New messahe with id = {newMessageId}" +
             $" by user '{user.UserName}'" +
-            $" with type '{issueType}' has been created";
+            $" for user '{receiver.UserName}' has been posted";
 
         var json = JsonConvert.SerializeObject(response);
 
         return Ok(json);
     }
 
-    [Route("update_issue_params")]
+    [HttpPost]
+    [Route("add_new_chat_message")]
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
-    public async Task<IActionResult> UpdateIssueParams(CancellationToken token)
+    public async Task<IActionResult> AddNewChatMessage(CancellationToken token)
     {
         var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
-        var issueUpdateParams = JsonConvert.DeserializeObject<IssueInputWithIdDTO>(body);
+        var messageToCreate = JsonConvert.DeserializeObject<NewMessageInputDTO>(body);
 
-        Debug.Assert(issueUpdateParams != null);
+        Debug.Assert(messageToCreate != null);
 
-        var issueId = issueUpdateParams.IssueId;
+        var userId = messageToCreate.UserId;
+        var chatId = messageToCreate.ChatId;
+        var messageText = messageToCreate.Text;
 
-        var existedIssue = await _issuesRepository.GetIssueByIdAsync(issueId, token);
+        var user = await _unitOfWork.UsersRepository.GetUserByIdAsync(userId, token);
 
-        var currentUserId = issueUpdateParams.UserId;
-
-        if (existedIssue != null)
+        if (user == null)
         {
-            var currentUser = await _usersRepository.GetUserByIdAsync(currentUserId, token);
+            var response1 = new Response();
+            response1.Result = false;
+            response1.OutInfo =
+                $"New message has not been posted cause" +
+                $" current user with id {userId} was not found";
+
+            return BadRequest(JsonConvert.SerializeObject(response1));
+        }
+
+        var existedChat = await _unitOfWork.ChatRepository.GetChatByIdAsync(chatId, token);
+
+        if (existedChat == null)
+        {
+            var response1 = new Response();
+            response1.Result = false;
+            response1.OutInfo =
+                $"New message has not been posted cause" +
+                $" related chat with id {chatId} was not found";
+
+            return BadRequest(JsonConvert.SerializeObject(response1));
+        }
+
+        if (existedChat.User1Id != userId 
+            && existedChat.User2Id != userId)
+        {
+            var response1 = new Response();
+            response1.Result = false;
+            response1.OutInfo =
+                $"New message has not been posted cause" +
+                $" user with id {chatId} not relates" +
+                $" to users from chat {chatId}";
+
+            return BadRequest(JsonConvert.SerializeObject(response1));
+        }
+
+        var writeMoment = DateTimeOffset.UtcNow;
+
+        var message = new DirectMessage
+        {
+            SendTime = writeMoment,
+            Text = messageText,
+            isEdited = false,
+            UserId = user.Id,
+            ChatId = chatId
+        };
+
+        await _unitOfWork.MessageRepository.AddAsync(message, token);
+
+        _unitOfWork.SaveChanges();
+
+        var newMessageId = message.Id;
+
+        var response = new Response();
+        response.Result = true;
+        response.OutInfo =
+            $"New messahe with id = {newMessageId}" +
+            $" by user '{user.UserName}'" +
+            $" for chat '{existedChat.Caption}' has been posted";
+
+        var json = JsonConvert.SerializeObject(response);
+
+        return Ok(json);
+    }
+
+    [Route("update_message")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
+    public async Task<IActionResult> UpdateMessageParams(CancellationToken token)
+    {
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
+
+        var messageUpdateParams = JsonConvert.DeserializeObject<MessageInputWithIdDTO>(body);
+
+        Debug.Assert(messageUpdateParams != null);
+
+        var userId = messageUpdateParams.UserId;
+        var messageId = messageUpdateParams.MessageId;
+
+        var existedMessage = await _unitOfWork
+            .MessageRepository
+            .GetMessageByIdAsync(messageId, token);
+
+        if (existedMessage != null)
+        {
+            var currentUser = await _unitOfWork
+                .UsersRepository
+                .GetUserByIdAsync(userId, token);
 
             if (currentUser == null)
             {
                 var response1 = new Response();
                 response1.Result = false;
                 response1.OutInfo =
-                    $"Issue has not been modified cause user" +
-                    $" with id {currentUserId} is not found in db";
+                    $"Message has not been modified cause user" +
+                    $" with id {userId} is not found in db";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
 
-            if (existedIssue.UserId != currentUserId)
+            if (existedMessage.Id != userId)
             {
                 var response1 = new Response();
                 response1.Result = false;
                 response1.OutInfo =
-                    $"Issue has not been modified cause user" +
-                    $" with id {currentUserId} not relate to thats creator";
+                    $"Message has not been modified cause user" +
+                    $" with id {userId} not relate to thats creator";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
 
             var response = new Response();
 
-            var numbers_of_new_params = 0;
+            existedMessage.Text = messageUpdateParams.Text;
+            existedMessage.isEdited = true;
 
-            if (!string.IsNullOrWhiteSpace(issueUpdateParams.Title))
-            {
-                existedIssue.Title = issueUpdateParams.Title;
-                numbers_of_new_params++;
-            }
+            await _unitOfWork.MessageRepository.UpdateAsync(existedMessage, token);
 
-            if (!string.IsNullOrWhiteSpace(issueUpdateParams.Description))
-            {
-                existedIssue.Description = issueUpdateParams.Description;
-                numbers_of_new_params++;
-            }
+            _unitOfWork.SaveChanges();
 
-            if (issueUpdateParams.IssueType != IssueType.None)
-            {
-                existedIssue.IssueType = issueUpdateParams.IssueType;
-                numbers_of_new_params++;
-            }
-
-            if (!string.IsNullOrWhiteSpace(issueUpdateParams.ImgLink))
-            {
-                existedIssue.ImgLink = issueUpdateParams.ImgLink;
-                numbers_of_new_params++;
-            }
-
-            if (numbers_of_new_params > 0)
-            {
-                await _issuesRepository.UpdateAsync(existedIssue, token);
-
-                _issuesRepository.SaveChanges();
-
-                response.OutInfo = $"Issue with id {issueId} has been modified";
-            }
-            else
-            {
-                response.OutInfo =
-                    $"Issue with id {issueId} has all same parameters" +
-                    $" so it has not been modified";
-            }
+            response.OutInfo = $"Message with id {messageId} has been modified";
 
             response.Result = true;
 
@@ -172,116 +272,163 @@ public sealed class ChatMessagingController : ControllerBase
         }
 
         var response2 = new Response();
-        response2.Result = true;
-        response2.OutInfo = $"No such issue with id {issueId}";
+        response2.Result = false;
+        response2.OutInfo = $"No such message with id {messageId}";
 
         return BadRequest(JsonConvert.SerializeObject(response2));
     }
 
-    [Route("delete_issue")]
+    [Route("delete_message")]
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> DeleteIssue(CancellationToken token)
     {
         var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
-        var issueToDelete = JsonConvert.DeserializeObject<IssueIdDTO>(body);
+        var messageToDelete = JsonConvert.DeserializeObject<MessageIdDTO>(body);
 
-        Debug.Assert(issueToDelete != null);
+        Debug.Assert(messageToDelete != null);
 
-        var issueId = issueToDelete.IssueId;
+        var messageId = messageToDelete.MessageId;
 
-        var existedIssue = await _issuesRepository.GetIssueByIdAsync(issueId, token);
+        var existedMessage = await _unitOfWork
+            .MessageRepository
+            .GetMessageByIdAsync(messageId, token);
 
-        if (existedIssue != null)
+        if (existedMessage != null)
         {
-            var userId = existedIssue!.UserId;
+            var userId = existedMessage!.UserId;
 
-            if (issueToDelete.UserId != userId)
+            var currentUser = await _unitOfWork
+                .UsersRepository
+                .GetUserByIdAsync(userId, token);
+
+            if (currentUser == null)
             {
                 var response1 = new Response();
                 response1.Result = false;
                 response1.OutInfo =
-                    $"Issue has not been deleted cause" +
-                    $" current user with id {issueToDelete.UserId} is not its creator";
+                    $"Message has not been deleted cause user" +
+                    $" with id {userId} is not found in db";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
 
-            await _issuesRepository.DeleteAsync(issueId, token);
+            if (messageToDelete.UserId != userId)
+            {
+                var response1 = new Response();
+                response1.Result = false;
+                response1.OutInfo =
+                    $"Message has not been deleted cause" +
+                    $" current user with id {messageToDelete.UserId} is not its creator";
 
-            _issuesRepository.SaveChanges();
+                return BadRequest(JsonConvert.SerializeObject(response1));
+            }
+
+            await _unitOfWork.MessageRepository.DeleteAsync(messageId, token);
+
+            _unitOfWork.SaveChanges();
 
             var response = new Response();
             response.Result = true;
-            response.OutInfo = $"Issue with id {issueId} was deleted by creator";
+            response.OutInfo = $"Message with id {messageId} was deleted by creator";
 
             return Ok(JsonConvert.SerializeObject(response));
         }
 
         var response2 = new Response();
-        response2.Result = true;
-        response2.OutInfo = $"No such issue with id {issueId}";
+        response2.Result = false;
+        response2.OutInfo = $"No such message with id {messageId}";
 
         return BadRequest(JsonConvert.SerializeObject(response2));
     }
 
-    [Route("get_issue_info")]
+    [Route("get_message_info")]
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
-    public async Task<IActionResult> GetIssueInfo(CancellationToken token)
+    public async Task<IActionResult> GetMessageInfo(CancellationToken token)
     {
         var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
-        var issueWithIdRequest = JsonConvert.DeserializeObject<IssueIdDTO>(body);
+        var messageWithIdRequest = JsonConvert.DeserializeObject<MessageIdDTO>(body);
 
-        Debug.Assert(issueWithIdRequest != null);
+        Debug.Assert(messageWithIdRequest != null);
 
-        var issueId = issueWithIdRequest.IssueId;
+        var messageId = messageWithIdRequest.MessageId;
+        var currentUserId = messageWithIdRequest.UserId;
 
-        var existedIssue = await _issuesRepository.GetIssueByIdAsync(issueId, token);
+        var existedMessage = await _unitOfWork
+            .MessageRepository
+            .GetMessageByIdAsync(messageId, token);
 
-        if (existedIssue != null)
+        if (existedMessage != null)
         {
-            var userId = existedIssue!.UserId;
+            var chatId = existedMessage.ChatId;
 
-            var manager = await _usersRepository.GetUserByIdAsync(userId, token);
+            var existedChat = await _unitOfWork
+                .ChatRepository
+                .GetChatByIdAsync(chatId, token);
 
-            if (manager == null)
+            if (existedChat == null)
             {
                 var response1 = new Response();
                 response1.Result = false;
                 response1.OutInfo =
-                    $"Cant take info about issue cause " +
-                    $"user with id {userId} is not found in db";
+                    $"Cant take info about message cause " +
+                    $"related direct chat with id {chatId} was not found in db";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
 
-            if (issueWithIdRequest.UserId != userId)
+            if (existedChat.User1Id != currentUserId 
+                && existedChat.User2Id != currentUserId)
             {
                 var response1 = new Response();
                 response1.Result = false;
                 response1.OutInfo =
-                    $"Cant take info about issue cause user with id" +
-                    $" {issueWithIdRequest.UserId} is not its manager";
+                    $"Cant take info about message with id" +
+                    $" {messageId} cause current user with id {currentUserId}" +
+                    $" not relates to users from direct chat with id {chatId}";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
 
-            var issueInfo = new IssueInfoResponse
+            var writerId = existedMessage.UserId;
+
+            var existedWriter = await _unitOfWork
+                .UsersRepository
+                .GetUserByIdAsync(writerId, token);
+
+            Debug.Assert(existedWriter != null);
+
+            var receiverId = existedChat.User1Id == writerId
+                ? existedChat.User2Id
+                : existedChat.User1Id;
+
+            var existedReceiver = await _unitOfWork
+                .UsersRepository
+                .GetUserByIdAsync(receiverId, token);
+
+            Debug.Assert(existedReceiver != null);
+
+            var messageInfo = new MessageInfoWithChatResponse
             {
-                Title = existedIssue.Title,
-                IssueType = existedIssue.IssueType,
-                Description = existedIssue.Description,
-                ImgLink = existedIssue.ImgLink,
-                CreateMoment = existedIssue.IssueMoment
+                MessageId = messageId,
+                ChatId = chatId,
+                ChatCaption = existedChat.Caption,
+                WriterId = writerId,
+                WriterName = existedWriter.UserName,
+                ReceiverId = receiverId,
+                ReceiverName = existedReceiver.UserName,
+                IsEdited = existedMessage.isEdited,
+                SendTime = existedMessage.SendTime,
+                Text = existedMessage.Text,
             };
 
             var getResponse = new GetResponse();
             getResponse.Result = true;
             getResponse.OutInfo =
-                $"Info about issue with id {issueId}" +
-                $" by user with id {userId} was received";
-            getResponse.RequestedInfo = issueInfo;
+                $"Info about message with id {messageId}" +
+                $" by user with id {currentUserId} was received";
+            getResponse.RequestedInfo = messageInfo;
 
             var json = JsonConvert.SerializeObject(getResponse);
 
@@ -289,12 +436,407 @@ public sealed class ChatMessagingController : ControllerBase
         }
 
         var response2 = new Response();
-        response2.Result = true;
-        response2.OutInfo = $"No such issue with id {issueId}";
+        response2.Result = false;
+        response2.OutInfo = $"No such message with id {messageId}";
 
         return BadRequest(JsonConvert.SerializeObject(response2));
     }
 
+    [Route("get_chat_info")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
+    public async Task<IActionResult> GetChatInfo(CancellationToken token)
+    {
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
+
+        var chatWithIdRequest = JsonConvert.DeserializeObject<ChatIdDTO>(body);
+
+        Debug.Assert(chatWithIdRequest != null);
+
+        var chatId = chatWithIdRequest.ChatId;
+        var currentUserId = chatWithIdRequest.UserId;
+
+        var existedChat = await _unitOfWork
+            .ChatRepository
+            .GetChatByIdAsync(chatId, token);
+
+        if (existedChat != null)
+        {
+            if (existedChat.User1Id != currentUserId
+                && existedChat.User2Id != currentUserId)
+            {
+                var response1 = new Response();
+                response1.Result = false;
+                response1.OutInfo =
+                    $"Cant take info about chat with id" +
+                    $" {chatId} cause current user with id {currentUserId}" +
+                    $" not relates to users from direct chat with id {chatId}";
+
+                return BadRequest(JsonConvert.SerializeObject(response1));
+            }
+
+            var homeUserId = existedChat.User1Id;
+            var awayUserId = existedChat.User2Id;
+
+            var existedHomeUser = await _unitOfWork
+                .UsersRepository
+                .GetUserByIdAsync(homeUserId, token);
+
+            Debug.Assert(existedHomeUser != null);
+
+            var existedAwayUser = await _unitOfWork
+                .UsersRepository
+                .GetUserByIdAsync(awayUserId, token);
+
+            Debug.Assert(existedAwayUser != null);
+
+            var homeUserInfo = new ShortUserInfo
+            {
+                UserEmail = existedHomeUser.Email,
+                UserName = existedHomeUser.UserName,
+                UserPhone = existedHomeUser.PhoneNumber,
+                Role = existedHomeUser.Role,
+                UserId = homeUserId,
+            };
+
+            var awayUserInfo = new ShortUserInfo
+            {
+                UserEmail = existedAwayUser.Email,
+                UserName = existedAwayUser.UserName,
+                UserPhone = existedAwayUser.PhoneNumber,
+                Role = existedAwayUser.Role,
+                UserId = awayUserId,
+            };
+
+            var messagesFromChat = await _unitOfWork
+                .MessageRepository
+                .GetAllMessagesByChatIdAsync(chatId, token);
+
+            var allMessagesList = messagesFromChat.Select(message =>
+            {
+                var messageId = message.Id;
+
+                var existedMessage = _unitOfWork
+                    .MessageRepository
+                    .GetMessageByIdAsync(messageId, token);
+
+                if (existedMessage != null)
+                {
+                    return new MessageInfoResponse
+                    {
+                        MessageId = messageId,
+                        SendTime = message.SendTime,
+                        Text = message.Text,
+                        IsEdited = message.isEdited,
+                        WriterId = message.UserId,
+                        WriterName = message.UserId == homeUserId
+                            ? homeUserInfo.UserName
+                            : awayUserInfo.UserName
+                    };
+                }
+
+                return null;
+            });
+
+            var messagesList = allMessagesList.Where(x => x != null).ToList();
+
+            Debug.Assert(messagesList != null);
+
+            var chatInfo = new ChatMessagesResponse
+            {
+                ChatId = chatId,
+                Caption = existedChat.Caption,
+                CreateTime = existedChat.CreateTime,
+                UserHome = homeUserInfo,
+                UserAway = awayUserInfo,
+                Messages = messagesList!
+            };
+
+            var getResponse = new GetResponse();
+            getResponse.Result = true;
+            getResponse.OutInfo =
+                $"Info about chat with id {chatId}" +
+                $" by user with id {currentUserId} was received";
+            getResponse.RequestedInfo = chatInfo;
+
+            var json = JsonConvert.SerializeObject(getResponse);
+
+            return Ok(json);
+        }
+
+        var response2 = new Response();
+        response2.Result = false;
+        response2.OutInfo = $"No such chat with id {chatId}";
+
+        return BadRequest(JsonConvert.SerializeObject(response2));
+    }
+
+    [Route("get_possible_direct_chat")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
+    public async Task<IActionResult> GetPossibleDirectChatInfo(CancellationToken token)
+    {
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
+
+        var possibleChatWithIdRequest = 
+            JsonConvert.DeserializeObject<UserDirectChatRequestDTO>(body);
+
+        Debug.Assert(possibleChatWithIdRequest != null);
+
+        var currentUserId = possibleChatWithIdRequest.UserId;
+        var receiverId = possibleChatWithIdRequest.ReceiverId;
+
+        Debug.Assert(currentUserId != receiverId);
+
+        var existedCurrentUser = await _unitOfWork
+            .UsersRepository
+            .GetUserByIdAsync(currentUserId, token);
+
+        if (existedCurrentUser == null)
+        {
+            var response1 = new Response();
+            response1.Result = false;
+            response1.OutInfo =
+                $"Possible chat info was not received cause user" +
+                $" with id {currentUserId} is not found in db";
+
+            return BadRequest(JsonConvert.SerializeObject(response1));
+        }
+
+        var existedReceiver = await _unitOfWork
+            .UsersRepository
+            .GetUserByIdAsync(receiverId, token);
+
+        if (existedReceiver == null)
+        {
+            var response1 = new Response();
+            response1.Result = false;
+            response1.OutInfo =
+                $"Possible chat info was not received cause receiver" +
+                $" with id {receiverId} is not found in db";
+
+            return BadRequest(JsonConvert.SerializeObject(response1));
+        }
+
+        var existedChat = await _unitOfWork
+            .ChatRepository
+            .GetChatByBothUserIdsAsync(currentUserId, receiverId, token);
+
+        if (existedChat != null)
+        {
+            var (existedHomeUser, existedAwayUser) =
+                existedChat.User1Id == currentUserId
+                    ? (existedCurrentUser, existedReceiver)
+                    : (existedReceiver, existedCurrentUser);
+
+            var homeUserId = existedHomeUser.Id;
+            var awayUserId = existedAwayUser.Id;
+
+            var homeUserInfo = new ShortUserInfo
+            {
+                UserEmail = existedHomeUser.Email,
+                UserName = existedHomeUser.UserName,
+                UserPhone = existedHomeUser.PhoneNumber,
+                Role = existedHomeUser.Role,
+                UserId = homeUserId,
+            };
+
+            var awayUserInfo = new ShortUserInfo
+            {
+                UserEmail = existedAwayUser.Email,
+                UserName = existedAwayUser.UserName,
+                UserPhone = existedAwayUser.PhoneNumber,
+                Role = existedAwayUser.Role,
+                UserId = awayUserId,
+            };
+
+            var messagesFromChat = await _unitOfWork
+                .MessageRepository
+                .GetAllMessagesByChatIdAsync(existedChat.Id, token);
+
+            var allMessagesList = messagesFromChat.Select(message =>
+            {
+                var messageId = message.Id;
+
+                return new MessageInfoResponse
+                {
+                    MessageId = messageId,
+                    SendTime = message.SendTime,
+                    Text = message.Text,
+                    IsEdited = message.isEdited,
+                    WriterId = message.UserId,
+                    WriterName = message.UserId == homeUserId
+                        ? homeUserInfo.UserName
+                        : awayUserInfo.UserName
+                };
+            });
+
+            var messagesList = allMessagesList.Where(x => x != null).ToList();
+
+            Debug.Assert(messagesList != null);
+
+            var chatInfo = new ChatMessagesResponse
+            {
+                ChatId = existedChat.Id,
+                Caption = existedChat.Caption,
+                CreateTime = existedChat.CreateTime,
+                UserHome = homeUserInfo,
+                UserAway = awayUserInfo,
+                Messages = messagesList!
+            };
+
+            var getResponse = new GetResponse();
+            getResponse.Result = true;
+            getResponse.OutInfo =
+                $"Info about existed chat with id {existedChat.Id}" +
+                $" by user with id {currentUserId} was received";
+            getResponse.RequestedInfo = chatInfo;
+
+            var json = JsonConvert.SerializeObject(getResponse);
+
+            return Ok(json);
+        }
+
+        var response2 = new Response();
+        response2.Result = false;
+        response2.OutInfo = 
+            $"No such chat with for user {currentUserId}" +
+            $" and related receiver {receiverId}";
+
+        return BadRequest(JsonConvert.SerializeObject(response2));
+    }
+
+    [Route("rename_chat_caption")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
+    public async Task<IActionResult> RenameChatCaption(CancellationToken token)
+    {
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
+
+        var chatWithIdRequest = JsonConvert.DeserializeObject<ChatInputWithIdDTO>(body);
+
+        Debug.Assert(chatWithIdRequest != null);
+
+        var chatId = chatWithIdRequest.ChatId;
+        var currentUserId = chatWithIdRequest.UserId;
+
+        var existedChat = await _unitOfWork
+            .ChatRepository
+            .GetChatByIdAsync(chatId, token);
+
+        if (existedChat != null)
+        {
+            if (existedChat.User1Id != currentUserId
+                && existedChat.User2Id != currentUserId)
+            {
+                var response1 = new Response();
+                response1.Result = false;
+                response1.OutInfo =
+                    $"Cant take info about chat with id" +
+                    $" {chatId} cause current user with id {currentUserId}" +
+                    $" not relates to users from direct chat with id {chatId}";
+
+                return BadRequest(JsonConvert.SerializeObject(response1));
+            }
+
+            var newName = chatWithIdRequest.Caption;
+
+            await _unitOfWork.ChatRepository.UpdateNameAsync(chatId, newName, token);
+
+            _unitOfWork.SaveChanges();
+
+            var response = new Response();
+            response.Result = true;
+            response.OutInfo = 
+                $"Chat with id {chatId} has been renamed" +
+                $" by user with id {currentUserId}";
+
+            var json = JsonConvert.SerializeObject(response);
+
+            return Ok(json);
+        }
+
+        var response2 = new Response();
+        response2.Result = true;
+        response2.OutInfo = $"No such chat with id {chatId}";
+
+        return BadRequest(JsonConvert.SerializeObject(response2));
+    }
+
+    [Route("get_user_chats")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
+    public async Task<IActionResult> GetUserChats(CancellationToken token)
+    {
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
+
+        var userWithIdRequest =
+            JsonConvert.DeserializeObject<UserInfoRequest>(body);
+
+        Debug.Assert(userWithIdRequest != null);
+
+        var userId = userWithIdRequest.UserId;
+
+        var existedUser = await _unitOfWork
+            .UsersRepository
+            .GetUserByIdAsync(userId, token);
+
+        if (existedUser == null)
+        {
+            var response1 = new Response();
+            response1.Result = false;
+            response1.OutInfo =
+                $"Info about user chats was not received cause user" +
+                $" with id {userId} was not found in db";
+
+            return BadRequest(JsonConvert.SerializeObject(response1));
+        }
+
+        var userChats = await _unitOfWork
+            .ChatRepository
+            .GetAllChatsByUserIdAsync(userId, token);
+
+        var allUsers = await _unitOfWork.UsersRepository.GetAllUsersAsync(token);
+
+        var userChatsIdsModels = userChats.Select(chat =>
+        {
+            var chatId = chat.Id;
+
+            var receiverId = chat.User1Id == userId
+                ? chat.User2Id
+                : chat.User1Id;
+
+            var existedReceiver = 
+                allUsers.FirstOrDefault(x => x.Id == receiverId);
+
+            if (existedReceiver == null)
+            {
+                return null;
+            }
+
+            return new ShortChatInfoResponse
+            {
+                ChatId = chatId,
+                Caption = chat.Caption,
+                ReceiverId = receiverId,
+                ReceiverName = existedReceiver.UserName
+            };
+        });
+
+        var notNullChats = userChatsIdsModels.Where(x => x != null).ToList();
+
+        var userChatsInfo = 
+            new UsersChatsResponse 
+            {
+                ChatsWithIds = notNullChats! 
+            };
+
+        var getResponse = new GetResponse();
+        getResponse.Result = true;
+        getResponse.OutInfo =
+            $"Info about existed user {userId} chats was received";
+        getResponse.RequestedInfo = userChatsInfo;
+
+        var json = JsonConvert.SerializeObject(getResponse);
+
+        return Ok(json);
+    }
 
     private readonly IUsersMessagingUnitOfWork _unitOfWork;
 }

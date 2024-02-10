@@ -2,7 +2,7 @@
 
 namespace Contracts.Response;
 
-public sealed class MessageInfoResponse
+public class MessageInfoResponse
 {
     [JsonProperty("message_id", Required = Required.Always)]
     public required int MessageId { get; init; }
@@ -18,4 +18,7 @@ public sealed class MessageInfoResponse
 
     [JsonProperty("writer_id", Required = Required.Always)]
     public required int WriterId { get; init; }
+
+    [JsonProperty("writer_name", Required = Required.Always)]
+    public required string WriterName { get; init; }
 }

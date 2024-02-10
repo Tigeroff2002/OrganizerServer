@@ -38,17 +38,16 @@ public sealed class ChatRepository
             .FirstOrDefaultAsync(x => x.Id == chatId);
     }
 
-    public async Task<List<DirectChat>> GetChatByBothUserIdsAsync(int user1Id, int user2Id, CancellationToken token)
+    public async Task<DirectChat?> GetChatByBothUserIdsAsync(int user1Id, int user2Id, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
 
         var allChats = await _repositoryContext.DirectChats.ToListAsync();
 
         return allChats
-            .Where(
+            .FirstOrDefault(
                 x => x.User1Id == user1Id && x.User2Id == user2Id
-                    || x.User1Id == user2Id && x.User2Id == user1Id)
-            .ToList();
+                    || x.User1Id == user2Id && x.User2Id == user1Id);
     }
 
     public async Task<List<DirectChat>> GetAllChatsByUserIdAsync(int userId, CancellationToken token)

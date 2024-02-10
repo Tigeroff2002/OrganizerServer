@@ -9,7 +9,7 @@ public interface IChatRepository : IRepository
 
     Task<DirectChat?> GetChatByIdAsync(int chatId, CancellationToken token);
 
-    Task<List<DirectChat>> GetChatByBothUserIdsAsync(int user1Id, int user2Id, CancellationToken token);
+    Task<DirectChat?> GetChatByBothUserIdsAsync(int user1Id, int user2Id, CancellationToken token);
 
     Task<List<DirectChat>> GetAllChatsByUserIdAsync(int userId, CancellationToken token);
 
