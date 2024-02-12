@@ -19,6 +19,7 @@ public sealed class SnapshotController : ControllerBase
     public SnapshotController(
         ISnapshotsHandler snapshotsHandler,
         ISnapshotsRepository snapshotsRepository,
+        IGroupsRepository groupsRepository,
         IUsersRepository usersRepository)
     {
         _snapshotsHandler = snapshotsHandler
@@ -29,6 +30,9 @@ public sealed class SnapshotController : ControllerBase
 
         _usersRepository = usersRepository
             ?? throw new ArgumentNullException(nameof(usersRepository));
+
+        _groupsRepository = groupsRepository
+            ?? throw new ArgumentNullException(nameof(groupsRepository));
     }
 
     [HttpPost]
@@ -89,6 +93,80 @@ public sealed class SnapshotController : ControllerBase
 
         return Ok(json);
     }
+
+    [HttpPost]
+    [Route("perform_for_group")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
+    public async Task<IActionResult> CreateGroupSnapshot(CancellationToken token)
+    {
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
+
+        var snapshotToCreate = JsonConvert.DeserializeObject<GroupSnapshotInputDTO>(body);
+
+        Debug.Assert(snapshotToCreate != null);
+
+        var userId = snapshotToCreate.UserId;
+        var groupId = snapshotToCreate.GroupId;
+        var snapshotType = snapshotToCreate.SnapshotType;
+
+        var user = await _usersRepository.GetUserByIdAsync(userId, token);
+
+        if (user == null)
+        {
+            var response1 = new Response();
+            response1.Result = false;
+            response1.OutInfo =
+                $"Snapshot has not been created cause" +
+                $" current user with id {userId} was not found";
+
+            return BadRequest(JsonConvert.SerializeObject(response1));
+        }
+
+        var group = await _groupsRepository.GetGroupByIdAsync(groupId, token);
+
+        if (group == null)
+        {
+            var response1 = new Response();
+            response1.Result = false;
+            response1.OutInfo =
+                $"Snapshot has not been created cause" +
+                $" related group with id {groupId} was not found";
+
+            return BadRequest(JsonConvert.SerializeObject(response1));
+        }
+
+        var snapshotDescriptionResult = await _snapshotsHandler
+            .CreateSnapshotDescriptionAsync(userId, snapshotToCreate, token);
+
+        Debug.Assert(snapshotDescriptionResult != null);
+
+        var snapshot = new Snapshot
+        {
+            Description = snapshotDescriptionResult.Content,
+            SnapshotType = snapshotToCreate.SnapshotType,
+            BeginMoment = snapshotToCreate.BeginMoment,
+            EndMoment = snapshotToCreate.EndMoment,
+            UserId = user.Id
+        };
+
+        await _snapshotsRepository.AddAsync(snapshot, token);
+
+        _snapshotsRepository.SaveChanges();
+
+        var snapshotId = snapshot.Id;
+
+        var response = new Response();
+        response.Result = true;
+        response.OutInfo =
+            $"New snapshot with id = {snapshotId}" +
+            $" for user '{user.UserName}'" +
+            $" with type '{snapshotType}' has been created";
+
+        var json = JsonConvert.SerializeObject(response);
+
+        return Ok(json);
+    }
+
 
     [Route("delete_snapshot")]
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
@@ -155,9 +233,9 @@ public sealed class SnapshotController : ControllerBase
         {
             var userId = existedSnapshot!.UserId;
 
-            var manager = await _usersRepository.GetUserByIdAsync(userId, token);
+            var creator = await _usersRepository.GetUserByIdAsync(userId, token);
 
-            if (manager == null)
+            if (creator == null)
             {
                 var response1 = new Response();
                 response1.Result = false;
@@ -174,14 +252,14 @@ public sealed class SnapshotController : ControllerBase
                 response1.Result = false;
                 response1.OutInfo = 
                     $"Cant take info about snapshot cause" +
-                    $" user with id {snapshotWithIdRequest.UserId} is not its manager";
+                    $" user with id {snapshotWithIdRequest.UserId} is not its creator";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
 
             var snapshotDescription = existedSnapshot.Description;
 
-            SnapshotDescriptionResult? snapshotDescriptionModel =
+            var snapshotDescriptionModel =
                 JsonConvert.DeserializeObject<SnapshotDescriptionResult>(snapshotDescription);
 
             Debug.Assert(snapshotDescriptionModel != null);
@@ -191,7 +269,7 @@ public sealed class SnapshotController : ControllerBase
                 BeginMoment = existedSnapshot.BeginMoment,
                 EndMoment = existedSnapshot.EndMoment,
                 SnapshotType = existedSnapshot.SnapshotType,
-                CreationTime = DateTimeOffset.Now,
+                CreationTime = DateTimeOffset.UtcNow,
                 Content = existedSnapshot.Description
             };
 
@@ -217,5 +295,6 @@ public sealed class SnapshotController : ControllerBase
     private readonly ISnapshotsHandler _snapshotsHandler;
     private readonly ISnapshotsRepository _snapshotsRepository;
     private readonly IUsersRepository _usersRepository;
+    private readonly IGroupsRepository _groupsRepository;
 }
 

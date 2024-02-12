@@ -4,7 +4,7 @@ using Newtonsoft.Json.Converters;
 
 namespace Contracts.Request;
 
-public sealed class SnapshotInputDTO : RequestWithToken
+public class SnapshotInputDTO : RequestWithToken
 {
     [JsonConverter(typeof(StringEnumConverter))]
     [JsonProperty("snapshot_type", Required = Required.Always)]
