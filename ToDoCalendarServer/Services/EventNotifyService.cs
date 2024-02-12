@@ -16,6 +16,13 @@ public class EventNotifyService : BackgroundService
         _logger.LogInformation("Event notify service has been created");
     }
 
+    public override async Task StartAsync(CancellationToken stoppingToken)
+    {
+        Task.Delay(5_000).GetAwaiter().GetResult();
+
+        await base.StartAsync(stoppingToken);
+    }
+
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var scope = _logger.BeginScope(
