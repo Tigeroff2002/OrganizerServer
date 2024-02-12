@@ -172,6 +172,12 @@ public class CalendarDataContext : DbContext
 
         _ = modelBuilder.Entity<Group>()
             .Property(x => x.Type);
+
+        _ = modelBuilder.Entity<Group>()
+            .HasOne(x => x.Manager)
+            .WithMany(x => x.ManagedGroups)
+            .HasForeignKey(x => x.ManagerId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 
     public static void CreateEventsModels(ModelBuilder modelBuilder)

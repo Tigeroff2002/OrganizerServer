@@ -135,6 +135,18 @@ public sealed class SnapshotController : ControllerBase
             return BadRequest(JsonConvert.SerializeObject(response1));
         }
 
+        if (group.ManagerId != userId)
+        {
+            var response1 = new Response();
+            response1.Result = false;
+            response1.OutInfo =
+                $"Snapshot has not been created cause" +
+                $" current user with id {userId} is not the manager" +
+                $" of related group with id {groupId}";
+
+            return BadRequest(JsonConvert.SerializeObject(response1));
+        }
+
         var snapshotDescriptionResult = await _snapshotsHandler
             .CreateGroupKPISnapshotDescriptionAsync(
             userId, snapshotToCreate, token);

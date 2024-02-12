@@ -16,5 +16,9 @@ public class Group
 
     public virtual List<Event> RelatedEvents { get; set; }
 
+    public int ManagerId { get; set; }
+
+    public virtual User Manager { get; set; }
+
     public Group() { }
 }
