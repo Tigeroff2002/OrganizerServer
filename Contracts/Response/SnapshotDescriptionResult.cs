@@ -4,7 +4,7 @@ using Newtonsoft.Json.Converters;
 
 namespace Contracts.Response;
 
-public sealed class SnapshotDescriptionResult
+public class SnapshotDescriptionResult
 {
     [JsonConverter(typeof(StringEnumConverter))]
     [JsonProperty("snapshot_type", Required = Required.Always)]
@@ -15,6 +15,12 @@ public sealed class SnapshotDescriptionResult
 
     [JsonProperty("end_moment", Required = Required.Always)]
     public required DateTimeOffset EndMoment { get; init; }
+
+    [JsonProperty("create_moment", Required = Required.Always)]
+    public required DateTimeOffset CreateMoment { get; init; }
+
+    [JsonProperty("kpi", Required = Required.Default)]
+    public float KPI { get; set; }    
 
     [JsonProperty("content", Required = Required.Default)]
     public string Content { get; set; } = default!;

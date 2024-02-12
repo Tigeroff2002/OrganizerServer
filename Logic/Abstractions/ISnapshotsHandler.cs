@@ -10,4 +10,9 @@ public interface ISnapshotsHandler
         int userId,
         SnapshotInputDTO inputSnapshot,
         CancellationToken token);
+
+    public Task<GroupSnapshotDescriptionResult> CreateGroupKPISnapshotDescriptionAsync(
+        int managerId,
+        GroupSnapshotInputDTO inputSnapshot,
+        CancellationToken token);
 }

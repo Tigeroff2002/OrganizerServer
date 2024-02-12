@@ -44,7 +44,8 @@ public class CalendarDataContext : DbContext
             .MapEnum<SnapshotType>()
             .MapEnum<DecisionType>()
             .MapEnum<IssueType>()
-            .MapEnum<UserRole>();
+            .MapEnum<UserRole>()
+            .MapEnum<IssueStatus>();
 
     public CalendarDataContext(DbContextOptions<CalendarDataContext> options)
         : base(options)
@@ -69,7 +70,8 @@ public class CalendarDataContext : DbContext
             .HasPostgresEnum<SnapshotType>()
             .HasPostgresEnum<DecisionType>()
             .HasPostgresEnum<IssueType>()
-            .HasPostgresEnum<UserRole>();
+            .HasPostgresEnum<UserRole>()
+            .HasPostgresEnum<IssueStatus>();
 
         CreateUsersModels(modelBuilder);
         CreateUserDevicesMap(modelBuilder);
@@ -170,6 +172,12 @@ public class CalendarDataContext : DbContext
 
         _ = modelBuilder.Entity<Group>()
             .Property(x => x.Type);
+
+        _ = modelBuilder.Entity<Group>()
+            .HasOne(x => x.Manager)
+            .WithMany(x => x.ManagedGroups)
+            .HasForeignKey(x => x.ManagerId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 
     public static void CreateEventsModels(ModelBuilder modelBuilder)
@@ -238,6 +246,9 @@ public class CalendarDataContext : DbContext
             .Property(x => x.SnapshotType);
 
         _ = modelBuilder.Entity<Snapshot>()
+            .Property(x => x.CreateMoment);
+
+        _ = modelBuilder.Entity<Snapshot>()
             .Property(x => x.BeginMoment);
 
         _ = modelBuilder.Entity<Snapshot>()
@@ -272,6 +283,9 @@ public class CalendarDataContext : DbContext
 
         _ = modelBuilder.Entity<Issue>()
             .Property(x => x.IssueType);
+
+        _ = modelBuilder.Entity<Issue>()
+            .Property(x => x.Status);
 
         _ = modelBuilder.Entity<Issue>()
             .Property(x => x.Description);
