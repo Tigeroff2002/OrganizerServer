@@ -16,6 +16,8 @@ public class Snapshot
 
     public DateTimeOffset EndMoment { get; set; }
 
+    public DateTimeOffset CreateMoment { get; set; }
+
     public virtual User User { get; set; }
 
     public int UserId { get; set; }

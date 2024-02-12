@@ -3,6 +3,8 @@ using Contracts.Response;
 using Logic.Abstractions;
 using Models;
 using Models.Enums;
+using Newtonsoft.Json.Linq;
+using PostgreSQL;
 using PostgreSQL.Abstractions;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,26 +15,47 @@ public sealed class SnapshotsHandler
     : ISnapshotsHandler
 {
     public SnapshotsHandler(
-        IUsersRepository usersRepository,
-        IEventsRepository eventsRepository,
-        IEventsUsersMapRepository eventsUsersMapRepository,
-        ITasksRepository tasksRepository,
-        IGroupingUsersMapRepository groupingUsersMapRepository)
+        ICommonUsersUnitOfWork usersUnitOfWork)
     {
-        _usersRepository = usersRepository 
-            ?? throw new ArgumentNullException(nameof(usersRepository));
+        _usersUnitOfWork = usersUnitOfWork
+            ?? throw new ArgumentNullException(nameof(usersUnitOfWork));
+    }
 
-        _eventsRepository = eventsRepository
-            ?? throw new ArgumentNullException(nameof(eventsRepository));
+    private async Task UpdateEntitiesRepositorySnapshotsAsync(CancellationToken token)
+    {
+        _dbUsers = await _usersUnitOfWork
+            .UsersRepository
+            .GetAllUsersAsync(token);
 
-        _eventsUsersMapRepository = eventsUsersMapRepository
-            ?? throw new ArgumentNullException(nameof(eventsUsersMapRepository));
+        _dbTasks = await _usersUnitOfWork
+            .TasksRepository
+            .GetAllTasksAsync(token);
 
-        _tasksRepository = tasksRepository
-            ?? throw new ArgumentNullException(nameof(tasksRepository));
+        _dbEvents = await _usersUnitOfWork
+            .EventsRepository
+            .GetAllEventsAsync(token);
 
-        _groupingUsersMapRepository = groupingUsersMapRepository
-            ?? throw new ArgumentNullException(nameof(groupingUsersMapRepository));
+        _dbIssues = await _usersUnitOfWork
+            .IssuesRepository
+            .GetAllIssuesAsync(token);
+
+        _dbGroupsMaps =
+            await _usersUnitOfWork
+                .GroupingUsersMapRepository
+                .GetAllMapsAsync(token);
+
+        _dbEventsMaps = await _usersUnitOfWork
+            .EventsUsersMapRepository
+            .GetAllMapsAsync(token);
+    }
+
+    private async Task UpdateAllEntitiesRepositorySnapshotsAsync(CancellationToken token)
+    {
+        await UpdateEntitiesRepositorySnapshotsAsync(token);
+
+        _dbGroupsMaps = await _usersUnitOfWork
+            .GroupingUsersMapRepository
+            .GetAllMapsAsync(token);
     }
 
     public async Task<SnapshotDescriptionResult> CreateSnapshotDescriptionAsync(
@@ -42,7 +65,25 @@ public sealed class SnapshotsHandler
     {
         token.ThrowIfCancellationRequested();
 
-        var user = await _usersRepository.GetUserByIdAsync(userId, token);
+        var beginMoment = inputSnapshot.BeginMoment;
+        var endMoment = inputSnapshot.EndMoment;
+
+        var snapshotType = inputSnapshot.SnapshotType;
+
+        var creationTime = DateTimeOffset.UtcNow;
+
+        await UpdateEntitiesRepositorySnapshotsAsync(token);
+
+        return CreateSnapshotCertaintlyForUser(
+            userId, snapshotType, creationTime, beginMoment, endMoment);
+    }
+
+    public async Task<GroupSnapshotDescriptionResult> CreateGroupKPISnapshotDescriptionAsync(
+        int managerId,
+        GroupSnapshotInputDTO inputSnapshot,
+        CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
 
         var beginMoment = inputSnapshot.BeginMoment;
         var endMoment = inputSnapshot.EndMoment;
@@ -51,13 +92,80 @@ public sealed class SnapshotsHandler
 
         var creationTime = DateTimeOffset.UtcNow;
 
+        await UpdateAllEntitiesRepositorySnapshotsAsync(token);
+
+        var participantsIds = _dbGroupsMaps!
+            .Where(x => x.GroupId == inputSnapshot.GroupId)
+            .Select(x => x.UserId)
+            .OrderBy(x => x)
+            .ToList();
+
+        var separateParticipantsResults = participantsIds.Select(userId =>
+        {
+            return (CreateSnapshotCertaintlyForUser(
+                userId, snapshotType, creationTime, beginMoment, endMoment), userId);
+        });
+
+        var averageKPI = separateParticipantsResults.Average(x => x.Item1.KPI);
+
+        var stringBuilder = new StringBuilder();
+
+        stringBuilder.Append($"Всего участников в группе {participantsIds.Count}\n\n");
+        stringBuilder.Append("Список участников c их отчетами:\n");
+
+        var i = 1;
+
+        foreach (var participantMap in separateParticipantsResults)
+        {
+            var participantId = participantMap.userId;
+
+            var currentUser = _dbUsers!.FirstOrDefault(x => x.Id == participantId)!;
+
+            if (participantId == managerId)
+            {
+                stringBuilder.Append("(Менеджер группы) ");
+            }
+
+            stringBuilder.Append($"{i}. Участник: {currentUser.UserName} - с отчетом:\n");
+            stringBuilder.Append($"{participantMap.Item1.Content}\n\n");
+        }
+
+        var groupSnapshot = new GroupSnapshotDescriptionResult
+        {
+            SnapshotType = snapshotType,
+            BeginMoment = beginMoment,
+            EndMoment = endMoment,
+            CreateMoment = creationTime,
+            Content = stringBuilder.ToString(),
+            GroupId = inputSnapshot.GroupId,
+            AverageKPI = averageKPI,
+            ParticipantKPIs = separateParticipantsResults
+                .Select(
+                    map => new GroupParticipantKPIResponse 
+                    { 
+                        ParticipantId = map.userId,
+                        ParticipantKPI = map.Item1.KPI
+                    })
+                .ToList(),
+        };
+
+        return groupSnapshot;
+    }
+
+    private SnapshotDescriptionResult CreateSnapshotCertaintlyForUser(
+        int userId,
+        SnapshotType snapshotType,
+        DateTimeOffset creationTime,
+        DateTimeOffset beginMoment,
+        DateTimeOffset endMoment)
+    {
+        var user = _dbUsers!.FirstOrDefault(x => x.Id == userId);
+
         if (user != null)
         {
             if (snapshotType == SnapshotType.TasksSnapshot)
             {
-                var dbTasks = await _tasksRepository.GetAllTasksAsync(token);
-
-                var userTasks = dbTasks
+                var userTasks = _dbTasks!
                     .Where(task => task.ImplementerId == userId)
                     .ToList();
 
@@ -75,7 +183,7 @@ public sealed class SnapshotsHandler
 
                 var doneTasks = userTasks
                     .Where(
-                        x => x.TaskStatus == TaskCurrentStatus.Review 
+                        x => x.TaskStatus == TaskCurrentStatus.Review
                         || x.TaskStatus == TaskCurrentStatus.Done)
                     .ToList();
 
@@ -95,11 +203,17 @@ public sealed class SnapshotsHandler
                 stringBuilder.Append($"Процент задач в процессе выполнения - {tasksInProgressPercent}%\n");
                 stringBuilder.Append($"Процент задач, выполненных пользователем - {tasksDonePercent}%\n");
 
+                var percent = (tasksDonePercent - tasksNotStartedPercent + tasksInProgressPercent / 2) / 100;
+
+                var kpi = percent > 1 ? 1 : percent;
+
                 var snapshotTasksResult = new SnapshotDescriptionResult
                 {
                     SnapshotType = snapshotType,
                     BeginMoment = beginMoment,
                     EndMoment = endMoment,
+                    CreateMoment = creationTime,
+                    KPI = kpi,
                     Content = stringBuilder.ToString()
                 };
 
@@ -108,12 +222,7 @@ public sealed class SnapshotsHandler
 
             else if (snapshotType == SnapshotType.EventsSnapshot)
             {
-                var groupsUsersMaps =
-                    await _groupingUsersMapRepository.GetAllMapsAsync(token);
-
-                var dbMaps = await _eventsUsersMapRepository.GetAllMapsAsync(token);
-
-                var userEventsMaps = dbMaps
+                var userEventsMaps = _dbEventsMaps!
                     .Where(map => map.UserId == userId)
                     .ToList();
 
@@ -125,8 +234,7 @@ public sealed class SnapshotsHandler
                 {
                     var eventId = map.EventId;
 
-                    var @event = await _eventsRepository
-                        .GetEventByIdAsync(eventId, token);
+                    var @event = _dbEvents!.FirstOrDefault(x => x.Id == eventId);
 
                     if (@event != null)
                     {
@@ -144,20 +252,20 @@ public sealed class SnapshotsHandler
 
                         userEventsCount++;
 
-                        var realEventDuration = (float) @event.Duration.TotalMinutes;
+                        var realEventDuration = (float)@event.Duration.TotalMinutes;
 
                         var partOfEventEarlierBeginning = beginMoment.Subtract(eventStart).TotalMinutes;
 
                         if (partOfEventEarlierBeginning > 0)
                         {
-                            realEventDuration -= (float) partOfEventEarlierBeginning;
+                            realEventDuration -= (float)partOfEventEarlierBeginning;
                         }
 
                         var partOfEventLaterEnd = eventEnd.Subtract(endMoment).TotalMinutes;
 
                         if (partOfEventLaterEnd > 0)
                         {
-                            realEventDuration -= (float) partOfEventLaterEnd;
+                            realEventDuration -= (float)partOfEventLaterEnd;
                         }
 
                         totalEventsMinutesDuration += realEventDuration;
@@ -185,11 +293,15 @@ public sealed class SnapshotsHandler
                 stringBuilder.Append(
                     $"Процент посещенных мероприятий пользователем - {eventsAcceptedPercent}%\n");
 
+                var percent = eventsAcceptedPercent / 100;
+
                 var snapshotEventsResult = new SnapshotDescriptionResult
                 {
                     SnapshotType = snapshotType,
                     BeginMoment = beginMoment,
                     EndMoment = endMoment,
+                    CreateMoment = creationTime,
+                    KPI = percent,
                     Content = stringBuilder.ToString()
                 };
 
@@ -198,12 +310,55 @@ public sealed class SnapshotsHandler
 
             else if (snapshotType == SnapshotType.IssuesSnapshot)
             {
+                var userIssues = _dbIssues!.Where(x => x.Id == user.Id).ToList();
+
+                var stringBuilder = new StringBuilder();
+
+                var justReportedIssues = 
+                    userIssues
+                        .Where(x => x.Status == IssueStatus.Reported)
+                        .ToList();
+
+                var progressIssues =
+                    userIssues
+                        .Where(x => x.Status == IssueStatus.InProgress)
+                        .ToList();
+
+                var closedIssues =
+                    userIssues
+                        .Where(x => x.Status == IssueStatus.Closed)
+                        .ToList();
+
+                var issuesJustReportedPercent = userIssues.Count != 0
+                    ? (justReportedIssues.Count / userIssues.Count) * 100
+                    : 0;
+
+                var issuesInProgressPercent = userIssues.Count != 0
+                    ? (progressIssues.Count / userIssues.Count) * 100
+                    : 0;
+
+                var issuesClosedPercent = userIssues.Count != 0
+                    ? (closedIssues.Count / userIssues.Count) * 100
+                    : 0;
+
+                stringBuilder.Append($"Отчет был выполнен в {creationTime.ToLocalTime()}\n");
+                stringBuilder.Append($"Всего технических проблем было обнаружено пользователем - {userIssues.Count}\n");
+                stringBuilder.Append($"Процент проблем, не взятых в просмотр - {issuesJustReportedPercent}%\n");
+                stringBuilder.Append($"Процент проблем в процессе просмотра и выяснения - {issuesInProgressPercent}%\n");
+                stringBuilder.Append($"Процент выясненных и закрытых проблем - {issuesClosedPercent}%\n");
+
+                var percent = (issuesClosedPercent - issuesJustReportedPercent + issuesInProgressPercent / 2) / 100;
+
+                var kpi = percent > 1 ? 1 : percent;
+
                 var snapshotIssuesResult = new SnapshotDescriptionResult
                 {
                     SnapshotType = snapshotType,
                     BeginMoment = beginMoment,
                     EndMoment = endMoment,
-                    Content = "Empty user issues content for current implementation stage"
+                    CreateMoment = creationTime,
+                    KPI = kpi,
+                    Content = stringBuilder.ToString(),
                 };
 
                 return snapshotIssuesResult;
@@ -216,6 +371,8 @@ public sealed class SnapshotsHandler
                     SnapshotType = snapshotType,
                     BeginMoment = beginMoment,
                     EndMoment = endMoment,
+                    CreateMoment = creationTime,
+                    KPI = 0,
                     Content = "Empty user reports content for current implementation stage"
                 };
 
@@ -233,9 +390,12 @@ public sealed class SnapshotsHandler
         throw new ArgumentException($"User with id {userId} was not found");
     }
 
-    private readonly IUsersRepository _usersRepository;
-    private readonly IEventsRepository _eventsRepository;
-    private readonly IEventsUsersMapRepository _eventsUsersMapRepository;
-    private readonly ITasksRepository _tasksRepository;
-    private readonly IGroupingUsersMapRepository _groupingUsersMapRepository;
+    private List<User>? _dbUsers;
+    private List<UserTask>? _dbTasks;
+    private List<Event>? _dbEvents;
+    private List<Issue>? _dbIssues;
+    private List<EventsUsersMap>? _dbEventsMaps;
+    private List<GroupingUsersMap>? _dbGroupsMaps;
+
+    private readonly ICommonUsersUnitOfWork _usersUnitOfWork;
 }

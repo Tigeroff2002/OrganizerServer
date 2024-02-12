@@ -136,7 +136,8 @@ public sealed class SnapshotController : ControllerBase
         }
 
         var snapshotDescriptionResult = await _snapshotsHandler
-            .CreateSnapshotDescriptionAsync(userId, snapshotToCreate, token);
+            .CreateGroupKPISnapshotDescriptionAsync(
+            userId, snapshotToCreate, token);
 
         Debug.Assert(snapshotDescriptionResult != null);
 
@@ -146,6 +147,7 @@ public sealed class SnapshotController : ControllerBase
             SnapshotType = snapshotToCreate.SnapshotType,
             BeginMoment = snapshotToCreate.BeginMoment,
             EndMoment = snapshotToCreate.EndMoment,
+            CreateMoment = DateTimeOffset.UtcNow,
             UserId = user.Id
         };
 

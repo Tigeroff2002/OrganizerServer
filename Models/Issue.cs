@@ -10,6 +10,8 @@ public class Issue
 
     public IssueType IssueType { get; set; }
 
+    public IssueStatus Status { get; set; }
+
     public string Title { get; set; }
 
     public string Description { get; set; }
