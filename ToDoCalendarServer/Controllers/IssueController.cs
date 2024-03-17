@@ -300,6 +300,75 @@ public sealed class IssueController : ControllerBase
         return BadRequest(JsonConvert.SerializeObject(response2));
     }
 
+    [Route("get_all_issues")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
+    public async Task<IActionResult> GetAllIssues(CancellationToken token)
+    {
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
+
+        var requestDTO = JsonConvert.DeserializeObject<RequestWithToken>(body);
+
+        Debug.Assert(requestDTO != null);
+
+        var userId = requestDTO.UserId;
+
+        var existedUser = await _usersRepository.GetUserByIdAsync(userId, token);
+
+        if (existedUser == null)
+        {
+            var response1 = new Response();
+            response1.Result = false;
+            response1.OutInfo =
+                $"Cant take info about issues cause " +
+                $"user with id {userId} is not found in db";
+
+            return BadRequest(JsonConvert.SerializeObject(response1));
+        }
+
+        if (existedUser.Role != UserRole.Admin)
+        {
+            var response1 = new Response();
+            response1.Result = false;
+            response1.OutInfo =
+                $"Cant take info about issues cause " +
+                $"user with id {userId} is not system administrator";
+
+            return Forbid(JsonConvert.SerializeObject(response1));
+        }
+        
+        var allUsers = 
+            await _usersRepository.GetAllUsersAsync(token);
+
+        var allIssues =
+            _issuesRepository
+                .GetAllIssuesAsync(token)
+                .GetAwaiter().GetResult()
+                .Where(x => x.Status != IssueStatus.Closed)
+                .Select(x => new FullIssueInfoResponse
+                {
+                    Title = x.Title,
+                    IssueType = x.IssueType,
+                    Description = x.Description,
+                    ImgLink = x.ImgLink,
+                    CreateMoment = x.IssueMoment,
+                    UserName = 
+                        allUsers
+                            .FirstOrDefault(u => u.Id == x.UserId)!
+                            .UserName
+                });
+
+            var getResponse = new GetResponse();
+            getResponse.Result = true;
+            getResponse.OutInfo =
+                $"Info about all users not closed issues" +
+                $" for admin with id {userId} was received";
+            getResponse.RequestedInfo = allIssues;
+
+            var json = JsonConvert.SerializeObject(getResponse);
+
+            return Ok(json);
+    }
+
     private readonly IIssuesRepository _issuesRepository;
     private readonly IUsersRepository _usersRepository;
 }

@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 
 namespace Contracts.Response;
 
-public sealed class IssueInfoResponse
+public class IssueInfoResponse
 {
     [JsonConverter(typeof(StringEnumConverter))]
     [JsonProperty("issue_type", Required = Required.Always)]
