@@ -27,7 +27,7 @@ public sealed class PushNotificationsSender
 
 
     public async Task SendAdsPushNotificationAsync(
-        UserAdsPushReminderInfo model,
+        UserNotificationInfo model,
         CancellationToken token)
     {
         ArgumentNullException.ThrowIfNull(model);
@@ -36,18 +36,48 @@ public sealed class PushNotificationsSender
 
         var body = new StringBuilder();
 
-        var numberMinutesOfOffset = model.TotalMinutes;
+        if (model is UserAdsPushReminderInfo reminderModel)
+        {
+            var numberMinutesOfOffset = reminderModel.TotalMinutes;
 
-        body.Append($"Hello, {model.UserName}!\n");
-        body.Append(
-            $"We are sending you a reminder that your event" +
-            $" will start in less than {numberMinutesOfOffset} minutes.\n");
+            body.Append($"Hello, {model.UserName}!\n");
+            body.Append(
+                $"We are sending you a reminder that your event" +
+                $" will start in less than {numberMinutesOfOffset} minutes.\n");
 
-        body.Append(model.EventName);
+            body.Append(reminderModel.EventName);
 
+            await SendNotificationAsync(
+                body.ToString(), reminderModel, reminderModel.FirebaseToken, token);
+        }
+        else if (model is UserAdsPushContentInfo contentModel)
+        {
+            body.Append($"Hello, {model.UserName}!\n");
+            body.Append(
+                $"We are sending you alert message, that you can see below: \n");
+
+            body.Append(contentModel.Content);
+
+            await SendNotificationAsync(
+                body.ToString(), contentModel, contentModel.FirebaseToken, token);
+        }
+        else
+        {
+            throw new InvalidOperationException(
+                $"Model type: {model.GetType().Name} is not supported" +
+                $" for sending push notifications messages.");
+        }
+    }
+
+    private async Task SendNotificationAsync(
+        string body,
+        UserNotificationInfo model,
+        string firebaseToken,
+        CancellationToken token)
+    {
         var message = new Message()
         {
-            Token = model.FirebaseToken,
+            Token = firebaseToken,
             Android = new AndroidConfig()
             {
                 Priority = Priority.High,
@@ -64,14 +94,15 @@ public sealed class PushNotificationsSender
             var firebaseResult =
                 await _adsPushSender
                     .GetFirebaseSender()
-                    .SendToSingleAsync(message);
+                    .SendToSingleAsync(message, token);
 
             if (firebaseResult != null)
             {
                 if (firebaseResult.IsSuccess)
                 {
                     _logger.LogInformation(
-                        "New notification message with id {MessageId} was sended succesfully",
+                        "New notification message with id {MessageId}" +
+                        " was sended succesfully",
                         firebaseResult.MessageId);
                 }
             }

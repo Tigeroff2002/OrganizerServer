@@ -20,5 +20,7 @@ public interface ICommonUsersUnitOfWork
 
     public IIssuesRepository IssuesRepository { get; }
 
+    public IAlertsRepository AlertsRepository { get; }
+
     public void SaveChanges();
 }

@@ -1,7 +1,5 @@
 ﻿using Logic.Abstractions;
 using Logic.Transport.Senders;
-using MailKit.Net.Smtp;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MimeKit;

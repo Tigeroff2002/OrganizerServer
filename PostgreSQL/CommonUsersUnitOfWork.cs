@@ -24,6 +24,8 @@ public sealed class CommonUsersUnitOfWork
 
     public IIssuesRepository IssuesRepository { get; }
 
+    public IAlertsRepository AlertsRepository { get; }
+
     public CommonUsersUnitOfWork(
         IUsersRepository usersRepository,
         IUserDevicesRepository userDevicesRepository,
@@ -34,6 +36,7 @@ public sealed class CommonUsersUnitOfWork
         IGroupingUsersMapRepository groupingUsersMapRepository,
         ISnapshotsRepository snapshotsRepository,
         IIssuesRepository issuesRepository,
+        IAlertsRepository alertsRepository,
         ILogger<CommonUsersUnitOfWork> logger)
     {
         UsersRepository = usersRepository
@@ -63,6 +66,9 @@ public sealed class CommonUsersUnitOfWork
         IssuesRepository = issuesRepository
             ?? throw new ArgumentNullException(nameof(issuesRepository));
 
+        AlertsRepository = alertsRepository
+            ?? throw new ArgumentNullException(nameof(alertsRepository));
+
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -77,6 +83,7 @@ public sealed class CommonUsersUnitOfWork
         GroupingUsersMapRepository.SaveChanges();
         SnapshotsRepository.SaveChanges();
         IssuesRepository.SaveChanges();
+        AlertsRepository.SaveChanges();
 
         _logger.LogInformation("The changes of users unit of work were accepted");
     }

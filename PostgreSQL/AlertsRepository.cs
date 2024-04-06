@@ -47,6 +47,17 @@ public sealed class AlertsRepository : IAlertsRepository
         return await _repositoryContext.Alerts.ToListAsync(token);
     }
 
+    public async Task MarkAsAlertedAsync(int alertId, CancellationToken token)
+    {
+        var existedAlert = await _repositoryContext.Alerts.FirstOrDefaultAsync(
+            x => x.Id == alertId);
+
+        if (existedAlert != null)
+        {
+            existedAlert.IsAlerted = true;
+        }
+    }
+
     public void SaveChanges()
     {
         _repositoryContext.SaveChanges();
