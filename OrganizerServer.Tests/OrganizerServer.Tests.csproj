@@ -22,7 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Logic\Logic.csproj" />
-    <ProjectReference Include="..\ToDoCalendarServer\ToDoCalendarServer.csproj" />
+    <ProjectReference Include="..\OrganizerServer\OrganizerServer.csproj" />
   </ItemGroup>
 
 </Project>
