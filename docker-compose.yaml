@@ -47,12 +47,12 @@ services:
       - postgres
     restart: always
 
-  todocalendar-app:
+  organizer-app:
     build:
         context: .
-        dockerfile: ./ToDoCalendarServer/Dockerfile
-    container_name: todocalendar-app
-    image: todocalendar
+        dockerfile: ./OrganizerServer/Dockerfile
+    container_name: organizer-app
+    image: organizer
     ports:
        - 3500:80
     depends_on:
