@@ -34,7 +34,7 @@ public sealed class AlertsNotificationsHandler
 
     public async Task HandleAlersAsync(CancellationToken token)
     {
-        _logger.LogInformation("Starting handling events in target handler");
+        _logger.LogInformation("Starting handling alerts in target handler");
 
         while (!token.IsCancellationRequested)
         {
@@ -69,7 +69,7 @@ public sealed class AlertsNotificationsHandler
 
             if (isNotificationRequired)
             {
-                await SendNotificationsForUsersAsync(dbAlert.Id, dbAlert.Description, token);
+                await SendNotificationsForUsersAsync(dbAlert.Description, token);
             }
 
             await _usersUnitOfWork.AlertsRepository.MarkAsAlertedAsync(dbAlert.Id, token);
@@ -77,7 +77,6 @@ public sealed class AlertsNotificationsHandler
     }
 
     private async Task SendNotificationsForUsersAsync(
-        int eventId,
         string content,
         CancellationToken token)
     {
@@ -87,7 +86,12 @@ public sealed class AlertsNotificationsHandler
             _usersUnitOfWork.UsersRepository
                 .GetAllUsersAsync(token);
 
-        var admins = users.Where(x => x.Role == UserRole.Admin);
+        var admins = users.Where(x => x.Role == UserRole.Admin).ToList();
+
+        if (!admins.Any())
+        {
+            _logger.LogInformation("Alert message was not sent to anyone");
+        }
 
         var allDevicesMaps =
             await _usersUnitOfWork.UserDevicesRepository

@@ -11,28 +11,27 @@ using Xunit;
 
 namespace ToDoCalendarServer.Tests;
 
-public sealed class EventNotifyServiceTests
+public sealed class NotifyServiceTests
     : IClassFixture<WebApplicationFactory<Startup>>
 {
-    public EventNotifyServiceTests(
+    public NotifyServiceTests(
         WebApplicationFactory<Startup> factory)
     {
         _factory = factory;
     }
 
-    [Fact(DisplayName = $"{nameof(EventNotifyService)} can be created.")]
+    [Fact(DisplayName = $"{nameof(NotifyService)} can be created.")]
     [Trait("Category", "Unit")]
     public void CanBeCreated()
     {
         // Arrange
-        var logger = Mock.Of<ILogger<EventNotifyService>>();
+        var logger = Mock.Of<ILogger<NotifyService>>();
         var configuration = Options.Create<StartDelayConfiguration>(new(){ StartDelayMs = 5000 });
-        var notifyHandler = Mock.Of<IEventNotificationsHandler>(
-            MockBehavior.Strict);
+        var notifyHandler = Mock.Of<INotificationsHandler>(MockBehavior.Strict);
 
         // Act
         var exception = Record.Exception(() =>
-            new EventNotifyService(
+            new NotifyService(
                 logger,
                 configuration,
                 notifyHandler));
@@ -41,56 +40,54 @@ public sealed class EventNotifyServiceTests
         exception.Should().BeNull();
     }
 
-    [Fact(DisplayName = $"{nameof(EventNotifyService)}" +
+    [Fact(DisplayName = $"{nameof(NotifyService)}" +
         $" can not be created without logger.")]
     [Trait("Category", "Unit")]
     public void CanNotBeCreatedWithoutLogger()
     {
         // Arrange
-        var notifyHandler = Mock.Of<IEventNotificationsHandler>(
-            MockBehavior.Strict);
+        var notifyHandler = Mock.Of<INotificationsHandler>(MockBehavior.Strict);
         var configuration = Options.Create<StartDelayConfiguration>(new() { StartDelayMs = 5000 });
 
         // Act
         var exception = Record.Exception(() =>
-            new EventNotifyService(null!, configuration, notifyHandler));
+            new NotifyService(null!, configuration, notifyHandler));
 
         // Assert
         exception.Should().NotBeNull()
             .And.BeOfType<ArgumentNullException>();
     }
 
-    [Fact(DisplayName = $"{nameof(EventNotifyService)}" +
+    [Fact(DisplayName = $"{nameof(NotifyService)}" +
         $" can not be created without configuration.")]
     [Trait("Category", "Unit")]
     public void CanNotBeCreatedWithoutConfiguration()
     {
         // Arrange
-        var notifyHandler = Mock.Of<IEventNotificationsHandler>(
-            MockBehavior.Strict);
-        var logger = Mock.Of<ILogger<EventNotifyService>>();
+        var notifyHandler = Mock.Of<INotificationsHandler>(MockBehavior.Strict);
+        var logger = Mock.Of<ILogger<NotifyService>>();
 
         // Act
         var exception = Record.Exception(() =>
-            new EventNotifyService(logger, null!, notifyHandler));
+            new NotifyService(logger, null!, notifyHandler));
 
         // Assert
         exception.Should().NotBeNull()
             .And.BeOfType<ArgumentNullException>();
     }
 
-    [Fact(DisplayName = $"{nameof(EventNotifyService)}" +
+    [Fact(DisplayName = $"{nameof(NotifyService)}" +
         $" can not be created without notifications handler.")]
     [Trait("Category", "Unit")]
     public void CanNotBeCreatedWithoutNotificationsHandler()
     {
         // Arrange
-        var logger = Mock.Of<ILogger<EventNotifyService>>();
+        var logger = Mock.Of<ILogger<NotifyService>>();
         var configuration = Options.Create<StartDelayConfiguration>(new() { StartDelayMs = 5000 });
 
         // Act
         var exception = Record.Exception(() =>
-            new EventNotifyService(
+            new NotifyService(
                 logger,
                 configuration,
                 null!));
@@ -100,7 +97,7 @@ public sealed class EventNotifyServiceTests
             .And.BeOfType<ArgumentNullException>();
     }
 
-    [Fact(DisplayName = $"{nameof(EventNotifyService)}" +
+    [Fact(DisplayName = $"{nameof(NotifyService)}" +
         $" can successfully build.")]
     [Trait("Category", "Unit")]
     public void CanBuildService()
@@ -119,7 +116,7 @@ public sealed class EventNotifyServiceTests
         exception.Should().BeNull();
     }
 
-    [Fact(DisplayName = $"{nameof(EventNotifyService)}" +
+    [Fact(DisplayName = $"{nameof(NotifyService)}" +
         $" can health check.")]
     [Trait("Category", "Integration")]
     public async Task CanHealthCheckAsync()

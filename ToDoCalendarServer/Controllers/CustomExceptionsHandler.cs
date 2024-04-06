@@ -8,11 +8,11 @@ using System.Text.Json;
 
 namespace ToDoCalendarServer.Controllers;
 
-public sealed class ExceptionHandlingMiddleware
+public sealed class CustomExceptionsHandler
 {
-    public ExceptionHandlingMiddleware(
+    public CustomExceptionsHandler(
         RequestDelegate next,
-        ILogger<ExceptionHandlingMiddleware> logger,
+        ILogger<CustomExceptionsHandler> logger,
         IAlertsRepository alertsRepository)
     {
         _next = next ?? throw new ArgumentNullException(nameof(next));
@@ -75,13 +75,6 @@ public sealed class ExceptionHandlingMiddleware
     }
 
     private readonly RequestDelegate _next;
-    private readonly ILogger<ExceptionHandlingMiddleware> _logger;
+    private readonly ILogger<CustomExceptionsHandler> _logger;
     private readonly IAlertsRepository _alertsRepository;
-}
-
-public static class ExceptionHandlingMiddlewareExtensions
-{
-    public static IApplicationBuilder UseCustomExceptionsHandling(
-        this IApplicationBuilder builder)
-        => builder.UseMiddleware<ExceptionHandlingMiddleware>();
 }

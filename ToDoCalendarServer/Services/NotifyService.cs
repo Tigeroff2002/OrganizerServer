@@ -3,23 +3,23 @@ using Microsoft.Extensions.Options;
 
 namespace ToDoCalendarServer.Services;
 
-public class EventNotifyService : BackgroundService
+public class NotifyService : BackgroundService
 {
-    public EventNotifyService(
-        ILogger<EventNotifyService> logger,
+    public NotifyService(
+        ILogger<NotifyService> logger,
         IOptions<StartDelayConfiguration> options,
-        IEventNotificationsHandler notifiesHandler)
+        INotificationsHandler notificationsHandler)
     {
         ArgumentNullException.ThrowIfNull(options);
 
         _configuration = options.Value;
 
-        _notifiesHandler = notifiesHandler 
-            ?? throw new ArgumentNullException(nameof(notifiesHandler));
+        _notificationsHandler = notificationsHandler
+            ?? throw new ArgumentNullException(nameof(notificationsHandler));
 
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-        _logger.LogInformation("Event notify service has been created");
+        _logger.LogInformation("Notify service has been created");
     }
 
     public override async Task StartAsync(CancellationToken stoppingToken)
@@ -31,13 +31,10 @@ public class EventNotifyService : BackgroundService
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        using var scope = _logger.BeginScope(
-            "Beginning handling events notifications");
-
-        return _notifiesHandler.HandleEventsAsync(stoppingToken);
+        return _notificationsHandler.HandleSystemNotifications(stoppingToken);
     }
 
-    private readonly ILogger<EventNotifyService> _logger;
-    private readonly IEventNotificationsHandler _notifiesHandler;
+    private readonly ILogger<NotifyService> _logger;
+    private readonly INotificationsHandler _notificationsHandler;
     private readonly StartDelayConfiguration _configuration;
 }

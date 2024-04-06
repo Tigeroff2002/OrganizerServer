@@ -21,13 +21,15 @@ public static class Registrations
 {
     public static IServiceCollection AddHostedServices(
         this IServiceCollection services)
-        => services.AddHostedService<EventNotifyService>();
+        => services.AddHostedService<NotifyService>();
 
     public static IServiceCollection AddLogic(
         this IServiceCollection services,
         IConfiguration configuration)
         => services
+            .AddSingleton<INotificationsHandler, NotificationsHandler>()
             .AddSingleton<IEventNotificationsHandler, EventNotificationsHandler>()
+            .AddSingleton<IAlertsNotificationsHandler, AlertsNotificationsHandler>()
             .AddSingleton<ISMTPSender, SMTPSender>()
             .AddSingleton<IPushNotificationsSender, PushNotificationsSender>()
             .AddSingleton<IUsersDataHandler, UsersDataHandler>()
