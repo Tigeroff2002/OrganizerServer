@@ -77,10 +77,10 @@ INSERT INTO snapshots (description, snapshot_type, begin_moment, end_moment, use
 VALUES ('Empty snapshot about Nikits`s tasks in february beginning', 'tasks_snapshot',
         '2024-02-01 14:00:00.000 +0300', '2024-02-10 10:00:00.000 +0300', 3, '2024-02-23 12:00:00.000 +0300');
 
-INSERT INTO issues (issue_type, issue_status, title, description, img_link, issue_moment, user_id)
+INSERT INTO issues (issue_type, status, title, description, img_link, issue_moment, user_id)
 VALUES ('violation_issue', 'reported', 'Reporting user portnovnikitos2002@yandex.ru', 'Violation of project rules by user Kirill',
         'https://ir.ozone.ru/s3/multimedia-6/wc1000/6768115818.jpg', '2024-02-28 12:00:00.000 +0300', 1);
-INSERT INTO issues (issue_type, issue_status, title, description, img_link, issue_moment, user_id)
+INSERT INTO issues (issue_type, status, title, description, img_link, issue_moment, user_id)
 VALUES ('violation_issue', 'closed', 'Reporting user kirill.parakhin@altenar.com', 'Violation of project rules by user Nikita',
         'https://ir.ozone.ru/s3/multimedia-1/wc1000/6266202541.jpg', '2024-02-29 12:00:00.000 +0300', 1);
 
