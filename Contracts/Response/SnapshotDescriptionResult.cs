@@ -24,4 +24,7 @@ public class SnapshotDescriptionResult
 
     [JsonProperty("content", Required = Required.Default)]
     public string Content { get; set; } = default!;
+
+    [JsonProperty("user_name", Required = Required.Always)]
+    public string UserName {  get; set; }
 }

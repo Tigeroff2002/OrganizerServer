@@ -59,6 +59,7 @@ public sealed class IssueController : ControllerBase
         var issue = new Issue
         {
             Title = issueToCreate.Title,
+            Status = IssueStatus.Reported,
             IssueType = issueType,
             Description = issueToCreate.Description,
             IssueMoment = issueMoment,
@@ -145,6 +146,12 @@ public sealed class IssueController : ControllerBase
             if (issueUpdateParams.IssueType != IssueType.None)
             {
                 existedIssue.IssueType = issueUpdateParams.IssueType;
+                numbers_of_new_params++;
+            }
+
+            if (issueUpdateParams.IssueStatus != IssueStatus.None)
+            {
+                existedIssue.Status = issueUpdateParams.IssueStatus;
                 numbers_of_new_params++;
             }
 

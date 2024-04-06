@@ -22,4 +22,8 @@ public sealed class IssueInputWithIdDTO : RequestWithToken
 
     [JsonProperty("img_link", Required = Required.Always)]
     public required string ImgLink { get; init; }
+
+    [JsonConverter(typeof(StringEnumConverter))]
+    [JsonProperty("issue_status", Required = Required.Always)]
+    public required IssueStatus IssueStatus { get; init; }
 }

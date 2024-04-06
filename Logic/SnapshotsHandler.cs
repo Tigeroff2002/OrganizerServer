@@ -144,6 +144,7 @@ public sealed class SnapshotsHandler
                     map => new GroupParticipantKPIResponse 
                     { 
                         ParticipantId = map.userId,
+                        ParticipantName = map.Item1.UserName,
                         ParticipantKPI = map.Item1.KPI
                     })
                 .ToList(),
@@ -163,6 +164,8 @@ public sealed class SnapshotsHandler
 
         if (user != null)
         {
+            var userName = user.UserName;
+
             if (snapshotType == SnapshotType.TasksSnapshot)
             {
                 var userTasks = _dbTasks!
@@ -214,6 +217,7 @@ public sealed class SnapshotsHandler
                     EndMoment = endMoment,
                     CreateMoment = creationTime,
                     KPI = kpi,
+                    UserName = userName,
                     Content = stringBuilder.ToString()
                 };
 
@@ -302,6 +306,7 @@ public sealed class SnapshotsHandler
                     EndMoment = endMoment,
                     CreateMoment = creationTime,
                     KPI = percent,
+                    UserName = userName,
                     Content = stringBuilder.ToString()
                 };
 
@@ -358,6 +363,7 @@ public sealed class SnapshotsHandler
                     EndMoment = endMoment,
                     CreateMoment = creationTime,
                     KPI = kpi,
+                    UserName = userName,
                     Content = stringBuilder.ToString(),
                 };
 
@@ -373,6 +379,7 @@ public sealed class SnapshotsHandler
                     EndMoment = endMoment,
                     CreateMoment = creationTime,
                     KPI = 0,
+                    UserName = userName,
                     Content = "Empty user reports content for current implementation stage"
                 };
 
