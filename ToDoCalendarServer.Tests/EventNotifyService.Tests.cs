@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using ToDoCalendarServer.Services;
 using Xunit;
@@ -25,6 +26,7 @@ public sealed class EventNotifyServiceTests
     {
         // Arrange
         var logger = Mock.Of<ILogger<EventNotifyService>>();
+        var configuration = Options.Create<StartDelayConfiguration>(new(){ StartDelayMs = 5000 });
         var notifyHandler = Mock.Of<IEventNotificationsHandler>(
             MockBehavior.Strict);
 
@@ -32,6 +34,7 @@ public sealed class EventNotifyServiceTests
         var exception = Record.Exception(() =>
             new EventNotifyService(
                 logger,
+                configuration,
                 notifyHandler));
 
         // Assert
@@ -46,10 +49,30 @@ public sealed class EventNotifyServiceTests
         // Arrange
         var notifyHandler = Mock.Of<IEventNotificationsHandler>(
             MockBehavior.Strict);
+        var configuration = Options.Create<StartDelayConfiguration>(new() { StartDelayMs = 5000 });
 
         // Act
         var exception = Record.Exception(() =>
-            new EventNotifyService(null!, notifyHandler));
+            new EventNotifyService(null!, configuration, notifyHandler));
+
+        // Assert
+        exception.Should().NotBeNull()
+            .And.BeOfType<ArgumentNullException>();
+    }
+
+    [Fact(DisplayName = $"{nameof(EventNotifyService)}" +
+        $" can not be created without configuration.")]
+    [Trait("Category", "Unit")]
+    public void CanNotBeCreatedWithoutConfiguration()
+    {
+        // Arrange
+        var notifyHandler = Mock.Of<IEventNotificationsHandler>(
+            MockBehavior.Strict);
+        var logger = Mock.Of<ILogger<EventNotifyService>>();
+
+        // Act
+        var exception = Record.Exception(() =>
+            new EventNotifyService(logger, null!, notifyHandler));
 
         // Assert
         exception.Should().NotBeNull()
@@ -63,11 +86,13 @@ public sealed class EventNotifyServiceTests
     {
         // Arrange
         var logger = Mock.Of<ILogger<EventNotifyService>>();
+        var configuration = Options.Create<StartDelayConfiguration>(new() { StartDelayMs = 5000 });
 
         // Act
         var exception = Record.Exception(() =>
             new EventNotifyService(
                 logger,
+                configuration,
                 null!));
 
         // Assert
@@ -94,7 +119,6 @@ public sealed class EventNotifyServiceTests
         exception.Should().BeNull();
     }
 
-    /*
     [Fact(DisplayName = $"{nameof(EventNotifyService)}" +
         $" can health check.")]
     [Trait("Category", "Integration")]
@@ -115,7 +139,6 @@ public sealed class EventNotifyServiceTests
         response.Should().NotBeNullOrWhiteSpace()
             .And.Be("Healthy");
     }
-    */
 
     private readonly WebApplicationFactory<Startup> _factory;
 }
