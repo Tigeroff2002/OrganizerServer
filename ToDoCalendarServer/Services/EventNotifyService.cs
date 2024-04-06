@@ -1,4 +1,5 @@
 ﻿using Logic.Abstractions;
+using Microsoft.Extensions.Options;
 
 namespace ToDoCalendarServer.Services;
 
@@ -6,8 +7,13 @@ public class EventNotifyService : BackgroundService
 {
     public EventNotifyService(
         ILogger<EventNotifyService> logger,
+        IOptions<StartDelayConfiguration> options,
         IEventNotificationsHandler notifiesHandler)
     {
+        ArgumentNullException.ThrowIfNull(options);
+
+        _configuration = options.Value;
+
         _notifiesHandler = notifiesHandler 
             ?? throw new ArgumentNullException(nameof(notifiesHandler));
 
@@ -18,7 +24,7 @@ public class EventNotifyService : BackgroundService
 
     public override async Task StartAsync(CancellationToken stoppingToken)
     {
-        Task.Delay(5_000).GetAwaiter().GetResult();
+        Task.Delay(_configuration.StartDelayMs).GetAwaiter().GetResult();
 
         await base.StartAsync(stoppingToken);
     }
@@ -33,4 +39,5 @@ public class EventNotifyService : BackgroundService
 
     private readonly ILogger<EventNotifyService> _logger;
     private readonly IEventNotificationsHandler _notifiesHandler;
+    private readonly StartDelayConfiguration _configuration;
 }
