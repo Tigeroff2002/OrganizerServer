@@ -74,6 +74,8 @@ public static class Registrations
                 configuration.GetSection(nameof(NotificationConfiguration)))
             .Configure<RootConfiguration>(
                 configuration.GetSection(nameof(RootConfiguration)))
+            .Configure<StartDelayConfiguration>(
+                configuration.GetSection(nameof(StartDelayConfiguration)))
             .Configure<AdsPushConfiguration>(
                 configuration
                     .GetSection("AdsPush")
