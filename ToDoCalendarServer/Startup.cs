@@ -1,4 +1,5 @@
 ﻿using AdsPush.Extensions;
+using ToDoCalendarServer.Controllers;
 
 namespace ToDoCalendarServer;
 
@@ -50,6 +51,8 @@ public class Startup
     public void Configure(IApplicationBuilder app)
     {
         ArgumentNullException.ThrowIfNull(app);
+
+        _ = app.UseCustomExceptionsHandling();
 
         _ = app
             .UseRouting()

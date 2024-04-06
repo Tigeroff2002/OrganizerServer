@@ -24,6 +24,8 @@ public class CalendarDataContext : DbContext
 
     public virtual DbSet<Issue> Issues { get; set; } = default!;
 
+    public virtual DbSet<Alert> Alerts { get; set; } = default!;
+
     public virtual DbSet<DirectChat> DirectChats { get; set; }
 
     public virtual DbSet<DirectMessage> Messages { get; set; }
@@ -80,6 +82,7 @@ public class CalendarDataContext : DbContext
         CreateTasksModels(modelBuilder);
         CreateSnapshotsModels(modelBuilder);
         CreateIssuesModels(modelBuilder);
+        CreateAlertsModels(modelBuilder);
         CreateDirectChatsModels(modelBuilder);
         CreateMessagesModels(modelBuilder);
         CreateGroupingUsersMapModels(modelBuilder);
@@ -295,6 +298,24 @@ public class CalendarDataContext : DbContext
 
         _ = modelBuilder.Entity<Issue>()
             .Property(x => x.IssueMoment);
+    }
+
+    private static void CreateAlertsModels(ModelBuilder modelBuilder)
+    {
+        _ = modelBuilder.Entity<Alert>()
+            .HasKey(x => x.Id);
+
+        _ = modelBuilder.Entity<Alert>()
+            .Property(x => x.Title);
+
+        _ = modelBuilder.Entity<Alert>()
+            .Property(x => x.Description);
+
+        _ = modelBuilder.Entity<Alert>()
+            .Property(x => x.Moment);
+
+        _ = modelBuilder.Entity<Alert>()
+            .Property(x => x.IsAlerted);
     }
 
     private static void CreateDirectChatsModels(ModelBuilder modelBuilder)

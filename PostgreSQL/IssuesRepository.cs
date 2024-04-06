@@ -19,7 +19,7 @@ public sealed class IssuesRepository
         var scope = _provider.GetRequiredService<IServiceScopeFactory>().CreateScope();
         _repositoryContext = scope.ServiceProvider.GetRequiredService<IRepositoryContext>();
 
-        _logger.LogInformation("Snapshots repository was created just now");
+        _logger.LogInformation("Issues repository was created just now");
     }
 
     public async Task AddAsync(Issue issue, CancellationToken token)

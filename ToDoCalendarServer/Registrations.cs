@@ -58,6 +58,7 @@ public static class Registrations
             .AddSingleton<IGroupingUsersMapRepository, GroupingUsersMapRepository>()
             .AddSingleton<IEventsUsersMapRepository, EventsUsersMapRepository>()
             .AddSingleton<IIssuesRepository, IssuesRepository>()
+            .AddSingleton<IAlertsRepository, AlertsRepository>()
             .AddSingleton<IChatRepository, ChatRepository>()
             .AddSingleton<IMessageRepository, MessageRepository>()
 

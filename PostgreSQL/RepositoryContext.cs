@@ -35,6 +35,9 @@ public sealed class RepositoryContext
     public DbSet<Issue> Issues => _context.Issues;
 
     /// <inheritdoc/>
+    public DbSet<Alert> Alerts => _context.Alerts;
+
+    /// <inheritdoc/>
     public DbSet<DirectChat> DirectChats => _context.DirectChats;
 
     /// <inheritdoc/>
