@@ -226,9 +226,7 @@ public sealed class SnapshotsHandler
                 stringBuilder.Append($"Процент задач в процессе выполнения - {tasksInProgressPercent}%\n");
                 stringBuilder.Append($"Процент задач, выполненных пользователем - {tasksDonePercent}%\n");
 
-                var percent = (tasksDonePercent - tasksNotStartedPercent + tasksInProgressPercent / 2) / 100;
-
-                var kpi = percent > 1 ? 1 : percent;
+                var percent = (tasksDonePercent + tasksInProgressPercent / 2) / 100;
 
                 var snapshotTasksResult = new SnapshotDescriptionResult
                 {
@@ -237,7 +235,7 @@ public sealed class SnapshotsHandler
                     BeginMoment = beginMoment,
                     EndMoment = endMoment,
                     CreateMoment = creationTime,
-                    KPI = kpi,
+                    KPI = percent,
                     UserName = userName,
                     Content = stringBuilder.ToString()
                 };
@@ -318,7 +316,7 @@ public sealed class SnapshotsHandler
                 stringBuilder.Append(
                     $"Процент посещенных мероприятий пользователем - {eventsAcceptedPercent}%\n");
 
-                var percent = eventsAcceptedPercent / 100;
+                var percent = (eventsAcceptedPercent + (100 - eventsAcceptedPercent) / 5) / 100;
 
                 var snapshotEventsResult = new SnapshotDescriptionResult
                 {
@@ -374,9 +372,7 @@ public sealed class SnapshotsHandler
                 stringBuilder.Append($"Процент проблем в процессе просмотра и выяснения - {issuesInProgressPercent}%\n");
                 stringBuilder.Append($"Процент выясненных и закрытых проблем - {issuesClosedPercent}%\n");
 
-                var percent = (issuesClosedPercent - issuesJustReportedPercent + issuesInProgressPercent / 2) / 100;
-
-                var kpi = percent > 1 ? 1 : percent;
+                var percent = (issuesClosedPercent + issuesInProgressPercent / 2) / 100;
 
                 var snapshotIssuesResult = new SnapshotDescriptionResult
                 {
@@ -385,7 +381,7 @@ public sealed class SnapshotsHandler
                     BeginMoment = beginMoment,
                     EndMoment = endMoment,
                     CreateMoment = creationTime,
-                    KPI = kpi,
+                    KPI = percent,
                     UserName = userName,
                     Content = stringBuilder.ToString(),
                 };
@@ -402,7 +398,7 @@ public sealed class SnapshotsHandler
                     BeginMoment = beginMoment,
                     EndMoment = endMoment,
                     CreateMoment = creationTime,
-                    KPI = 0,
+                    KPI = 0f,
                     UserName = userName,
                     Content = "Empty user reports content for current implementation stage"
                 };
