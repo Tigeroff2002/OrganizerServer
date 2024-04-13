@@ -116,8 +116,11 @@ public sealed class SnapshotsHandler
 
         var stringBuilder = new StringBuilder();
 
-        stringBuilder.Append($"Всего участников в группе {participantsIds.Count}\n\n");
-        stringBuilder.Append("Список участников c их отчетами:\n");
+        stringBuilder.Append($"Всего участников в группе: {participantsIds.Count}.\n\n");
+
+        stringBuilder.Append($"Средний коэффициент KPI по группе равен: {averageKPI}.\n\n");
+
+        stringBuilder.Append("Список участников c их отчетами:\n\n");
 
         var i = 1;
 
@@ -127,13 +130,23 @@ public sealed class SnapshotsHandler
 
             var currentUser = _dbUsers!.FirstOrDefault(x => x.Id == participantId)!;
 
-            if (participantId == managerId)
+            if (participantId != managerId)
             {
-                stringBuilder.Append("(Менеджер группы) ");
+                stringBuilder.Append($"{i}. Участник: {currentUser.UserName} - с отчетом:\n");
+            }
+            else
+            {
+                stringBuilder.Append($"{i}. Менеджер группы: {currentUser.UserName} - с отчетом:\n");
             }
 
-            stringBuilder.Append($"{i}. Участник: {currentUser.UserName} - с отчетом:\n");
-            stringBuilder.Append($"{participantMap.Item1.Content}\n\n");
+            i++;
+
+            var stringLines = participantMap.Item1.Content.Split('\n').Skip(1).ToList();
+
+            var content = string.Join("\n", stringLines);
+
+            stringBuilder.Append($"{content}\n");
+            stringBuilder.Append($"Коэффициент KPI пользователя равен: {participantMap.Item1.KPI}\n");
         }
 
         var groupSnapshot = new GroupSnapshotDescriptionResult
