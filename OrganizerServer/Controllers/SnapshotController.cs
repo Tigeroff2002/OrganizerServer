@@ -84,6 +84,7 @@ public sealed class SnapshotController : ControllerBase
             SnapshotAuditType = snapshotToCreate.SnapshotAuditType,
             BeginMoment = snapshotToCreate.BeginMoment,
             EndMoment = snapshotToCreate.EndMoment,
+            CreateMoment = DateTimeOffset.UtcNow,
             UserId = user.Id
         };
 
