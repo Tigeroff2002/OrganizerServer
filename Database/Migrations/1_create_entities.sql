@@ -173,3 +173,7 @@ CREATE TABLE alerts (
     moment timestamp with time zone NOT NULL,
     is_alerted boolean NOT NULL,
     CONSTRAINT pk_alerts PRIMARY KEY (id));
+
+CREATE TYPE snapshot_audit_type AS ENUM ('personal', 'group');
+
+ALTER TABLE snapshots ADD snapshot_audit_type snapshot_audit_type NOT NULL DEFAULT 'personal'::snapshot_audit_type;

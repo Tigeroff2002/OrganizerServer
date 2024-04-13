@@ -70,11 +70,11 @@ INSERT INTO tasks (caption, description, task_type, task_status, reporter_id, im
 VALUES ('December meeting presense', 'Be presense on december ADF common meetings', 
        'meeting_presense', 'in_progress', 1, 1);
 
-INSERT INTO snapshots (description, snapshot_type, begin_moment, end_moment, user_id, create_moment)
-VALUES ('Empty snapshot about Kirill`s events in january', 'events_snapshot',
+INSERT INTO snapshots (description, snapshot_type, audit_type, begin_moment, end_moment, user_id, create_moment)
+VALUES ('Empty snapshot about Kirill`s events in january', 'events_snapshot', 'personal,
         '2024-01-01 12:00:00.000 +0300', '2024-01-30 00:00:00.000 +0300', 1, '2024-02-02 12:00:00.000 +0300');
-INSERT INTO snapshots (description, snapshot_type, begin_moment, end_moment, user_id, create_moment)
-VALUES ('Empty snapshot about Nikits`s tasks in february beginning', 'tasks_snapshot',
+INSERT INTO snapshots (description, snapshot_type, audit_type, begin_moment, end_moment, user_id, create_moment)
+VALUES ('Empty snapshot about Nikits`s tasks in february beginning', 'tasks_snapshot', 'personal,
         '2024-02-01 14:00:00.000 +0300', '2024-02-10 10:00:00.000 +0300', 3, '2024-02-23 12:00:00.000 +0300');
 
 INSERT INTO issues (issue_type, status, title, description, img_link, issue_moment, user_id)
