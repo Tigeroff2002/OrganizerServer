@@ -12,6 +12,8 @@ public class Snapshot
 
     public SnapshotType SnapshotType { get; set; }
 
+    public SnapshotAuditType SnapshotAuditType { get; set; }
+
     public DateTimeOffset BeginMoment { get; set; }
 
     public DateTimeOffset EndMoment { get; set; }

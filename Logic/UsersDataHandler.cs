@@ -1,5 +1,6 @@
 ﻿using Contracts.Request;
 using Contracts.Response;
+using Contracts.Response.SnapshotsDB;
 using Logic.Abstractions;
 using Logic.Transport.Abstractions;
 using Logic.Transport.Senders;
@@ -9,7 +10,9 @@ using Models;
 using Models.BusinessModels;
 using Models.Enums;
 using Models.UserActionModels;
+using Newtonsoft.Json;
 using PostgreSQL.Abstractions;
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -661,17 +664,24 @@ public sealed class UsersDataHandler
             }
         }
 
-        var userSnapshots = new List<SnapshotInfoResponse>();
+        var userSnapshots = new List<PersonalSnapshotInfoResponse>();
 
         foreach (var snapshot in userSnapshotsModels)
         {
-            var snapshotInfo = new SnapshotInfoResponse
+            var snapshotContent = 
+                JsonConvert.DeserializeObject<PersonalSnapshotContent>(snapshot.Description);
+
+            Debug.Assert(snapshotContent is not null);
+
+            var snapshotInfo = new PersonalSnapshotInfoResponse
             {
                 BeginMoment = snapshot.BeginMoment,
                 EndMoment = snapshot.EndMoment,
                 SnapshotType = snapshot.SnapshotType,
-                CreationTime = DateTimeOffset.Now,
-                Content = snapshot.Description
+                CreationTime = snapshot.CreateMoment,
+                AuditType = snapshot.SnapshotAuditType,
+                KPI = snapshotContent.KPI,
+                Content = snapshotContent.Content
             };
 
             userSnapshots.Add(snapshotInfo);

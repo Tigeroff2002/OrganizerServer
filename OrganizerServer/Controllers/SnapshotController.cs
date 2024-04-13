@@ -9,6 +9,8 @@ using System.Diagnostics;
 using Contracts.Request;
 using Microsoft.AspNetCore.Authorization;
 using Logic.Abstractions;
+using Contracts.Response.SnapshotsDB;
+using Models.Enums;
 
 namespace ToDoCalendarServer.Controllers;
 
@@ -63,14 +65,23 @@ public sealed class SnapshotController : ControllerBase
         }
 
         var snapshotDescriptionResult = await _snapshotsHandler
-            .CreateSnapshotDescriptionAsync(userId, snapshotToCreate, token);
+            .CreatePersonalSnapshotDescriptionAsync(userId, snapshotToCreate, token);
 
         Debug.Assert(snapshotDescriptionResult != null);
 
+        var personalSnapshotContent = new PersonalSnapshotContent
+        {
+            KPI = snapshotDescriptionResult.KPI,
+            Content = snapshotDescriptionResult.Content
+        };
+
+        var description = JsonConvert.SerializeObject(personalSnapshotContent);
+
         var snapshot = new Snapshot
         {
-            Description = snapshotDescriptionResult.Content,
+            Description = description,
             SnapshotType = snapshotToCreate.SnapshotType,
+            SnapshotAuditType = snapshotToCreate.SnapshotAuditType,
             BeginMoment = snapshotToCreate.BeginMoment,
             EndMoment = snapshotToCreate.EndMoment,
             UserId = user.Id
@@ -147,16 +158,27 @@ public sealed class SnapshotController : ControllerBase
             return BadRequest(JsonConvert.SerializeObject(response1));
         }
 
-        var snapshotDescriptionResult = await _snapshotsHandler
+        var groupSnapshotDescriptionResult = await _snapshotsHandler
             .CreateGroupKPISnapshotDescriptionAsync(
             userId, snapshotToCreate, token);
 
-        Debug.Assert(snapshotDescriptionResult != null);
+        Debug.Assert(groupSnapshotDescriptionResult != null);
+
+        var groupSnapshotContent = new GroupSnapshotContent
+        {
+            GroupId = groupId,
+            ParticipantKPIs = groupSnapshotDescriptionResult.ParticipantKPIs,
+            AverageKPI = groupSnapshotDescriptionResult.AverageKPI,
+            Content = groupSnapshotDescriptionResult.Content
+        };
+
+        var description = JsonConvert.SerializeObject(groupSnapshotContent);
 
         var snapshot = new Snapshot
         {
-            Description = snapshotDescriptionResult.Content,
+            Description = description,
             SnapshotType = snapshotToCreate.SnapshotType,
+            SnapshotAuditType = snapshotToCreate.SnapshotAuditType,
             BeginMoment = snapshotToCreate.BeginMoment,
             EndMoment = snapshotToCreate.EndMoment,
             CreateMoment = DateTimeOffset.UtcNow,
@@ -172,8 +194,8 @@ public sealed class SnapshotController : ControllerBase
         var response = new Response();
         response.Result = true;
         response.OutInfo =
-            $"New snapshot with id = {snapshotId}" +
-            $" for user '{user.UserName}'" +
+            $"New group snapshot with id = {snapshotId}" +
+            $" by user '{user.UserName}' for group with id = {groupId}" +
             $" with type '{snapshotType}' has been created";
 
         var json = JsonConvert.SerializeObject(response);
@@ -273,26 +295,58 @@ public sealed class SnapshotController : ControllerBase
 
             var snapshotDescription = existedSnapshot.Description;
 
-            var snapshotDescriptionModel =
-                JsonConvert.DeserializeObject<SnapshotDescriptionResult>(snapshotDescription);
-
-            Debug.Assert(snapshotDescriptionModel != null);
-
-            var snapshotInfo = new SnapshotInfoResponse
-            {
-                BeginMoment = existedSnapshot.BeginMoment,
-                EndMoment = existedSnapshot.EndMoment,
-                SnapshotType = existedSnapshot.SnapshotType,
-                CreationTime = DateTimeOffset.UtcNow,
-                Content = existedSnapshot.Description
-            };
-
             var getResponse = new GetResponse();
             getResponse.Result = true;
-            getResponse.OutInfo = 
-                $"Info about snapshot with id {snapshotId}" +
-                $" for user with id {userId} was received";
-            getResponse.RequestedInfo = snapshotInfo;
+
+            if (existedSnapshot.SnapshotAuditType == SnapshotAuditType.Personal)
+            {
+                var personalSnapshotContent =
+                    JsonConvert.DeserializeObject<PersonalSnapshotContent>(snapshotDescription);
+
+                Debug.Assert(personalSnapshotContent != null);
+
+                var personalSnapshotInfo = new PersonalSnapshotInfoResponse
+                {
+                    BeginMoment = existedSnapshot.BeginMoment,
+                    EndMoment = existedSnapshot.EndMoment,
+                    SnapshotType = existedSnapshot.SnapshotType,
+                    CreationTime = DateTimeOffset.UtcNow,
+                    AuditType = SnapshotAuditType.Personal,
+                    KPI = personalSnapshotContent.KPI,
+                    Content = personalSnapshotContent.Content
+                };
+
+                getResponse.OutInfo =
+                    $"Info about personal snapshot with id {snapshotId}" +
+                    $" for user with id {userId} was received";
+                getResponse.RequestedInfo = personalSnapshotInfo;
+            }
+            else if (existedSnapshot.SnapshotAuditType == SnapshotAuditType.Group)
+            {
+                var groupSnapshotContent =
+                    JsonConvert.DeserializeObject<GroupSnapshotContent>(snapshotDescription);
+
+                Debug.Assert(groupSnapshotContent != null);
+
+                var groupSnapshotInfo = new GroupSnapshotInfoResponse
+                {
+                    BeginMoment = existedSnapshot.BeginMoment,
+                    EndMoment = existedSnapshot.EndMoment,
+                    SnapshotType = existedSnapshot.SnapshotType,
+                    CreationTime = DateTimeOffset.UtcNow,
+                    AuditType = SnapshotAuditType.Personal,
+                    GroupId = groupSnapshotContent.GroupId,
+                    ParticipantKPIs = groupSnapshotContent.ParticipantKPIs,
+                    AverageKPI = groupSnapshotContent.AverageKPI,
+                    Content = groupSnapshotContent.Content
+                };
+
+                getResponse.OutInfo =
+                    $"Info about group snapshot with id {snapshotId}" +
+                    $" by user with id {userId} for group with id" +
+                    $" {groupSnapshotInfo.GroupId} was received";
+                getResponse.RequestedInfo = groupSnapshotInfo;
+            }
 
             var json = JsonConvert.SerializeObject(getResponse);
 

@@ -58,7 +58,7 @@ public sealed class SnapshotsHandler
             .GetAllMapsAsync(token);
     }
 
-    public async Task<SnapshotDescriptionResult> CreateSnapshotDescriptionAsync(
+    public async Task<SnapshotDescriptionResult> CreatePersonalSnapshotDescriptionAsync(
         int userId, 
         SnapshotInputDTO inputSnapshot,
         CancellationToken token)
@@ -70,12 +70,14 @@ public sealed class SnapshotsHandler
 
         var snapshotType = inputSnapshot.SnapshotType;
 
+        var auditType = SnapshotAuditType.Personal;
+
         var creationTime = DateTimeOffset.UtcNow;
 
         await UpdateEntitiesRepositorySnapshotsAsync(token);
 
         return CreateSnapshotCertaintlyForUser(
-            userId, snapshotType, creationTime, beginMoment, endMoment);
+            userId, snapshotType, auditType, creationTime, beginMoment, endMoment);
     }
 
     public async Task<GroupSnapshotDescriptionResult> CreateGroupKPISnapshotDescriptionAsync(
@@ -90,6 +92,8 @@ public sealed class SnapshotsHandler
 
         var snapshotType = inputSnapshot.SnapshotType;
 
+        var auditType = SnapshotAuditType.Group;
+
         var creationTime = DateTimeOffset.UtcNow;
 
         await UpdateAllEntitiesRepositorySnapshotsAsync(token);
@@ -102,8 +106,10 @@ public sealed class SnapshotsHandler
 
         var separateParticipantsResults = participantsIds.Select(userId =>
         {
-            return (CreateSnapshotCertaintlyForUser(
-                userId, snapshotType, creationTime, beginMoment, endMoment), userId);
+            return (
+                CreateSnapshotCertaintlyForUser(
+                    userId, snapshotType, auditType, creationTime, beginMoment, endMoment), 
+                userId);
         });
 
         var averageKPI = separateParticipantsResults.Average(x => x.Item1.KPI);
@@ -156,6 +162,7 @@ public sealed class SnapshotsHandler
     private SnapshotDescriptionResult CreateSnapshotCertaintlyForUser(
         int userId,
         SnapshotType snapshotType,
+        SnapshotAuditType snapshotAuditType,
         DateTimeOffset creationTime,
         DateTimeOffset beginMoment,
         DateTimeOffset endMoment)
@@ -213,6 +220,7 @@ public sealed class SnapshotsHandler
                 var snapshotTasksResult = new SnapshotDescriptionResult
                 {
                     SnapshotType = snapshotType,
+                    AuditType = snapshotAuditType,
                     BeginMoment = beginMoment,
                     EndMoment = endMoment,
                     CreateMoment = creationTime,
@@ -302,6 +310,7 @@ public sealed class SnapshotsHandler
                 var snapshotEventsResult = new SnapshotDescriptionResult
                 {
                     SnapshotType = snapshotType,
+                    AuditType = snapshotAuditType,
                     BeginMoment = beginMoment,
                     EndMoment = endMoment,
                     CreateMoment = creationTime,
@@ -359,6 +368,7 @@ public sealed class SnapshotsHandler
                 var snapshotIssuesResult = new SnapshotDescriptionResult
                 {
                     SnapshotType = snapshotType,
+                    AuditType = snapshotAuditType,
                     BeginMoment = beginMoment,
                     EndMoment = endMoment,
                     CreateMoment = creationTime,
@@ -375,6 +385,7 @@ public sealed class SnapshotsHandler
                 var snapshotReportsResult = new SnapshotDescriptionResult
                 {
                     SnapshotType = snapshotType,
+                    AuditType = snapshotAuditType,
                     BeginMoment = beginMoment,
                     EndMoment = endMoment,
                     CreateMoment = creationTime,

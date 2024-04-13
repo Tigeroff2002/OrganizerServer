@@ -37,7 +37,7 @@ public sealed class UserInfoResponse
     public List<EventInfoResponse> UserEvents { get; set; } = default!;
 
     [JsonProperty("user_snapshots", NullValueHandling = NullValueHandling.Ignore)]
-    public required List<SnapshotInfoResponse> UserSnapshots { get; set; } = default!;
+    public required List<PersonalSnapshotInfoResponse> UserSnapshots { get; set; } = default!;
 
     [JsonProperty("user_issues", NullValueHandling = NullValueHandling.Ignore)]
     public required List<IssueInfoResponse> UserIssues { get; set; } = default!;
