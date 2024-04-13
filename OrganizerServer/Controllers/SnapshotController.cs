@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authorization;
 using Logic.Abstractions;
 using Contracts.Response.SnapshotsDB;
 using Models.Enums;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace ToDoCalendarServer.Controllers;
 
@@ -311,7 +312,7 @@ public sealed class SnapshotController : ControllerBase
                     BeginMoment = existedSnapshot.BeginMoment,
                     EndMoment = existedSnapshot.EndMoment,
                     SnapshotType = existedSnapshot.SnapshotType,
-                    CreationTime = DateTimeOffset.UtcNow,
+                    CreationTime = existedSnapshot.CreateMoment,
                     AuditType = SnapshotAuditType.Personal,
                     KPI = personalSnapshotContent.KPI,
                     Content = personalSnapshotContent.Content
@@ -334,8 +335,8 @@ public sealed class SnapshotController : ControllerBase
                     BeginMoment = existedSnapshot.BeginMoment,
                     EndMoment = existedSnapshot.EndMoment,
                     SnapshotType = existedSnapshot.SnapshotType,
-                    CreationTime = DateTimeOffset.UtcNow,
-                    AuditType = SnapshotAuditType.Personal,
+                    CreationTime = existedSnapshot.CreateMoment,
+                    AuditType = SnapshotAuditType.Group,
                     GroupId = groupSnapshotContent.GroupId,
                     ParticipantKPIs = groupSnapshotContent.ParticipantKPIs,
                     AverageKPI = groupSnapshotContent.AverageKPI,
@@ -357,6 +358,108 @@ public sealed class SnapshotController : ControllerBase
         var response2 = new Response();
         response2.Result = false;
         response2.OutInfo = $"No such snapshot with id {snapshotId}";
+
+        return BadRequest(JsonConvert.SerializeObject(response2));
+    }
+
+    [Route("get_group_snapshots")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
+    public async Task<IActionResult> GetGroupSnapshotsInfo(CancellationToken token)
+    {
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
+
+        var groupSnapshotsRequest = JsonConvert.DeserializeObject<GroupSnapshotsRequestDTO>(body);
+
+        Debug.Assert(groupSnapshotsRequest != null);
+
+        var groupId = groupSnapshotsRequest.GroupId;
+
+        var existedGroup = await _groupsRepository.GetGroupByIdAsync(groupId, token);
+
+        if (existedGroup != null)
+        {
+            var userId = groupSnapshotsRequest.UserId;
+
+            var user = await _usersRepository.GetUserByIdAsync(userId, token);
+
+            if (user == null)
+            {
+                var response1 = new Response();
+                response1.Result = false;
+                response1.OutInfo =
+                    $"Cant take info about snapshot" +
+                    $" cause user with id {userId} is not found";
+
+                return BadRequest(JsonConvert.SerializeObject(response1));
+            }
+
+            if (userId != existedGroup.ManagerId)
+            {
+                var response1 = new Response();
+                response1.Result = false;
+                response1.OutInfo =
+                    $"Cant take info about group {groupId} snapshots cause" +
+                    $" user with id {userId} is not its manager";
+
+                return BadRequest(JsonConvert.SerializeObject(response1));
+            }
+
+            var allSnapshots = await _snapshotsRepository.GetAllSnapshotsAsync(token);
+
+            var groupSnapshots = allSnapshots
+                .Where(x => x.UserId == userId
+                    && x.SnapshotAuditType == SnapshotAuditType.Group);
+
+            var groupSnapshotsInfos = new List<GroupSnapshotInfoResponse>();
+
+            foreach (var groupSnapshot in groupSnapshots)
+            {
+                var snapshotDescription = groupSnapshot.Description;
+
+                var groupSnapshotContent =
+                    JsonConvert.DeserializeObject<GroupSnapshotContent>(snapshotDescription);
+
+                Debug.Assert(groupSnapshotContent != null);
+
+                var groupSnapshotInfo = new GroupSnapshotInfoResponse
+                {
+                    BeginMoment = groupSnapshot.BeginMoment,
+                    EndMoment = groupSnapshot.EndMoment,
+                    SnapshotType = groupSnapshot.SnapshotType,
+                    CreationTime = DateTimeOffset.UtcNow,
+                    AuditType = SnapshotAuditType.Personal,
+                    GroupId = groupSnapshotContent.GroupId,
+                    ParticipantKPIs = groupSnapshotContent.ParticipantKPIs,
+                    AverageKPI = groupSnapshotContent.AverageKPI,
+                    Content = groupSnapshotContent.Content
+                };
+
+                groupSnapshotsInfos.Add(groupSnapshotInfo);
+            }
+
+            var groupSnapshotsResponseModel = new GroupSnapshots
+            {
+                Snapshots = groupSnapshotsInfos
+            };
+
+            var getResponse = new GetResponse();
+            getResponse.Result = true;
+
+            getResponse.OutInfo =
+                $"Info about group snapshots with id" +
+                $" by user with id {userId} for group with id" +
+                $" {groupId} was received";
+            getResponse.RequestedInfo = 
+                JsonConvert.SerializeObject(groupSnapshotsResponseModel);
+
+            var json = JsonConvert.SerializeObject(getResponse);
+
+            return Ok(json);
+        }
+
+        var response2 = new Response();
+        response2.Result = false;
+        response2.OutInfo = $"No such group with id {groupId}";
 
         return BadRequest(JsonConvert.SerializeObject(response2));
     }
