@@ -71,11 +71,14 @@ VALUES ('December meeting presense', 'Be presense on december ADF common meeting
        'meeting_presense', 'in_progress', 1, 1);
 
 INSERT INTO snapshots (description, snapshot_type, audit_type, begin_moment, end_moment, user_id, create_moment)
-VALUES ('Empty snapshot about Kirill`s events in january', 'events_snapshot', 'personal,
-        '2024-01-01 12:00:00.000 +0300', '2024-01-30 00:00:00.000 +0300', 1, '2024-02-02 12:00:00.000 +0300');
+VALUES ('{"group_id":1,"participants_kpis":[{"participant_id":1,"participant_name":"Kirill","participant_kpi":0.5},{"participant_id":2,"participant_name":"Tigeroff","participant_kpi":0.0}],"average_kpi":0.25,"content":"Всего участников в группе: 2.\n\nСредний коэффициент KPI по группе равен: 0,25.\n\nСписок участников c их отчетами:\n\n1. Менеджер группы: Kirill - с отчетом:\nВсего задач для имплементации пользователем - 1\nПроцент не начатых задач - 0%\nПроцент задач в процессе выполнения - 100%\nПроцент задач, выполненных пользователем - 0%\n\nКоэффициент KPI пользователя равен: 0,5\n2. Участник: Tigeroff - с отчетом:\nВсего задач для имплементации пользователем - 1\nПроцент не начатых задач - 100%\nПроцент задач в процессе выполнения - 0%\nПроцент задач, выполненных пользователем - 0%\n\nКоэффициент KPI пользователя равен: 0\n"}', 'tasks_snapshot', 'group,
+        '2023-09-20 12:00:00+03', '2024-02-10 10:00:00+03', 1, '2024-04-13 15:47:44.366996+03');
 INSERT INTO snapshots (description, snapshot_type, audit_type, begin_moment, end_moment, user_id, create_moment)
-VALUES ('Empty snapshot about Nikits`s tasks in february beginning', 'tasks_snapshot', 'personal,
-        '2024-02-01 14:00:00.000 +0300', '2024-02-10 10:00:00.000 +0300', 3, '2024-02-23 12:00:00.000 +0300');
+VALUES ('{"kpi":0.2,"content":"Отчет был выполнен в 13.04.2024 15:48:21 +03:00\nВсего запланированных мероприятий пользователя, за данный период - 3\nОбщая продолжительность мероприятий за данный период - 4,8 ч.\nПроцент посещенных мероприятий пользователем - 0%\n"}', 'events_snapshot', 'personal,
+        '2023-09-20 12:00:00+03', '2024-02-10 10:00:00+03', 1, '2024-02-23 12:00:00.000 +0300');
+INSERT INTO snapshots (description, snapshot_type, audit_type, begin_moment, end_moment, user_id, create_moment)
+VALUES ('{"kpi":0.0,"content":"Отчет был выполнен в 13.04.2024 15:48:49 +03:00\nВсего технических проблем было обнаружено пользователем - 1\nПроцент проблем, не взятых в просмотр - 100%\nПроцент проблем в процессе просмотра и выяснения - 0%\nПроцент выясненных и закрытых проблем - 0%\n"}', 'issues_snapshot', 'personal,
+        '2023-09-20 12:00:00+03', '2024-02-10 10:00:00+03', 2, '2024-02-26 12:00:00.000 +0300');
 
 INSERT INTO issues (issue_type, status, title, description, img_link, issue_moment, user_id)
 VALUES ('violation_issue', 'reported', 'Reporting user portnovnikitos2002@yandex.ru', 'Violation of project rules by user Kirill',
