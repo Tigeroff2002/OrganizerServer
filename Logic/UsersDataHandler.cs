@@ -693,7 +693,9 @@ public sealed class UsersDataHandler
         {
             var issueInfo = new IssueInfoResponse
             {
+                IssueId = issue.Id,
                 Title = issue.Title,
+                IssueStatus = issue.Status,
                 Description = issue.Description,
                 IssueType = issue.IssueType,
                 ImgLink = issue.ImgLink,
