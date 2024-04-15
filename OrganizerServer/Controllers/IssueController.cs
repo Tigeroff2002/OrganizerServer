@@ -281,8 +281,10 @@ public sealed class IssueController : ControllerBase
 
             var issueInfo = new IssueInfoResponse
             {
+                IssueId = existedIssue.Id,
                 Title = existedIssue.Title,
                 IssueType = existedIssue.IssueType,
+                IssueStatus = existedIssue.Status,
                 Description = existedIssue.Description,
                 ImgLink = existedIssue.ImgLink,
                 CreateMoment = existedIssue.IssueMoment
@@ -353,27 +355,35 @@ public sealed class IssueController : ControllerBase
                 .Where(x => x.Status != IssueStatus.Closed)
                 .Select(x => new FullIssueInfoResponse
                 {
+                    IssueId = x.Id,
                     Title = x.Title,
                     IssueType = x.IssueType,
+                    IssueStatus = x.Status,
                     Description = x.Description,
                     ImgLink = x.ImgLink,
                     CreateMoment = x.IssueMoment,
-                    UserName = 
+                    UserName =
                         allUsers
                             .FirstOrDefault(u => u.Id == x.UserId)!
                             .UserName
-                });
+                })
+                .ToList();
 
-            var getResponse = new GetResponse();
-            getResponse.Result = true;
-            getResponse.OutInfo =
-                $"Info about all users not closed issues" +
-                $" for admin with id {userId} was received";
-            getResponse.RequestedInfo = allIssues;
-
-            var json = JsonConvert.SerializeObject(getResponse);
-
-            return Ok(json);
+        var issuesResponseModel = new SystemIssuesResponse
+        {
+            Issues = allIssues
+        };
+        
+        var getResponse = new GetResponse();
+        getResponse.Result = true;
+        getResponse.OutInfo =
+            $"Info about all users not closed issues" +
+            $" for admin with id {userId} was received";
+        getResponse.RequestedInfo = issuesResponseModel;
+        
+        var json = JsonConvert.SerializeObject(getResponse);
+        
+        return Ok(json);
     }
 
     private readonly IIssuesRepository _issuesRepository;

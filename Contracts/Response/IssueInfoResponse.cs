@@ -6,9 +6,16 @@ namespace Contracts.Response;
 
 public class IssueInfoResponse
 {
+    [JsonProperty("issue_id", Required = Required.Always)]
+    public required int IssueId { get; init; }
+
     [JsonConverter(typeof(StringEnumConverter))]
     [JsonProperty("issue_type", Required = Required.Always)]
     public required IssueType IssueType { get; init; }
+
+    [JsonConverter(typeof(StringEnumConverter))]
+    [JsonProperty("issue_status", Required = Required.Always)]
+    public required IssueStatus IssueStatus { get; init; }
 
     [JsonProperty("title", Required = Required.Always)]
     public required string Title { get; init; }

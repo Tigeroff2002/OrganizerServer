@@ -44,6 +44,7 @@ public class CalendarDataContext : DbContext
             .MapEnum<TaskType>()
             .MapEnum<TaskCurrentStatus>()
             .MapEnum<SnapshotType>()
+            .MapEnum<SnapshotAuditType>()
             .MapEnum<DecisionType>()
             .MapEnum<IssueType>()
             .MapEnum<UserRole>()
@@ -70,6 +71,7 @@ public class CalendarDataContext : DbContext
             .HasPostgresEnum<TaskType>()
             .HasPostgresEnum<TaskCurrentStatus>()
             .HasPostgresEnum<SnapshotType>()
+            .HasPostgresEnum<SnapshotAuditType>()
             .HasPostgresEnum<DecisionType>()
             .HasPostgresEnum<IssueType>()
             .HasPostgresEnum<UserRole>()
@@ -247,6 +249,9 @@ public class CalendarDataContext : DbContext
 
         _ = modelBuilder.Entity<Snapshot>()
             .Property(x => x.SnapshotType);
+
+        _ = modelBuilder.Entity<Snapshot>()
+            .Property(x => x.SnapshotAuditType);
 
         _ = modelBuilder.Entity<Snapshot>()
             .Property(x => x.CreateMoment);

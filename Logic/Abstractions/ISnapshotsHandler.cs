@@ -6,7 +6,7 @@ namespace Logic.Abstractions;
 
 public interface ISnapshotsHandler
 {
-    public Task<SnapshotDescriptionResult> CreateSnapshotDescriptionAsync(
+    public Task<SnapshotDescriptionResult> CreatePersonalSnapshotDescriptionAsync(
         int userId,
         SnapshotInputDTO inputSnapshot,
         CancellationToken token);

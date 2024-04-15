@@ -10,6 +10,10 @@ public class SnapshotInputDTO : RequestWithToken
     [JsonProperty("snapshot_type", Required = Required.Always)]
     public required SnapshotType SnapshotType { get; init; }
 
+    [JsonConverter(typeof(StringEnumConverter))]
+    [JsonProperty("audit_type", Required = Required.Always)]
+    public required SnapshotAuditType SnapshotAuditType { get; init; }
+
     [JsonProperty("begin_moment", Required = Required.Always)]
     public required DateTimeOffset BeginMoment { get; init; }
 

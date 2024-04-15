@@ -58,7 +58,7 @@ public sealed class SnapshotsHandler
             .GetAllMapsAsync(token);
     }
 
-    public async Task<SnapshotDescriptionResult> CreateSnapshotDescriptionAsync(
+    public async Task<SnapshotDescriptionResult> CreatePersonalSnapshotDescriptionAsync(
         int userId, 
         SnapshotInputDTO inputSnapshot,
         CancellationToken token)
@@ -70,12 +70,14 @@ public sealed class SnapshotsHandler
 
         var snapshotType = inputSnapshot.SnapshotType;
 
+        var auditType = SnapshotAuditType.Personal;
+
         var creationTime = DateTimeOffset.UtcNow;
 
         await UpdateEntitiesRepositorySnapshotsAsync(token);
 
         return CreateSnapshotCertaintlyForUser(
-            userId, snapshotType, creationTime, beginMoment, endMoment);
+            userId, snapshotType, auditType, creationTime, beginMoment, endMoment);
     }
 
     public async Task<GroupSnapshotDescriptionResult> CreateGroupKPISnapshotDescriptionAsync(
@@ -90,6 +92,8 @@ public sealed class SnapshotsHandler
 
         var snapshotType = inputSnapshot.SnapshotType;
 
+        var auditType = SnapshotAuditType.Group;
+
         var creationTime = DateTimeOffset.UtcNow;
 
         await UpdateAllEntitiesRepositorySnapshotsAsync(token);
@@ -102,16 +106,21 @@ public sealed class SnapshotsHandler
 
         var separateParticipantsResults = participantsIds.Select(userId =>
         {
-            return (CreateSnapshotCertaintlyForUser(
-                userId, snapshotType, creationTime, beginMoment, endMoment), userId);
+            return (
+                CreateSnapshotCertaintlyForUser(
+                    userId, snapshotType, auditType, creationTime, beginMoment, endMoment), 
+                userId);
         });
 
         var averageKPI = separateParticipantsResults.Average(x => x.Item1.KPI);
 
         var stringBuilder = new StringBuilder();
 
-        stringBuilder.Append($"Всего участников в группе {participantsIds.Count}\n\n");
-        stringBuilder.Append("Список участников c их отчетами:\n");
+        stringBuilder.Append($"Всего участников в группе: {participantsIds.Count}.\n\n");
+
+        stringBuilder.Append($"Средний коэффициент KPI по группе равен: {averageKPI}.\n\n");
+
+        stringBuilder.Append("Список участников c их отчетами:\n\n");
 
         var i = 1;
 
@@ -121,13 +130,23 @@ public sealed class SnapshotsHandler
 
             var currentUser = _dbUsers!.FirstOrDefault(x => x.Id == participantId)!;
 
-            if (participantId == managerId)
+            if (participantId != managerId)
             {
-                stringBuilder.Append("(Менеджер группы) ");
+                stringBuilder.Append($"{i}. Участник: {currentUser.UserName} - с отчетом:\n");
+            }
+            else
+            {
+                stringBuilder.Append($"{i}. Менеджер группы: {currentUser.UserName} - с отчетом:\n");
             }
 
-            stringBuilder.Append($"{i}. Участник: {currentUser.UserName} - с отчетом:\n");
-            stringBuilder.Append($"{participantMap.Item1.Content}\n\n");
+            i++;
+
+            var stringLines = participantMap.Item1.Content.Split('\n').Skip(1).ToList();
+
+            var content = string.Join("\n", stringLines);
+
+            stringBuilder.Append($"{content}\n");
+            stringBuilder.Append($"Коэффициент KPI пользователя равен: {participantMap.Item1.KPI}\n");
         }
 
         var groupSnapshot = new GroupSnapshotDescriptionResult
@@ -156,6 +175,7 @@ public sealed class SnapshotsHandler
     private SnapshotDescriptionResult CreateSnapshotCertaintlyForUser(
         int userId,
         SnapshotType snapshotType,
+        SnapshotAuditType snapshotAuditType,
         DateTimeOffset creationTime,
         DateTimeOffset beginMoment,
         DateTimeOffset endMoment)
@@ -206,17 +226,16 @@ public sealed class SnapshotsHandler
                 stringBuilder.Append($"Процент задач в процессе выполнения - {tasksInProgressPercent}%\n");
                 stringBuilder.Append($"Процент задач, выполненных пользователем - {tasksDonePercent}%\n");
 
-                var percent = (tasksDonePercent - tasksNotStartedPercent + tasksInProgressPercent / 2) / 100;
-
-                var kpi = percent > 1 ? 1 : percent;
+                var percent = (tasksDonePercent + tasksInProgressPercent / 2) / 100;
 
                 var snapshotTasksResult = new SnapshotDescriptionResult
                 {
                     SnapshotType = snapshotType,
+                    AuditType = snapshotAuditType,
                     BeginMoment = beginMoment,
                     EndMoment = endMoment,
                     CreateMoment = creationTime,
-                    KPI = kpi,
+                    KPI = percent,
                     UserName = userName,
                     Content = stringBuilder.ToString()
                 };
@@ -297,11 +316,12 @@ public sealed class SnapshotsHandler
                 stringBuilder.Append(
                     $"Процент посещенных мероприятий пользователем - {eventsAcceptedPercent}%\n");
 
-                var percent = eventsAcceptedPercent / 100;
+                var percent = (eventsAcceptedPercent + (100 - eventsAcceptedPercent) / 5) / 100;
 
                 var snapshotEventsResult = new SnapshotDescriptionResult
                 {
                     SnapshotType = snapshotType,
+                    AuditType = snapshotAuditType,
                     BeginMoment = beginMoment,
                     EndMoment = endMoment,
                     CreateMoment = creationTime,
@@ -352,17 +372,16 @@ public sealed class SnapshotsHandler
                 stringBuilder.Append($"Процент проблем в процессе просмотра и выяснения - {issuesInProgressPercent}%\n");
                 stringBuilder.Append($"Процент выясненных и закрытых проблем - {issuesClosedPercent}%\n");
 
-                var percent = (issuesClosedPercent - issuesJustReportedPercent + issuesInProgressPercent / 2) / 100;
-
-                var kpi = percent > 1 ? 1 : percent;
+                var percent = (issuesClosedPercent + issuesInProgressPercent / 2) / 100;
 
                 var snapshotIssuesResult = new SnapshotDescriptionResult
                 {
                     SnapshotType = snapshotType,
+                    AuditType = snapshotAuditType,
                     BeginMoment = beginMoment,
                     EndMoment = endMoment,
                     CreateMoment = creationTime,
-                    KPI = kpi,
+                    KPI = percent,
                     UserName = userName,
                     Content = stringBuilder.ToString(),
                 };
@@ -375,10 +394,11 @@ public sealed class SnapshotsHandler
                 var snapshotReportsResult = new SnapshotDescriptionResult
                 {
                     SnapshotType = snapshotType,
+                    AuditType = snapshotAuditType,
                     BeginMoment = beginMoment,
                     EndMoment = endMoment,
                     CreateMoment = creationTime,
-                    KPI = 0,
+                    KPI = 0f,
                     UserName = userName,
                     Content = "Empty user reports content for current implementation stage"
                 };
