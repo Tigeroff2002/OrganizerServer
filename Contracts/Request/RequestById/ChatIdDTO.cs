@@ -1,7 +1,6 @@
-﻿using Contracts.Request;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 
-namespace Contracts;
+namespace Contracts.Request.RequestById;
 
 public sealed class ChatIdDTO : RequestWithToken
 {

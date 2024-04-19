@@ -1,8 +1,8 @@
 ﻿using Models.Enums;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Newtonsoft.Json;
 
-namespace Contracts.Request;
+namespace Contracts.Request.RequestById;
 
 public sealed class UpdateGroupParams : RequestWithToken
 {
@@ -19,3 +19,4 @@ public sealed class UpdateGroupParams : RequestWithToken
     [JsonProperty("participants", Required = Required.Default)]
     public List<int> Participants { get; set; } = default!;
 }
+

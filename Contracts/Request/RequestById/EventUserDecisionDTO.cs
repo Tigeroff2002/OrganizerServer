@@ -1,9 +1,8 @@
-﻿using Contracts.Request;
-using Models.Enums;
-using Newtonsoft.Json;
+﻿using Models.Enums;
 using Newtonsoft.Json.Converters;
+using Newtonsoft.Json;
 
-namespace Contracts;
+namespace Contracts.Request.RequestById;
 
 public sealed class EventUserDecisionDTO : RequestWithToken
 {

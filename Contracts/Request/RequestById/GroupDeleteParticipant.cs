@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace Contracts.Request;
+namespace Contracts.Request.RequestById;
 
 public sealed class GroupDeleteParticipant : RequestWithToken
 {
