@@ -4,5 +4,6 @@ public sealed record class UserRegistrationEvent(
     int Id,
     bool IsCommited,
     int UserId,
-    DateTimeOffset AccountCreateDate) 
+    string FirebaseToken,
+    DateTimeOffset AccountCreationMoment) 
     : UserRelatedEvent(Id, IsCommited, UserId);
