@@ -6,6 +6,6 @@ public sealed record class UserRoleChangedEvent(
     int Id,
     bool IsCommited,
     int UserId,
-    DateTime UpdateMoment,
+    DateTimeOffset UpdateMoment,
     UserRole NewRole)
     : UserRelatedEvent(Id, IsCommited, UserId);

@@ -6,5 +6,8 @@ public sealed class SnapshotCreatedEventDTO
     : UserRelatedEventDTO
 {
     [JsonProperty("snapshot_id", Required = Required.Always)]
-    public required string SnapshotId { get; init; }
+    public required int SnapshotId { get; init; }
+
+    [JsonProperty("create_moment", Required = Required.Always)]
+    public required DateTimeOffset CreatedMoment { get; init; }
 }

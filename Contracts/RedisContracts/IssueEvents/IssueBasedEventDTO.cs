@@ -6,5 +6,5 @@ public abstract class IssueBasedEventDTO
     : UserRelatedEventDTO
 {
     [JsonProperty("issue_id", Required = Required.Always)]
-    public required string IssueId { get; init; }
+    public required int IssueId { get; init; }
 }

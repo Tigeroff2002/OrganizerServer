@@ -6,5 +6,5 @@ public abstract class GroupBasedEventDTO
     : UserRelatedEventDTO
 {
     [JsonProperty("group_id", Required = Required.Always)]
-    public required string GroupId { get; init; }
+    public required int GroupId { get; init; }
 }

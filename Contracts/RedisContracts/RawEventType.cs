@@ -34,6 +34,12 @@ public enum RawEventType
 
     TaskAssignedEvent,
 
+    TaskCreatedEvent,
+
+    TaskParamsChanged,
+
+    TaskTerminalStatusReceived,
+
     TaskUnassignedEvent,
 
     UserInfoUpdate,

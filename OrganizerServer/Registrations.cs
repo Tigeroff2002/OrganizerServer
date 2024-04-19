@@ -15,6 +15,8 @@ using Contracts.Response;
 using Logic.Transport.Senders;
 using Models.UserActionModels;
 using StackExchange.Redis;
+using Models.RedisEventModels;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ToDoCalendarServer;
 
@@ -43,7 +45,9 @@ public static class Registrations
             .AddSingleton<IDeserializer<UserRegistrationData>, UsersRegistrationDataDeserializer>()
             .AddSingleton<IDeserializer<UserInfoById>, UserInfoByIdDeserializer>()
             .AddSingleton<IDeserializer<UserLogoutDeviceById>, UserLogoutDeviceByIdDeserializer>()
-            .AddSingleton<ISerializer<UserInfoContent>, UserInfoSerializer>();
+            .AddSingleton<ISerializer<UserInfoContent>, UserInfoSerializer>()
+            .AddSingleton<ISerializer<BaseEvent>, RedisEventSerializer>()
+            .AddSingleton<IDeserializer<BaseEvent>, RedisEventDeserializer>();
 
     public static IServiceCollection AddStorage(
         this IServiceCollection services,
