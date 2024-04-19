@@ -3,6 +3,7 @@ using Contracts.Response;
 using Logic.Abstractions;
 using Models;
 using Models.Enums;
+using Models.StorageModels;
 using Newtonsoft.Json.Linq;
 using PostgreSQL;
 using PostgreSQL.Abstractions;

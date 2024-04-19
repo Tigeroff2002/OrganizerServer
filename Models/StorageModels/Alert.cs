@@ -1,7 +1,6 @@
-﻿using Models.Enums;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace Models;
+namespace Models.StorageModels;
 
 public sealed class Alert
 {

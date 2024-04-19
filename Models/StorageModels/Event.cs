@@ -1,7 +1,7 @@
 ﻿using Models.Enums;
 using System.ComponentModel.DataAnnotations;
 
-namespace Models;
+namespace Models.StorageModels;
 
 public class Event
 {
@@ -26,11 +26,11 @@ public class Event
 
     public virtual Group RelatedGroup { get; set; }
 
-    public int RelatedGroupId { get; set;  }
+    public int RelatedGroupId { get; set; }
 
     public virtual User Manager { get; set; }
 
-    public int ManagerId { get; set; }  
+    public int ManagerId { get; set; }
 
     public virtual List<EventsUsersMap> GuestsMap { get; set; }
 

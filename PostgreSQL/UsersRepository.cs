@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Models;
 using Models.Enums;
+using Models.StorageModels;
 using PostgreSQL.Abstractions;
 
 namespace PostgreSQL;

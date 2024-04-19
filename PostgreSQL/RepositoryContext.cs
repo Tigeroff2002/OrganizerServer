@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Models;
+using Models.StorageModels;
 using PostgreSQL.Abstractions;
 using System;
 using System.Collections.Generic;

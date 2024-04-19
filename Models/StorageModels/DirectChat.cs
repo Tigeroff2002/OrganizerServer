@@ -1,8 +1,8 @@
-﻿namespace Models;
+﻿namespace Models.StorageModels;
 
 public class DirectChat
 {
-    public int Id { get; set; } 
+    public int Id { get; set; }
 
     public string Caption { get; set; }
 

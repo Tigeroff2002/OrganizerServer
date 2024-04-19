@@ -1,6 +1,6 @@
 ﻿using Models.Enums;
 
-namespace Models;
+namespace Models.StorageModels;
 
 public class EventsUsersMap
 {
@@ -10,7 +10,7 @@ public class EventsUsersMap
 
     public DecisionType DecisionType { get; set; }
 
-    public int EventId { get; set; }    
+    public int EventId { get; set; }
 
     public Event Event { get; set; }
 }

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using MimeKit;
 using Models;
 using Models.Enums;
+using Models.StorageModels;
 using Models.UserActionModels;
 using PostgreSQL.Abstractions;
 using System.Net.Mail;

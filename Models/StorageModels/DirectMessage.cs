@@ -1,4 +1,4 @@
-﻿namespace Models;
+﻿namespace Models.StorageModels;
 
 public class DirectMessage
 {

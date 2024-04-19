@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 using Models;
 using Models.Enums;
+using Models.StorageModels;
 using Npgsql;
 using System.Diagnostics.CodeAnalysis;
 
