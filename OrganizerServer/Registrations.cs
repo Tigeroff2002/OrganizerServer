@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Authentication;
 using Contracts.Response;
 using Logic.Transport.Senders;
 using Models.UserActionModels;
+using StackExchange.Redis;
 
 namespace ToDoCalendarServer;
 
@@ -66,6 +67,18 @@ public static class Registrations
 
             .AddSingleton<ICommonUsersUnitOfWork, CommonUsersUnitOfWork>()
             .AddSingleton<IUsersMessagingUnitOfWork, UsersMessagingUnitOfWork>();
+
+    public static IServiceCollection AddRedisCache(
+        this IServiceCollection services,
+        IConfiguration configuration)
+        => services
+            .AddSingleton<IConnectionMultiplexer, ConnectionMultiplexer>(
+                _ =>
+                {
+                    var connectionString = configuration.GetConnectionString("RedisConnection")!;
+
+                    return ConnectionMultiplexer.Connect(connectionString);
+                });
 
     public static IServiceCollection AddConfigurations(
         this IServiceCollection services,
