@@ -4,7 +4,7 @@ using Models.RedisEventModels.IssueEvents;
 namespace Models.RedisEventModels.MeetEvents;
 
 public sealed record class MeetTerminalStatusReceivedEvent(
-    int Id,
+    string Id,
     bool IsCommited,
     int UserId,
     int IssueId,

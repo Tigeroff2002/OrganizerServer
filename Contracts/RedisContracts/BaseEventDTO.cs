@@ -6,7 +6,7 @@ namespace Contracts.RedisContracts;
 public abstract class BaseEventDTO
 {
     [JsonProperty("event_id", Required = Required.Always)]
-    public required int Id { get; init; }
+    public required string Id { get; init; }
 
     [JsonProperty("is_commited", Required = Required.Always)]
     public required bool IsCommited { get; init; }

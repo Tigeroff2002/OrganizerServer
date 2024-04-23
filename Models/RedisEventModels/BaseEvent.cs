@@ -1,3 +1,16 @@
-﻿namespace Models.RedisEventModels;
+﻿using System.Numerics;
 
-public abstract record class BaseEvent(int Id, bool IsCommited);
+namespace Models.RedisEventModels;
+
+public abstract record class BaseEvent
+{
+    public string Id { get; }
+
+    public bool IsCommited { get; set; }
+
+    public BaseEvent(string id, bool isCommited)
+    {
+        Id = id;
+        IsCommited = isCommited;
+    }
+}

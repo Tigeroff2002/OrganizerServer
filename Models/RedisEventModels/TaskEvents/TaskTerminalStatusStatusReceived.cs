@@ -4,7 +4,7 @@ using Models.RedisEventModels.IssueEvents;
 namespace Models.RedisEventModels.TaskEvents;
 
 public sealed record class TaskTerminalStatusReceivedEvent(
-    int Id,
+    string Id,
     bool IsCommited,
     int UserId,
     int TaskId,

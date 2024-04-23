@@ -1,7 +1,7 @@
 ﻿namespace Models.RedisEventModels.GroupEvents;
 
 public sealed record class GroupParticipantDeletedEvent(
-    int Id,
+    string Id,
     bool IsCommited,
     int UserId,
     int GroupId)

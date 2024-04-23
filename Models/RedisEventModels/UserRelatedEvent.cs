@@ -1,4 +1,4 @@
 ﻿namespace Models.RedisEventModels;
 
-public record class UserRelatedEvent(int Id, bool IsCommited, int UserId) 
+public record class UserRelatedEvent(string Id, bool IsCommited, int UserId) 
     : BaseEvent(Id, IsCommited);

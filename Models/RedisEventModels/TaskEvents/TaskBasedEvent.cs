@@ -1,7 +1,7 @@
 ﻿namespace Models.RedisEventModels.TaskEvents;
 
 public abstract record class TaskBasedEvent(
-    int Id,
+    string Id,
     bool IsCommited,
     int UserId,
     int TaskId)

@@ -3,7 +3,7 @@
 namespace Models.RedisEventModels.MeetEvents;
 
 public sealed record class MeetSoonBeginEvent(
-    int Id,
+    string Id,
     bool IsCommited,
     int UserId,
     int MeetId,

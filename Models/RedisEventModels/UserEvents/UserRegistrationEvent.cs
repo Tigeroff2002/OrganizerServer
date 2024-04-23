@@ -1,7 +1,7 @@
 ﻿namespace Models.RedisEventModels.UserEvents;
 
 public sealed record class UserRegistrationEvent(
-    int Id,
+    string Id,
     bool IsCommited,
     int UserId,
     string FirebaseToken,

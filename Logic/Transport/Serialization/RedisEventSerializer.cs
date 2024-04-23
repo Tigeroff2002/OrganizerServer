@@ -32,7 +32,7 @@ public sealed class RedisEventSerializer
                 {
                     Id = alertCreated.Id,
                     IsCommited = alertCreated.IsCommited,
-                    UserId = alertCreated.Id,
+                    UserId = alertCreated.UserId,
                     EventType = RawEventType.AlertCreated,
                     AlertId = alertCreated.AlertId,
                     CreatedMoment = alertCreated.CreateMoment
@@ -43,7 +43,7 @@ public sealed class RedisEventSerializer
                 {
                     Id = groupCreated.Id,
                     IsCommited = groupCreated.IsCommited,
-                    UserId = groupCreated.Id,
+                    UserId = groupCreated.UserId,
                     EventType = RawEventType.GroupCreated,
                     GroupId = groupCreated.GroupId,
                     CreatedMoment = groupCreated.CreatedMoment
@@ -53,7 +53,7 @@ public sealed class RedisEventSerializer
                 {
                     Id = groupUpdated.Id,
                     IsCommited = groupUpdated.IsCommited,
-                    UserId = groupUpdated.Id,
+                    UserId = groupUpdated.UserId,
                     EventType = RawEventType.GroupParamsChanged,
                     GroupId = groupUpdated.GroupId,
                     UpdateMoment = groupUpdated.UpdateMoment,
@@ -64,7 +64,7 @@ public sealed class RedisEventSerializer
                 {
                     Id = groupParticipantDeleted.Id,
                     IsCommited = groupParticipantDeleted.IsCommited,
-                    UserId = groupParticipantDeleted.Id,
+                    UserId = groupParticipantDeleted.UserId,
                     EventType = RawEventType.GroupParticipantDeleted,
                     GroupId = groupParticipantDeleted.GroupId
                 },
@@ -73,7 +73,7 @@ public sealed class RedisEventSerializer
                 {
                     Id = groupParticipantInvited.Id,
                     IsCommited = groupParticipantInvited.IsCommited,
-                    UserId = groupParticipantInvited.Id,
+                    UserId = groupParticipantInvited.UserId,
                     EventType = RawEventType.GroupParticipantInvited,
                     GroupId = groupParticipantInvited.GroupId
                 },
@@ -83,7 +83,7 @@ public sealed class RedisEventSerializer
                 {
                     Id = issueCreated.Id,
                     IsCommited = issueCreated.IsCommited,
-                    UserId = issueCreated.Id,
+                    UserId = issueCreated.UserId,
                     EventType = RawEventType.IssueCreated,
                     IssueId = issueCreated.IssueId,
                     CreatedMoment = issueCreated.CreatedMoment
@@ -93,7 +93,7 @@ public sealed class RedisEventSerializer
                 {
                     Id = issueUpdated.Id,
                     IsCommited = issueUpdated.IsCommited,
-                    UserId = issueUpdated.Id,
+                    UserId = issueUpdated.UserId,
                     EventType = RawEventType.IssueParamsChanged,
                     IssueId = issueUpdated.IssueId,
                     UpdateMoment = issueUpdated.UpdateMoment,
@@ -104,7 +104,7 @@ public sealed class RedisEventSerializer
                 {
                     Id = issueTerminaled.Id,
                     IsCommited = issueTerminaled.IsCommited,
-                    UserId = issueTerminaled.Id,
+                    UserId = issueTerminaled.UserId,
                     EventType = RawEventType.IssueTerminalStatusReceived,
                     IssueId = issueTerminaled.IssueId,
                     TerminalMoment = issueTerminaled.TerminalMoment,
@@ -116,7 +116,7 @@ public sealed class RedisEventSerializer
                 {
                     Id = meetCreated.Id,
                     IsCommited = meetCreated.IsCommited,
-                    UserId = meetCreated.Id,
+                    UserId = meetCreated.UserId,
                     EventType = RawEventType.MeetCreated,
                     MeetId = meetCreated.MeetId,
                     CreatedMoment = meetCreated.CreatedMoment,
@@ -128,7 +128,7 @@ public sealed class RedisEventSerializer
                 {
                     Id = meetGuestDeleted.Id,
                     IsCommited = meetGuestDeleted.IsCommited,
-                    UserId = meetGuestDeleted.Id,
+                    UserId = meetGuestDeleted.UserId,
                     EventType = RawEventType.MeetGuestDeleted,
                     MeetId = meetGuestDeleted.MeetId
                 },
@@ -137,7 +137,7 @@ public sealed class RedisEventSerializer
                 {
                     Id = meetGuestInvited.Id,
                     IsCommited = meetGuestInvited.IsCommited,
-                    UserId = meetGuestInvited.Id,
+                    UserId = meetGuestInvited.UserId,
                     EventType = RawEventType.MeetGuestInvited,
                     MeetId = meetGuestInvited.MeetId
                 },
@@ -146,7 +146,7 @@ public sealed class RedisEventSerializer
                 {
                     Id = meetUpdated.Id,
                     IsCommited = meetUpdated.IsCommited,
-                    UserId = meetUpdated.Id,
+                    UserId = meetUpdated.UserId,
                     EventType = RawEventType.MeetParamsChanged,
                     MeetId = meetUpdated.MeetId,
                     UpdateMoment = meetUpdated.UpdateMoment,
@@ -157,7 +157,7 @@ public sealed class RedisEventSerializer
                 {
                     Id = meetSoonBegin.Id,
                     IsCommited = meetSoonBegin.IsCommited,
-                    UserId = meetSoonBegin.Id,
+                    UserId = meetSoonBegin.UserId,
                     EventType = RawEventType.MeetSoonBegin,
                     MeetId = meetSoonBegin.MeetId,
                     RemainingTime = meetSoonBegin.RemainingTime,
@@ -168,7 +168,7 @@ public sealed class RedisEventSerializer
                 {
                     Id = meetTerminaled.Id,
                     IsCommited = meetTerminaled.IsCommited,
-                    UserId = meetTerminaled.Id,
+                    UserId = meetTerminaled.UserId,
                     EventType = RawEventType.MeetTerminalStatusReceived,
                     MeetId = meetTerminaled.MeetId,
                     TerminalMoment = meetTerminaled.TerminalMoment,
@@ -180,7 +180,7 @@ public sealed class RedisEventSerializer
                 {
                     Id = taskAssigned.Id,
                     IsCommited = taskAssigned.IsCommited,
-                    UserId = taskAssigned.Id,
+                    UserId = taskAssigned.UserId,
                     EventType = RawEventType.TaskAssignedEvent,
                     TaskId = taskAssigned.TaskId
                 },
@@ -190,7 +190,7 @@ public sealed class RedisEventSerializer
                 {
                     Id = taskCreated.Id,
                     IsCommited = taskCreated.IsCommited,
-                    UserId = taskCreated.Id,
+                    UserId = taskCreated.UserId,
                     EventType = RawEventType.TaskCreatedEvent,
                     TaskId = taskCreated.TaskId,
                     CreatedMoment = taskCreated.CreatedMoment
@@ -200,7 +200,7 @@ public sealed class RedisEventSerializer
                 {
                     Id = taskUpdated.Id,
                     IsCommited = taskUpdated.IsCommited,
-                    UserId = taskUpdated.Id,
+                    UserId = taskUpdated.UserId,
                     EventType = RawEventType.TaskParamsChanged,
                     TaskId = taskUpdated.TaskId,
                     UpdateMoment = taskUpdated.UpdateMoment,
@@ -211,7 +211,7 @@ public sealed class RedisEventSerializer
                 {
                     Id = taskTerminaled.Id,
                     IsCommited = taskTerminaled.IsCommited,
-                    UserId = taskTerminaled.Id,
+                    UserId = taskTerminaled.UserId,
                     EventType = RawEventType.TaskTerminalStatusReceived,
                     TaskId = taskTerminaled.TaskId,
                     TerminalMoment = taskTerminaled.TerminalMoment,
@@ -222,7 +222,7 @@ public sealed class RedisEventSerializer
                 {
                     Id = taskUnassigned.Id,
                     IsCommited = taskUnassigned.IsCommited,
-                    UserId = taskUnassigned.Id,
+                    UserId = taskUnassigned.UserId,
                     EventType = RawEventType.TaskUnassignedEvent,
                     TaskId = taskUnassigned.TaskId
                 },
@@ -232,7 +232,7 @@ public sealed class RedisEventSerializer
                 {
                     Id = userUpdated.Id,
                     IsCommited = userUpdated.IsCommited,
-                    UserId = userUpdated.Id,
+                    UserId = userUpdated.UserId,
                     EventType = RawEventType.UserInfoUpdate,
                     UpdateMoment = userUpdated.UpdateMoment,
                     Json = userUpdated.Json
@@ -243,7 +243,7 @@ public sealed class RedisEventSerializer
                 {
                     Id = userLogin.Id,
                     IsCommited = userLogin.IsCommited,
-                    UserId = userLogin.Id,
+                    UserId = userLogin.UserId,
                     EventType = RawEventType.UserLogin,
                     FirebaseToken = userLogin.FirebaseToken,
                     TokenSetMoment = userLogin.TokenSetMoment
@@ -253,7 +253,7 @@ public sealed class RedisEventSerializer
                 {
                     Id = userLogout.Id,
                     IsCommited = userLogout.IsCommited,
-                    UserId = userLogout.Id,
+                    UserId = userLogout.UserId,
                     EventType = RawEventType.UserLogout,
                     FirebaseToken = userLogout.FirebaseToken
                 },
@@ -262,7 +262,7 @@ public sealed class RedisEventSerializer
                 {
                     Id = userRegister.Id,
                     IsCommited = userRegister.IsCommited,
-                    UserId = userRegister.Id,
+                    UserId = userRegister.UserId,
                     EventType = RawEventType.UserRegistration,
                     FirebaseToken = userRegister.FirebaseToken,
                     AccountCreationMoment = userRegister.AccountCreationMoment
@@ -272,7 +272,7 @@ public sealed class RedisEventSerializer
                 {
                     Id = userRoleChanged.Id,
                     IsCommited = userRoleChanged.IsCommited,
-                    UserId = userRoleChanged.Id,
+                    UserId = userRoleChanged.UserId,
                     EventType = RawEventType.UserRoleChanged,
                     UpdateMoment = userRoleChanged.UpdateMoment,
                     NewRole = userRoleChanged.NewRole

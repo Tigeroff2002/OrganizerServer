@@ -103,7 +103,13 @@ public static class Registrations
                     var connectionString = configuration.GetConnectionString("RedisConnection")!;
 
                     return ConnectionMultiplexer.Connect(connectionString);
-                });
+                })
+            .Configure<RedisConfiguration>(
+                (_) => new RedisConfiguration
+                {
+                    HostAndPort = configuration.GetSection("ConnectionStrings")["RedisConnection"]!
+                })
+            .AddSingleton<IRedisRepository, RedisRepository>();
 
     public static IServiceCollection AddConfigurations(
         this IServiceCollection services,

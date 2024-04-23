@@ -3,7 +3,7 @@
 namespace Models.RedisEventModels.IssueEvents;
 
 public sealed record class IssueParamsChangedEvent(
-    int Id,
+    string Id,
     bool IsCommited,
     int UserId,
     int IssueId,

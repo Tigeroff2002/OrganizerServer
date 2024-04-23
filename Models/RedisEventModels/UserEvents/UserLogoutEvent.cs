@@ -1,7 +1,7 @@
 ﻿namespace Models.RedisEventModels.UserEvents;
 
 public sealed record class UserLogoutEvent(
-    int Id,
+    string Id,
     bool IsCommited,
     int UserId,
     string FirebaseToken)

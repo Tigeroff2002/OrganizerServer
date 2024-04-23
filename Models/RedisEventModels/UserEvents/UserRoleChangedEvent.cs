@@ -3,7 +3,7 @@
 namespace Models.RedisEventModels.UserEvents;
 
 public sealed record class UserRoleChangedEvent(
-    int Id,
+    string Id,
     bool IsCommited,
     int UserId,
     DateTimeOffset UpdateMoment,

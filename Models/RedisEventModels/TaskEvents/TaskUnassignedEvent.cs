@@ -1,7 +1,7 @@
 ﻿namespace Models.RedisEventModels.TaskEvents;
 
 public sealed record class TaskUnassignedEvent(
-    int Id,
+    string Id,
     bool IsCommited,
     int UserId,
     int TaskId)

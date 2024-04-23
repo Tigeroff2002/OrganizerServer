@@ -1,7 +1,7 @@
 ﻿namespace Models.RedisEventModels.GroupEvents;
 
 public abstract record class GroupBasedEvent(
-    int Id,
+    string Id,
     bool IsCommited,
     int UserId,
     int GroupId)
