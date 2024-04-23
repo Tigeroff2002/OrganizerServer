@@ -27,17 +27,6 @@ public sealed class UserController : ControllerBase
 
         _usersDataHandler = usersDataHandler 
             ?? throw new ArgumentNullException(nameof(usersDataHandler));
-
-        _usersRegistrationDataDeserializer = usersRegistrationDataDeserializer
-            ?? throw new ArgumentNullException(nameof(usersRegistrationDataDeserializer));
-        _usersLoginDataDeserializer = usersLoginDataDeserializer
-            ?? throw new ArgumentNullException(nameof(usersLoginDataDeserializer));
-
-        _userInfoByIdDeserializer = userInfoByIdDeserializer
-            ?? throw new ArgumentNullException(nameof(userInfoByIdDeserializer));
-
-        _userLogoutByIdDeserializer = userLogoutByIdDeserializer
-            ?? throw new ArgumentNullException(nameof(userLogoutByIdDeserializer));
     }
 
     [HttpPost]
@@ -46,11 +35,8 @@ public sealed class UserController : ControllerBase
     {
         var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
-        var userRegistrationData = 
-            _usersRegistrationDataDeserializer.Deserialize(body);
-
         var result = 
-            await _usersDataHandler.TryRegisterUser(userRegistrationData, token);
+            await _usersDataHandler.TryRegisterUser(body, token);
 
         var json = JsonConvert.SerializeObject(result);
 
@@ -63,10 +49,8 @@ public sealed class UserController : ControllerBase
     {
         var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
-        var userLoginData = _usersLoginDataDeserializer.Deserialize(body);
-
         var result =
-            await _usersDataHandler.TryLoginUser(userLoginData, token);
+            await _usersDataHandler.TryLoginUser(body, token);
 
         var json = JsonConvert.SerializeObject(result);
 
@@ -79,9 +63,7 @@ public sealed class UserController : ControllerBase
     {
         var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
-        var logoutData = _userLogoutByIdDeserializer.Deserialize(body);
-
-        var result = await _usersDataHandler.TryLogoutUser(logoutData, token);
+        var result = await _usersDataHandler.TryLogoutUser(body, token);
 
         var json = JsonConvert.SerializeObject(result);
 
@@ -93,10 +75,8 @@ public sealed class UserController : ControllerBase
     public async Task<IActionResult> GetInfoAsync(CancellationToken token)
     {
         var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
-
-        var userInfoByIdRequest = _userInfoByIdDeserializer.Deserialize(body);
         
-        var userInfoResponse = await _usersDataHandler.GetUserInfo(userInfoByIdRequest, token);
+        var userInfoResponse = await _usersDataHandler.GetUserInfo(body, token);
 
         Debug.Assert(userInfoResponse != null);
 
@@ -111,11 +91,7 @@ public sealed class UserController : ControllerBase
     {
         var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
-        var updateUserInfo = JsonConvert.DeserializeObject<UserUpdateInfoDTO>(body);
-
-        Debug.Assert(updateUserInfo != null);
-
-        var response = await _usersDataHandler.UpdateUserInfo(updateUserInfo, token);
+        var response = await _usersDataHandler.UpdateUserInfo(body, token);
 
         var json = JsonConvert.SerializeObject(response);
 
@@ -128,11 +104,7 @@ public sealed class UserController : ControllerBase
     {
         var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
-        var updateUserRole = JsonConvert.DeserializeObject<UserUpdateRoleDTO>(body);
-
-        Debug.Assert(updateUserRole != null);
-
-        var response = await _usersDataHandler.UpdateUserRoleAsync(updateUserRole, token);
+        var response = await _usersDataHandler.UpdateUserRoleAsync(body, token);
 
         var json = JsonConvert.SerializeObject(response);
 

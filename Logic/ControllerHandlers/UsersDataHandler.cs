@@ -15,6 +15,7 @@ using PostgreSQL.Abstractions;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using Logic.Transport.Serialization;
 
 namespace Logic.ControllerHandlers;
 
@@ -26,6 +27,10 @@ public sealed class UsersDataHandler
         IOptions<RootConfiguration> rootConfiguration,
         ISMTPSender usersCodeConfirmer,
         ISerializer<UserInfoContent> userInfoSerializer,
+        IDeserializer<UserRegistrationData> usersRegistrationDataDeserializer,
+        IDeserializer<UserLoginData> usersLoginDataDeserializer,
+        IDeserializer<UserInfoById> userInfoByIdDeserializer,
+        IDeserializer<UserLogoutDeviceById> userLogoutByIdDeserializer,
         ILogger<UsersDataHandler> logger)
     {
         ArgumentNullException.ThrowIfNull(rootConfiguration);
@@ -41,18 +46,33 @@ public sealed class UsersDataHandler
         _userInfoSerializer = userInfoSerializer
             ?? throw new ArgumentNullException(nameof(userInfoSerializer));
 
+        _usersRegistrationDataDeserializer = usersRegistrationDataDeserializer
+            ?? throw new ArgumentNullException(nameof(usersRegistrationDataDeserializer));
+
+        _usersLoginDataDeserializer = usersLoginDataDeserializer
+            ?? throw new ArgumentNullException(nameof(usersLoginDataDeserializer));
+
+        _userInfoByIdDeserializer = userInfoByIdDeserializer
+            ?? throw new ArgumentNullException(nameof(userInfoByIdDeserializer));
+
+        _userLogoutByIdDeserializer = userLogoutByIdDeserializer
+            ?? throw new ArgumentNullException(nameof(userLogoutByIdDeserializer));
+
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task<Response> TryRegisterUser(
-        UserRegistrationData registrationData,
+        string registrationData,
         CancellationToken token)
     {
-        ArgumentNullException.ThrowIfNull(registrationData);
+        ArgumentException.ThrowIfNullOrEmpty(registrationData);
 
         token.ThrowIfCancellationRequested();
 
-        var email = registrationData.Email;
+        var userRegistrationData =
+            _usersRegistrationDataDeserializer.Deserialize(registrationData);
+
+        var email = userRegistrationData.Email;
 
         var existedUser =
            await _usersUnitOfWork.UsersRepository
@@ -75,8 +95,8 @@ public sealed class UsersDataHandler
         var shortUserInfo = new ShortUserInfo
         {
             UserEmail = email,
-            UserName = registrationData.UserName,
-            UserPhone = registrationData.PhoneNumber
+            UserName = userRegistrationData.UserName,
+            UserPhone = userRegistrationData.PhoneNumber
         };
 
         var confirmResponse =
@@ -112,9 +132,9 @@ public sealed class UsersDataHandler
         user.Role = DEFAULT_USER_ROLE;
         user.AccountCreation = registrationTime;
         user.Email = email;
-        user.UserName = registrationData.UserName;
-        user.Password = registrationData.Password;
-        user.PhoneNumber = registrationData.PhoneNumber;
+        user.UserName = userRegistrationData.UserName;
+        user.Password = userRegistrationData.Password;
+        user.PhoneNumber = userRegistrationData.PhoneNumber;
         user.GroupingMaps = new List<GroupingUsersMap>();
         user.TasksForImplementation = new List<UserTask>();
         user.EventMaps = new List<EventsUsersMap>();
@@ -131,7 +151,7 @@ public sealed class UsersDataHandler
 
         _usersUnitOfWork.SaveChanges();
 
-        var currentFirebaseToken = registrationData.FirebaseToken;
+        var currentFirebaseToken = userRegistrationData.FirebaseToken;
 
         var userDeviceMap = new UserDeviceMap();
 
@@ -163,14 +183,16 @@ public sealed class UsersDataHandler
     }
 
     public async Task<Response> TryLoginUser(
-        UserLoginData loginData,
+        string loginData,
         CancellationToken token)
     {
-        ArgumentNullException.ThrowIfNull(loginData);
+        ArgumentException.ThrowIfNullOrEmpty(loginData);
 
         token.ThrowIfCancellationRequested();
 
-        var email = loginData.Email;
+        var userLoginData = _usersLoginDataDeserializer.Deserialize(loginData);
+
+        var email = userLoginData.Email;
 
         var existedUser =
             await _usersUnitOfWork.UsersRepository
@@ -189,7 +211,7 @@ public sealed class UsersDataHandler
             return await Task.FromResult(response1);
         }
 
-        if (existedUser.Password != loginData.Password)
+        if (existedUser.Password != userLoginData.Password)
         {
             _logger.LogInformation("Password not equals");
 
@@ -208,7 +230,7 @@ public sealed class UsersDataHandler
 
         var loginTime = DateTimeOffset.UtcNow;
 
-        var currentFirebaseToken = loginData.FirebaseToken;
+        var currentFirebaseToken = userLoginData.FirebaseToken;
 
         var userDeviceMap = new UserDeviceMap();
 
@@ -238,15 +260,17 @@ public sealed class UsersDataHandler
     }
 
     public async Task<Response> TryLogoutUser(
-        UserLogoutDeviceById logoutData,
+        string logoutData,
         CancellationToken token)
     {
-        ArgumentNullException.ThrowIfNull(logoutData);
+        ArgumentException.ThrowIfNullOrEmpty(logoutData);
 
         token.ThrowIfCancellationRequested();
 
-        var userId = logoutData.UserId;
-        var firebaseToken = logoutData.FirebaseToken;
+        var userLogoutData = _userLogoutByIdDeserializer.Deserialize(logoutData);
+
+        var userId = userLogoutData.UserId;
+        var firebaseToken = userLogoutData.FirebaseToken;
 
         var existedUser =
             await _usersUnitOfWork.UsersRepository
@@ -306,22 +330,26 @@ public sealed class UsersDataHandler
     }
 
     public async Task<GetResponse> GetUserInfo(
-        UserInfoById userInfoById,
+        string userInfoById,
         CancellationToken token)
     {
-        ArgumentNullException.ThrowIfNull(userInfoById);
+        ArgumentException.ThrowIfNullOrEmpty(userInfoById);
 
         token.ThrowIfCancellationRequested();
 
+        var userInfoByIdRequest = _userInfoByIdDeserializer.Deserialize(userInfoById);
+
         var user =
             await _usersUnitOfWork.UsersRepository
-            .GetUserByIdAsync(userInfoById.UserId, token);
+            .GetUserByIdAsync(userInfoByIdRequest.UserId, token);
 
         if (user == null)
         {
             var response1 = new GetResponse();
             response1.Result = false;
-            response1.OutInfo = $"No such user with id {userInfoById.UserId} found in db";
+            response1.OutInfo = 
+                $"No such user with id" +
+                $" {userInfoByIdRequest.UserId} found in db";
 
             return await Task.FromResult(response1);
         }
@@ -332,7 +360,7 @@ public sealed class UsersDataHandler
         response.Result = true;
         response.OutInfo =
             $"Info about user with with id" +
-            $" {userInfoById.UserId} has been received";
+            $" {userInfoByIdRequest.UserId} has been received";
 
         response.RequestedInfo = _userInfoSerializer.Serialize(userInfoContent);
 
@@ -340,12 +368,19 @@ public sealed class UsersDataHandler
     }
 
     public async Task<Response> UpdateUserInfo(
-        UserUpdateInfoDTO userUpdateInfo,
+        string userUpdateInfo,
         CancellationToken token)
     {
-        ArgumentNullException.ThrowIfNull(userUpdateInfo);
+        ArgumentException.ThrowIfNullOrEmpty(userUpdateInfo);
 
-        var userId = userUpdateInfo.UserId;
+        token.ThrowIfCancellationRequested();
+
+        var updateUserInfo = 
+            JsonConvert.DeserializeObject<UserUpdateInfoDTO>(userUpdateInfo);
+
+        Debug.Assert(updateUserInfo != null);
+
+        var userId = updateUserInfo.UserId;
 
         var existedUser = await _usersUnitOfWork.UsersRepository
             .GetUserByIdAsync(userId, token);
@@ -365,27 +400,27 @@ public sealed class UsersDataHandler
 
             var numbers_of_new_params = 0;
 
-            if (!string.IsNullOrWhiteSpace(userUpdateInfo.UserName))
+            if (!string.IsNullOrWhiteSpace(updateUserInfo.UserName))
             {
-                existedUser.UserName = userUpdateInfo.UserName;
+                existedUser.UserName = updateUserInfo.UserName;
                 numbers_of_new_params++;
             }
 
-            if (!string.IsNullOrWhiteSpace(userUpdateInfo.Email))
+            if (!string.IsNullOrWhiteSpace(updateUserInfo.Email))
             {
-                existedUser.Email = userUpdateInfo.Email;
+                existedUser.Email = updateUserInfo.Email;
                 numbers_of_new_params++;
             }
 
-            if (!string.IsNullOrWhiteSpace(userUpdateInfo.Password))
+            if (!string.IsNullOrWhiteSpace(updateUserInfo.Password))
             {
-                existedUser.Password = userUpdateInfo.Password;
+                existedUser.Password = updateUserInfo.Password;
                 numbers_of_new_params++;
             }
 
-            if (!string.IsNullOrWhiteSpace(userUpdateInfo.PhoneNumber))
+            if (!string.IsNullOrWhiteSpace(updateUserInfo.PhoneNumber))
             {
-                existedUser.PhoneNumber = userUpdateInfo.PhoneNumber;
+                existedUser.PhoneNumber = updateUserInfo.PhoneNumber;
                 numbers_of_new_params++;
             }
 
@@ -424,14 +459,19 @@ public sealed class UsersDataHandler
     }
 
     public async Task<Response> UpdateUserRoleAsync(
-        UserUpdateRoleDTO userUpdateRoleDTO,
+        string userUpdateRoleDTO,
         CancellationToken token)
     {
-        ArgumentNullException.ThrowIfNull(userUpdateRoleDTO);
+        ArgumentException.ThrowIfNullOrEmpty(userUpdateRoleDTO);
 
         token.ThrowIfCancellationRequested();
 
-        var userId = userUpdateRoleDTO.UserId;
+        var updateUserRole = 
+            JsonConvert.DeserializeObject<UserUpdateRoleDTO>(userUpdateRoleDTO);
+
+        Debug.Assert(updateUserRole != null);
+
+        var userId = updateUserRole.UserId;
 
         var existedUser = await _usersUnitOfWork.UsersRepository
             .GetUserByIdAsync(userId, token);
@@ -445,7 +485,7 @@ public sealed class UsersDataHandler
             return await Task.FromResult(response1);
         }
 
-        var requestedRole = userUpdateRoleDTO.NewRole;
+        var requestedRole = updateUserRole.NewRole;
 
         if (existedUser.Role == requestedRole)
         {
@@ -474,12 +514,12 @@ public sealed class UsersDataHandler
             return await Task.FromResult(response1);
         }
 
-        if (userUpdateRoleDTO.RootPassword != _rootConfiguration.RootPassword)
+        if (updateUserRole.RootPassword != _rootConfiguration.RootPassword)
         {
             var response1 = new Response();
             response1.Result = false;
 
-            if (string.IsNullOrWhiteSpace(userUpdateRoleDTO.RootPassword))
+            if (string.IsNullOrWhiteSpace(updateUserRole.RootPassword))
             {
                 response1.OutInfo = $"Request was added with empty or white-spaces password";
             }
@@ -487,7 +527,7 @@ public sealed class UsersDataHandler
             {
                 response1.OutInfo =
                     $"Request has illegal root password" +
-                    $" {userUpdateRoleDTO.RootPassword}";
+                    $" {updateUserRole.RootPassword}";
             }
 
             return await Task.FromResult(response1);
@@ -734,4 +774,9 @@ public sealed class UsersDataHandler
     private readonly ISerializer<UserInfoContent> _userInfoSerializer;
     private readonly RootConfiguration _rootConfiguration;
     private readonly ILogger _logger;
+
+    private readonly IDeserializer<UserRegistrationData> _usersRegistrationDataDeserializer;
+    private readonly IDeserializer<UserLoginData> _usersLoginDataDeserializer;
+    private readonly IDeserializer<UserInfoById> _userInfoByIdDeserializer;
+    private readonly IDeserializer<UserLogoutDeviceById> _userLogoutByIdDeserializer;
 }
