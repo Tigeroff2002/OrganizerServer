@@ -1,13 +1,12 @@
-﻿using Models;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Models.BusinessModels;
-using Models.Enums;
 using Models.StorageModels;
-using Newtonsoft.Json.Linq;
 using PostgreSQL.Abstractions;
 using System.Net;
 using System.Text.Json;
 
-namespace ToDoCalendarServer.Controllers;
+namespace Logic;
 
 public sealed class CustomExceptionsHandler
 {
@@ -18,7 +17,7 @@ public sealed class CustomExceptionsHandler
     {
         _next = next ?? throw new ArgumentNullException(nameof(next));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _alertsRepository = alertsRepository 
+        _alertsRepository = alertsRepository
             ?? throw new ArgumentNullException(nameof(alertsRepository));
     }
 

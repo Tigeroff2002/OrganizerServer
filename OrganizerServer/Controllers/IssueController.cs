@@ -2,6 +2,7 @@
 using Contracts.Request;
 using Contracts.Request.RequestById;
 using Contracts.Response;
+using Logic.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Models;
@@ -11,6 +12,7 @@ using Models.StorageModels;
 using Newtonsoft.Json;
 using PostgreSQL.Abstractions;
 using System.Diagnostics;
+using static Google.Apis.Requests.BatchRequest;
 
 namespace ToDoCalendarServer.Controllers;
 
@@ -18,15 +20,10 @@ namespace ToDoCalendarServer.Controllers;
 [Route("issues")]
 public sealed class IssueController : ControllerBase
 {
-    public IssueController(
-        IIssuesRepository issuesRepository,
-        IUsersRepository usersRepository)
+    public IssueController(IIssuesHandler issuesHandler)
     {
-        _issuesRepository = issuesRepository
-           ?? throw new ArgumentNullException(nameof(issuesRepository));
-
-        _usersRepository = usersRepository
-            ?? throw new ArgumentNullException(nameof(usersRepository));
+        _issuesHandler = issuesHandler
+            ?? throw new ArgumentNullException(nameof(issuesHandler));
     }
 
     [HttpPost]
@@ -36,55 +33,11 @@ public sealed class IssueController : ControllerBase
     {
         var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
-        var issueToCreate = JsonConvert.DeserializeObject<IssueInputDTO>(body);
-
-        Debug.Assert(issueToCreate != null);
-
-        var userId = issueToCreate.UserId;
-        var issueType = issueToCreate.IssueType;
-
-        var user = await _usersRepository.GetUserByIdAsync(userId, token);
-
-        if (user == null)
-        {
-            var response1 = new Response();
-            response1.Result = false;
-            response1.OutInfo = 
-                $"Issue has not been created cause" +
-                $" current user with id {userId} was not found";
-
-            return BadRequest(JsonConvert.SerializeObject(response1));
-        }
-
-        var issueMoment = DateTimeOffset.UtcNow;
-
-        var issue = new Issue
-        {
-            Title = issueToCreate.Title,
-            Status = IssueStatus.Reported,
-            IssueType = issueType,
-            Description = issueToCreate.Description,
-            IssueMoment = issueMoment,
-            ImgLink = issueToCreate.ImgLink,
-            UserId = user.Id
-        };
-
-        await _issuesRepository.AddAsync(issue, token);
-
-        _issuesRepository.SaveChanges();
-
-        var issueId = issue.Id;
-
-        var response = new Response();
-        response.Result = true;
-        response.OutInfo =
-            $"New snapshot with id = {issueId}" +
-            $" by user '{user.UserName}'" +
-            $" with type '{issueType}' has been created";
+        var response = await _issuesHandler.TryCreateIssue(body, token);
 
         var json = JsonConvert.SerializeObject(response);
 
-        return Ok(json);
+        return response.Result ? Ok(json) : BadRequest(json);
     }
 
     [Route("update_issue_params")]
@@ -93,103 +46,11 @@ public sealed class IssueController : ControllerBase
     {
         var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
-        var issueUpdateParams = JsonConvert.DeserializeObject<IssueInputWithIdDTO>(body);
+        var response = await _issuesHandler.TryUpdateIssue(body, token);
 
-        Debug.Assert(issueUpdateParams != null);
+        var json = JsonConvert.SerializeObject(response);
 
-        var issueId = issueUpdateParams.IssueId;
-
-        var existedIssue = await _issuesRepository.GetIssueByIdAsync(issueId, token);
-
-        var currentUserId = issueUpdateParams.UserId;
-
-        if (existedIssue != null)
-        {
-            var currentUser = await _usersRepository.GetUserByIdAsync(currentUserId, token);
-
-            if (currentUser == null)
-            {
-                var response1 = new Response();
-                response1.Result = false;
-                response1.OutInfo =
-                    $"Issue has not been modified cause user" +
-                    $" with id {currentUserId} is not found in db";
-
-                return BadRequest(JsonConvert.SerializeObject(response1));
-            }
-
-            if (existedIssue.UserId != currentUserId)
-            {
-                var response1 = new Response();
-                response1.Result = false;
-                response1.OutInfo = 
-                    $"Issue has not been modified cause user" +
-                    $" with id {currentUserId} not relate to thats creator";
-
-                return BadRequest(JsonConvert.SerializeObject(response1));
-            }
-
-            var response = new Response();
-
-            var numbers_of_new_params = 0;
-
-            if (!string.IsNullOrWhiteSpace(issueUpdateParams.Title))
-            {
-                existedIssue.Title = issueUpdateParams.Title;
-                numbers_of_new_params++;
-            }
-
-            if (!string.IsNullOrWhiteSpace(issueUpdateParams.Description))
-            {
-                existedIssue.Description = issueUpdateParams.Description;
-                numbers_of_new_params++;
-            }
-
-            if (issueUpdateParams.IssueType != IssueType.None)
-            {
-                existedIssue.IssueType = issueUpdateParams.IssueType;
-                numbers_of_new_params++;
-            }
-
-            if (issueUpdateParams.IssueStatus != IssueStatus.None)
-            {
-                existedIssue.Status = issueUpdateParams.IssueStatus;
-                numbers_of_new_params++;
-            }
-
-            if (!string.IsNullOrWhiteSpace(issueUpdateParams.ImgLink))
-            {
-                existedIssue.ImgLink = issueUpdateParams.ImgLink;
-                numbers_of_new_params++;
-            }
-
-            if (numbers_of_new_params > 0)
-            {
-                await _issuesRepository.UpdateAsync(existedIssue, token);
-
-                _issuesRepository.SaveChanges();
-
-                response.OutInfo = $"Issue with id {issueId} has been modified";
-            }
-            else
-            {
-                response.OutInfo =
-                    $"Issue with id {issueId} has all same parameters" +
-                    $" so it has not been modified";
-            }
-
-            response.Result = true;
-
-            var json = JsonConvert.SerializeObject(response);
-
-            return Ok(json);
-        }
-
-        var response2 = new Response();
-        response2.Result = false;
-        response2.OutInfo = $"No such issue with id {issueId}";
-
-        return BadRequest(JsonConvert.SerializeObject(response2));
+        return response.Result ? Ok(json) : BadRequest(json);
     }
 
     [Route("delete_issue")]
@@ -198,45 +59,11 @@ public sealed class IssueController : ControllerBase
     {
         var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
-        var issueToDelete = JsonConvert.DeserializeObject<IssueIdDTO>(body);
+        var response = await _issuesHandler.TryDeleteIssue(body, token);
 
-        Debug.Assert(issueToDelete != null);
+        var json = JsonConvert.SerializeObject(response);
 
-        var issueId = issueToDelete.IssueId;
-
-        var existedIssue = await _issuesRepository.GetIssueByIdAsync(issueId, token);
-
-        if (existedIssue != null)
-        {
-            var userId = existedIssue!.UserId;
-
-            if (issueToDelete.UserId != userId)
-            {
-                var response1 = new Response();
-                response1.Result = false;
-                response1.OutInfo = 
-                    $"Issue has not been deleted cause" +
-                    $" current user with id {issueToDelete.UserId} is not its creator";
-
-                return BadRequest(JsonConvert.SerializeObject(response1));
-            }
-
-            await _issuesRepository.DeleteAsync(issueId, token);
-
-            _issuesRepository.SaveChanges();
-
-            var response = new Response();
-            response.Result = true;
-            response.OutInfo = $"Issue with id {issueId} was deleted by creator";
-
-            return Ok(JsonConvert.SerializeObject(response));
-        }
-
-        var response2 = new Response();
-        response2.Result = false;
-        response2.OutInfo = $"No such issue with id {issueId}";
-
-        return BadRequest(JsonConvert.SerializeObject(response2));
+        return response.Result ? Ok(json) : BadRequest(json);
     }
 
     [Route("get_issue_info")]
@@ -245,70 +72,11 @@ public sealed class IssueController : ControllerBase
     {
         var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
-        var issueWithIdRequest = JsonConvert.DeserializeObject<IssueIdDTO>(body);
+        var response = await _issuesHandler.GetIssueInfo(body, token);
 
-        Debug.Assert(issueWithIdRequest != null);
+        var json = JsonConvert.SerializeObject(response);
 
-        var issueId = issueWithIdRequest.IssueId;
-
-        var existedIssue = await _issuesRepository.GetIssueByIdAsync(issueId, token);
-
-        if (existedIssue != null)
-        {
-            var userId = existedIssue!.UserId;
-
-            var manager = await _usersRepository.GetUserByIdAsync(userId, token);
-
-            if (manager == null)
-            {
-                var response1 = new Response();
-                response1.Result = false;
-                response1.OutInfo = 
-                    $"Cant take info about issue cause " +
-                    $"user with id {userId} is not found in db";
-
-                return BadRequest(JsonConvert.SerializeObject(response1));
-            }
-
-            if (issueWithIdRequest.UserId != userId)
-            {
-                var response1 = new Response();
-                response1.Result = false;
-                response1.OutInfo =
-                    $"Cant take info about issue cause user with id" +
-                    $" {issueWithIdRequest.UserId} is not its manager";
-
-                return BadRequest(JsonConvert.SerializeObject(response1));
-            }
-
-            var issueInfo = new IssueInfoResponse
-            {
-                IssueId = existedIssue.Id,
-                Title = existedIssue.Title,
-                IssueType = existedIssue.IssueType,
-                IssueStatus = existedIssue.Status,
-                Description = existedIssue.Description,
-                ImgLink = existedIssue.ImgLink,
-                CreateMoment = existedIssue.IssueMoment
-            };
-
-            var getResponse = new GetResponse();
-            getResponse.Result = true;
-            getResponse.OutInfo =
-                $"Info about issue with id {issueId}" +
-                $" by user with id {userId} was received";
-            getResponse.RequestedInfo = issueInfo;
-
-            var json = JsonConvert.SerializeObject(getResponse);
-
-            return Ok(json);
-        }
-
-        var response2 = new Response();
-        response2.Result = false;
-        response2.OutInfo = $"No such issue with id {issueId}";
-
-        return BadRequest(JsonConvert.SerializeObject(response2));
+        return response.Result ? Ok(json) : BadRequest(json);
     }
 
     [Route("get_all_issues")]
@@ -317,77 +85,12 @@ public sealed class IssueController : ControllerBase
     {
         var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
-        var requestDTO = JsonConvert.DeserializeObject<RequestWithToken>(body);
+        var response = await _issuesHandler.GetAllIssuesInfo(body, token);
 
-        Debug.Assert(requestDTO != null);
+        var json = JsonConvert.SerializeObject(response);
 
-        var userId = requestDTO.UserId;
-
-        var existedUser = await _usersRepository.GetUserByIdAsync(userId, token);
-
-        if (existedUser == null)
-        {
-            var response1 = new Response();
-            response1.Result = false;
-            response1.OutInfo =
-                $"Cant take info about issues cause " +
-                $"user with id {userId} is not found in db";
-
-            return BadRequest(JsonConvert.SerializeObject(response1));
-        }
-
-        if (existedUser.Role != UserRole.Admin)
-        {
-            var response1 = new Response();
-            response1.Result = false;
-            response1.OutInfo =
-                $"Cant take info about issues cause " +
-                $"user with id {userId} is not system administrator";
-
-            return Forbid(JsonConvert.SerializeObject(response1));
-        }
-        
-        var allUsers = 
-            await _usersRepository.GetAllUsersAsync(token);
-
-        var allIssues =
-            _issuesRepository
-                .GetAllIssuesAsync(token)
-                .GetAwaiter().GetResult()
-                .Where(x => x.Status != IssueStatus.Closed)
-                .Select(x => new FullIssueInfoResponse
-                {
-                    IssueId = x.Id,
-                    Title = x.Title,
-                    IssueType = x.IssueType,
-                    IssueStatus = x.Status,
-                    Description = x.Description,
-                    ImgLink = x.ImgLink,
-                    CreateMoment = x.IssueMoment,
-                    UserName =
-                        allUsers
-                            .FirstOrDefault(u => u.Id == x.UserId)!
-                            .UserName
-                })
-                .ToList();
-
-        var issuesResponseModel = new SystemIssuesResponse
-        {
-            Issues = allIssues
-        };
-        
-        var getResponse = new GetResponse();
-        getResponse.Result = true;
-        getResponse.OutInfo =
-            $"Info about all users not closed issues" +
-            $" for admin with id {userId} was received";
-        getResponse.RequestedInfo = issuesResponseModel;
-        
-        var json = JsonConvert.SerializeObject(getResponse);
-        
-        return Ok(json);
+        return response.Result ? Ok(json) : BadRequest(json);
     }
 
-    private readonly IIssuesRepository _issuesRepository;
-    private readonly IUsersRepository _usersRepository;
+    private readonly IIssuesHandler _issuesHandler;
 }

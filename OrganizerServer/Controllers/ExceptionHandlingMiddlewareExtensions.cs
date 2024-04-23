@@ -1,4 +1,6 @@
-﻿namespace ToDoCalendarServer.Controllers;
+﻿using Logic;
+
+namespace ToDoCalendarServer.Controllers;
 
 public static class ExceptionHandlingMiddlewareExtensions
 {

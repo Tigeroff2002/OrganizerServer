@@ -35,12 +35,15 @@ public static class Registrations
         => services
             .AddNotificationLogic()
             .AddNotificationsTransport()
+
             .AddSingleton<IUsersDataHandler, UsersDataHandler>()
             .AddSingleton<IGroupsHandler, GroupsHandler>()
             .AddSingleton<IEventsHandler, EventsHandler>()
             .AddSingleton<ITasksHandler, TasksHandler>()
             .AddSingleton<IIssuesHandler, IssuesHandler>()
             .AddSingleton<ISnapshotsHandler, SnapshotsHandler>()
+            .AddSingleton<IAlertsReceiverHandler, AlertsReceiverHandler>()
+
             .AddConfigurations(configuration);
 
     public static IServiceCollection AddNotificationLogic(
