@@ -1,7 +1,427 @@
-﻿using Logic.Abstractions;
+﻿using Contracts;
+using Contracts.Request.RequestById;
+using Contracts.Response;
+using Logic.Abstractions;
+using Models.BusinessModels;
+using Models.Enums;
+using Models.StorageModels;
+using Newtonsoft.Json;
+using PostgreSQL;
+using PostgreSQL.Abstractions;
+using System.Diagnostics;
 
 namespace Logic.ControllerHandlers;
 
 public sealed class TasksHandler : ITasksHandler
 {
+    public TasksHandler(ICommonUsersUnitOfWork commonUnitOfWork)
+    {
+        _commonUnitOfWork = commonUnitOfWork
+            ?? throw new ArgumentNullException(nameof(commonUnitOfWork));
+    }
+
+    public async Task<Response> TryCreateTask(
+        string createData, 
+        CancellationToken token)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(createData);
+
+        token.ThrowIfCancellationRequested();
+
+        var taskToCreate = 
+            JsonConvert.DeserializeObject<TaskInputDTO>(createData);
+
+        Debug.Assert(taskToCreate != null);
+
+        var reporterId = taskToCreate.UserId;
+        var implementerId = taskToCreate.ImplementerId;
+
+        var reporter = await _commonUnitOfWork
+            .UsersRepository
+            .GetUserByIdAsync(reporterId, token);
+
+        var implementer = await _commonUnitOfWork
+            .UsersRepository
+            .GetUserByIdAsync(implementerId, token);
+
+        if (reporter == null)
+        {
+            var response1 = new Response();
+            response1.Result = false;
+            response1.OutInfo =
+                $"Task has not been created cause" +
+                $" current user with id {reporterId} was not found";
+
+            return await Task.FromResult(response1);
+        }
+
+        if (implementer == null)
+        {
+            var response1 = new Response();
+            response1.Result = false;
+            response1.OutInfo =
+                $"Task has not been created cause" +
+                $" user with id {implementerId} was not found";
+
+            return await Task.FromResult(response1);
+        }
+
+        var task = new UserTask
+        {
+            Caption = taskToCreate.TaskCaption,
+            Description = taskToCreate.TaskDescription,
+            TaskType = taskToCreate.TaskType,
+            TaskStatus = taskToCreate.TaskStatus,
+            ReporterId = reporter.Id,
+            ImplementerId = implementer.Id
+        };
+
+        if (task.TaskType is TaskType.AbstractGoal or TaskType.MeetingPresense)
+        {
+            task.ImplementerId = task.ReporterId;
+        }
+
+        await _commonUnitOfWork.TasksRepository.AddAsync(task, token);
+
+        _commonUnitOfWork.SaveChanges();
+
+        var taskId = task.Id;
+
+        var response = new Response();
+        response.Result = true;
+        response.OutInfo =
+            $"New task with id = {taskId}" +
+            $" for user '{implementer.UserName}'" +
+            $" implementation was created";
+
+        return await Task.FromResult(response);
+    }
+
+    public async Task<Response> TryUpdateTask(
+        string updateData,
+        CancellationToken token)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(updateData);
+
+        token.ThrowIfCancellationRequested();
+
+        var taskUpdateParams = 
+            JsonConvert.DeserializeObject<TaskInputWithIdDTO>(updateData);
+
+        Debug.Assert(taskUpdateParams != null);
+
+        var taskId = taskUpdateParams.TaskId;
+
+        var existedTask = await _commonUnitOfWork
+            .TasksRepository
+            .GetTaskByIdAsync(
+            taskUpdateParams.TaskId, token);
+
+        var reporterId = taskUpdateParams.UserId;
+        var implementerId = taskUpdateParams.ImplementerId;
+
+        if (existedTask != null)
+        {
+            var reporter = await _commonUnitOfWork
+                .UsersRepository
+                .GetUserByIdAsync(reporterId, token);
+
+            var implementer = await _commonUnitOfWork
+                .UsersRepository
+                .GetUserByIdAsync(implementerId, token);
+
+            if (reporter != null && implementer != null)
+            {
+                existedTask.Reporter = reporter;
+                existedTask.Implementer = implementer;
+            }
+
+            if (existedTask.Reporter.Id != taskUpdateParams.UserId)
+            {
+                var response1 = new Response();
+                response1.Result = false;
+                response1.OutInfo =
+                    $"Task has not been modified cause" +
+                    $" current user with id {taskUpdateParams.UserId}" +
+                    $" not relate to thats reporter";
+
+                return await Task.FromResult(response1);
+            }
+
+            var response = new Response();
+
+            var numbers_of_new_params = 0;
+
+            if (!string.IsNullOrWhiteSpace(taskUpdateParams.TaskCaption))
+            {
+                existedTask.Caption = taskUpdateParams.TaskCaption;
+                numbers_of_new_params++;
+            }
+
+            if (!string.IsNullOrWhiteSpace(taskUpdateParams.TaskDescription))
+            {
+                existedTask.Description = taskUpdateParams.TaskDescription;
+                numbers_of_new_params++;
+            }
+
+            if (taskUpdateParams.TaskType != TaskType.None)
+            {
+                existedTask.TaskType = taskUpdateParams.TaskType;
+                numbers_of_new_params++;
+            }
+
+            if (taskUpdateParams.TaskStatus != TaskCurrentStatus.None)
+            {
+                existedTask.TaskStatus = taskUpdateParams.TaskStatus;
+                numbers_of_new_params++;
+            }
+
+            if (taskUpdateParams.ImplementerId != -1)
+            {
+                var currentImplementerId = taskUpdateParams.ImplementerId;
+
+                implementer = await _commonUnitOfWork
+                    .UsersRepository
+                    .GetUserByIdAsync(currentImplementerId, token);
+
+                if (implementer == null)
+                {
+                    var response1 = new Response();
+                    response1.Result = false;
+                    response1.OutInfo =
+                        $"Task has not been modified cause" +
+                        $" new implementer with id {currentImplementerId} was not found";
+
+                    return await Task.FromResult(response1);
+                }
+
+                existedTask.Implementer = implementer;
+
+                numbers_of_new_params++;
+            }
+
+            if (numbers_of_new_params > 0)
+            {
+                await _commonUnitOfWork
+                    .TasksRepository
+                    .UpdateAsync(existedTask, token);
+
+                response.OutInfo = $"Task with id {taskId} has been modified";
+            }
+            else
+            {
+                response.OutInfo =
+                    $"Task with id {taskId} has all same parameters" +
+                    $" so it has not been modified";
+            }
+
+            _commonUnitOfWork.SaveChanges();
+
+            response.Result = true;
+
+            return await Task.FromResult(response);
+        }
+
+        var response2 = new Response();
+        response2.Result = false;
+        response2.OutInfo = $"No such task with id {taskId}";
+
+        return await Task.FromResult(response2);
+    }
+
+    public async Task<Response> TryDeleteTask(
+        string deleteData,
+        CancellationToken token)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(deleteData);
+
+        token.ThrowIfCancellationRequested();
+
+        var taskToDelete = 
+            JsonConvert.DeserializeObject<TaskIdDTO>(deleteData);
+
+        Debug.Assert(taskToDelete != null);
+
+        var taskId = taskToDelete.TaskId;
+
+        var existedTask = await _commonUnitOfWork
+            .TasksRepository
+            .GetTaskByIdAsync(taskId, token);
+
+        var reporterId = taskToDelete.UserId;
+
+        if (existedTask != null)
+        {
+            var reporter = await _commonUnitOfWork
+                .UsersRepository
+                .GetUserByIdAsync(reporterId, token);
+
+            if (reporter != null)
+            {
+                existedTask.Reporter = reporter;
+            }
+            else
+            {
+                var response1 = new Response();
+                response1.Result = false;
+                response1.OutInfo =
+                    $"Task has not been deleted cause" +
+                    $" current user with id {reporterId} was not found";
+
+                return await Task.FromResult(response1);
+            }
+
+            if (reporterId != existedTask.Reporter.Id)
+            {
+                var response1 = new Response();
+                response1.Result = false;
+                response1.OutInfo =
+                    $"Task has not been deleted cause" +
+                    $" current user with id {reporterId} is not its reporter";
+
+                return await Task.FromResult(response1);
+            }
+
+            await _commonUnitOfWork.TasksRepository.DeleteAsync(taskId, token);
+
+            _commonUnitOfWork.SaveChanges();
+
+            var response = new Response();
+            response.Result = true;
+            response.OutInfo = $"Task with id {taskId} was deleted by reporter";
+
+            return await Task.FromResult(response);
+        }
+
+        var response2 = new Response();
+        response2.Result = false;
+        response2.OutInfo = $"No such task with id {taskId}";
+
+        return await Task.FromResult(response2);
+    }
+
+    public async Task<GetResponse> GetTaskInfo(
+        string taskInfoById,
+        CancellationToken token)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(taskInfoById);
+
+        token.ThrowIfCancellationRequested();
+
+        var taskWithIdRequest = 
+            JsonConvert.DeserializeObject<TaskIdDTO>(taskInfoById);
+
+        Debug.Assert(taskWithIdRequest != null);
+
+        var taskId = taskWithIdRequest.TaskId;
+
+        var existedTask = await _commonUnitOfWork
+            .TasksRepository
+            .GetTaskByIdAsync(taskId, token);
+
+        if (existedTask != null)
+        {
+            var reporterId = existedTask.ReporterId;
+            var implementerId = existedTask.ImplementerId;
+
+            var reporter = await _commonUnitOfWork
+                .UsersRepository
+                .GetUserByIdAsync(reporterId, token);
+
+            var implementer = await _commonUnitOfWork
+                .UsersRepository
+                .GetUserByIdAsync(implementerId, token);
+
+            if (reporter != null && implementer != null)
+            {
+                existedTask.Reporter = reporter;
+                existedTask.Implementer = implementer;
+            }
+            else if (reporter == null)
+            {
+                var response1 = new GetResponse();
+                response1.Result = false;
+                response1.OutInfo =
+                    $"Task info has not been received cause" +
+                    $" current user with id {reporterId} was not found";
+
+                return await Task.FromResult(response1);
+            }
+
+            if (taskWithIdRequest.UserId != existedTask.Reporter.Id
+                && taskWithIdRequest.UserId != existedTask.Implementer.Id)
+            {
+                var response1 = new GetResponse();
+                response1.Result = false;
+                response1.OutInfo =
+                    $"Cant take info about task {taskId} cause user" +
+                    $" is not its reporter or implementer";
+
+                return await Task.FromResult(response1);
+            }
+
+            if (reporter == null)
+            {
+                var response1 = new GetResponse();
+                response1.Result = false;
+                response1.OutInfo =
+                    $"Task info has not been received" +
+                    $" cause reporter of it was not found";
+
+                return await Task.FromResult(response1);
+            }
+
+            if (implementer == null)
+            {
+                var response1 = new GetResponse();
+                response1.Result = false;
+                response1.OutInfo =
+                    $"Task info has not been received" +
+                    $" cause implementer of it was not found";
+
+                return await Task.FromResult(response1);
+            }
+
+            var reporterInfo = new ShortUserInfo
+            {
+                UserEmail = reporter.Email,
+                UserName = reporter.UserName,
+                UserPhone = reporter.PhoneNumber
+            };
+
+            var implementerInfo = new ShortUserInfo
+            {
+                UserEmail = implementer.Email,
+                UserName = implementer.UserName,
+                UserPhone = reporter.PhoneNumber
+            };
+
+            var taskInfo = new TaskInfoResponse
+            {
+                TaskId = taskId,
+                TaskCaption = existedTask.Caption,
+                TaskDescription = existedTask.Description,
+                TaskType = existedTask.TaskType,
+                TaskStatus = existedTask.TaskStatus,
+                Reporter = reporterInfo,
+                Implementer = implementerInfo
+            };
+
+            var getReponse = new GetResponse();
+
+            getReponse.Result = true;
+            getReponse.OutInfo = $"Info about task with id {taskId} was received";
+            getReponse.RequestedInfo = taskInfo;
+
+            return await Task.FromResult(getReponse);
+        }
+
+        var response2 = new GetResponse();
+        response2.Result = false;
+        response2.OutInfo = $"No such task with id {taskId}";
+
+        return await Task.FromResult(response2);
+    }
+
+    private readonly ICommonUsersUnitOfWork _commonUnitOfWork;
 }
