@@ -1,7 +1,7 @@
 ﻿using Logic.Abstractions;
 using Microsoft.Extensions.Logging;
 
-namespace Logic;
+namespace Logic.Notifications;
 
 public sealed class NotificationsHandler
     : INotificationsHandler

@@ -1,11 +1,10 @@
 ﻿using Contracts.Request.RequestById;
 using Logic.Transport.Abstractions;
-using Models.BusinessModels;
 using Models.UserActionModels;
 using Newtonsoft.Json;
 using System.Diagnostics;
 
-namespace Logic.Transport;
+namespace Logic.Transport.Serialization;
 
 public sealed class UserLogoutDeviceByIdDeserializer
     : IDeserializer<UserLogoutDeviceById>

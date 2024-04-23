@@ -1,4 +1,4 @@
-﻿namespace Logic;
+﻿namespace Logic.Notifications;
 
 public sealed class NotificationConfiguration
 {
@@ -8,3 +8,4 @@ public sealed class NotificationConfiguration
 
     public required int FutureStockDays { get; init; }
 }
+

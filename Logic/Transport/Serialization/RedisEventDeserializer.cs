@@ -1,15 +1,12 @@
-﻿using Contracts.RedisContracts;
-using Contracts.RedisContracts.AlertEvents;
+﻿using Contracts.RedisContracts.AlertEvents;
 using Contracts.RedisContracts.GroupEvents;
 using Contracts.RedisContracts.IssueEvents;
 using Contracts.RedisContracts.MeetEvents;
 using Contracts.RedisContracts.SnapshotEvents;
 using Contracts.RedisContracts.TaskEvents;
 using Contracts.RedisContracts.UserEvents;
-
+using Contracts.RedisContracts;
 using Logic.Transport.Abstractions;
-
-using Models.RedisEventModels;
 using Models.RedisEventModels.AlertEvents;
 using Models.RedisEventModels.GroupEvents;
 using Models.RedisEventModels.IssueEvents;
@@ -17,11 +14,11 @@ using Models.RedisEventModels.MeetEvents;
 using Models.RedisEventModels.SnapshotEvents;
 using Models.RedisEventModels.TaskEvents;
 using Models.RedisEventModels.UserEvents;
-
+using Models.RedisEventModels;
 using Newtonsoft.Json;
 using System.Diagnostics;
 
-namespace Logic.Transport;
+namespace Logic.Transport.Serialization;
 
 public sealed class RedisEventDeserializer
     : IDeserializer<BaseEvent>
@@ -38,61 +35,61 @@ public sealed class RedisEventDeserializer
 
         return rawDTO.EventType switch
         {
-            RawEventType.AlertCreated => 
+            RawEventType.AlertCreated =>
                 CreateAlertCreatedFromSource(reader),
 
-            RawEventType.GroupCreated => 
+            RawEventType.GroupCreated =>
                 CreateGroupCreatedFromSource(reader),
 
-            RawEventType.GroupParamsChanged => 
+            RawEventType.GroupParamsChanged =>
                 CreateGroupUpdatedFromSource(reader),
 
-            RawEventType.GroupParticipantDeleted => 
+            RawEventType.GroupParticipantDeleted =>
                 CreateParticipantDeletedCreatedFromSource(reader),
 
-            RawEventType.GroupParticipantInvited => 
+            RawEventType.GroupParticipantInvited =>
                 CreateParticipantInvitedFromSource(reader),
 
-            RawEventType.IssueCreated => 
+            RawEventType.IssueCreated =>
                 CreateIssueCreatedFromSource(reader),
 
-            RawEventType.IssueParamsChanged => 
+            RawEventType.IssueParamsChanged =>
                 CreateIssueUpdatedFromSource(reader),
 
-            RawEventType.IssueTerminalStatusReceived => 
+            RawEventType.IssueTerminalStatusReceived =>
                 CreateIssueTerminatedFromSource(reader),
 
-            RawEventType.MeetCreated => 
+            RawEventType.MeetCreated =>
                 CreateMeetCreatedFromSource(reader),
 
-            RawEventType.MeetGuestDeleted => 
+            RawEventType.MeetGuestDeleted =>
                 CreateMeetGuestDeletedFromSource(reader),
 
-            RawEventType.MeetGuestInvited => 
+            RawEventType.MeetGuestInvited =>
                 CreateMeetGuestInvitedFromSource(reader),
 
-            RawEventType.MeetParamsChanged => 
+            RawEventType.MeetParamsChanged =>
                 CreateMeetUpdatedFromSource(reader),
 
-            RawEventType.MeetSoonBegin => 
+            RawEventType.MeetSoonBegin =>
                 CreateMeetSoonBeginFromSource(reader),
 
-            RawEventType.MeetTerminalStatusReceived => 
+            RawEventType.MeetTerminalStatusReceived =>
                 CreateMeetTerminatedFromSource(reader),
 
-            RawEventType.SnapshotCreated => 
+            RawEventType.SnapshotCreated =>
                 CreateSnapshotCreatedFromSource(reader),
 
-            RawEventType.TaskAssignedEvent => 
+            RawEventType.TaskAssignedEvent =>
                 CreateTaskAssignedFromSource(reader),
 
-            RawEventType.TaskCreatedEvent => 
+            RawEventType.TaskCreatedEvent =>
                 CreateTaskCreatedFromSource(reader),
 
-            RawEventType.TaskParamsChanged => 
+            RawEventType.TaskParamsChanged =>
                 CreateTaskUpdatedFromSource(reader),
 
-            RawEventType.TaskTerminalStatusReceived => 
+            RawEventType.TaskTerminalStatusReceived =>
                 CreateTaskTerminatedFromSource(reader),
 
             RawEventType.TaskUnassignedEvent =>
@@ -121,7 +118,7 @@ public sealed class RedisEventDeserializer
         Debug.Assert(dto is not null);
 
         return new(
-            dto.Id, 
+            dto.Id,
             dto.IsCommited,
             dto.UserId,
             dto.AlertId,
@@ -137,9 +134,9 @@ public sealed class RedisEventDeserializer
 
         return new(
             dto.Id,
-            dto.IsCommited, 
+            dto.IsCommited,
             dto.UserId,
-            dto.GroupId, 
+            dto.GroupId,
             dto.CreatedMoment);
     }
 
@@ -151,11 +148,11 @@ public sealed class RedisEventDeserializer
         Debug.Assert(dto is not null);
 
         return new(
-            dto.Id, 
-            dto.IsCommited, 
-            dto.UserId, 
-            dto.GroupId, 
-            dto.UpdateMoment, 
+            dto.Id,
+            dto.IsCommited,
+            dto.UserId,
+            dto.GroupId,
+            dto.UpdateMoment,
             dto.Json);
     }
 
@@ -197,11 +194,11 @@ public sealed class RedisEventDeserializer
         Debug.Assert(dto is not null);
 
         return new(
-            dto.Id, 
-            dto.IsCommited, 
-            dto.UserId, 
-            dto.IssueId, 
-            dto.UpdateMoment, 
+            dto.Id,
+            dto.IsCommited,
+            dto.UserId,
+            dto.IssueId,
+            dto.UpdateMoment,
             dto.Json);
     }
 
@@ -293,10 +290,10 @@ public sealed class RedisEventDeserializer
 
         return new(
             dto.Id,
-            dto.IsCommited, 
+            dto.IsCommited,
             dto.UserId,
             dto.MeetId,
-            dto.TerminalMoment, 
+            dto.TerminalMoment,
             dto.TerminalStatus);
     }
 
@@ -339,10 +336,10 @@ public sealed class RedisEventDeserializer
 
         return new(
             dto.Id,
-            dto.IsCommited, 
-            dto.UserId, 
-            dto.TaskId, 
-            dto.UpdateMoment, 
+            dto.IsCommited,
+            dto.UserId,
+            dto.TaskId,
+            dto.UpdateMoment,
             dto.Json);
     }
 
@@ -385,7 +382,7 @@ public sealed class RedisEventDeserializer
 
         return new(
             dto.Id,
-            dto.IsCommited, 
+            dto.IsCommited,
             dto.UserId,
             dto.UpdateMoment,
             dto.Json);
@@ -429,7 +426,7 @@ public sealed class RedisEventDeserializer
 
         return new(
             dto.Id,
-            dto.IsCommited, 
+            dto.IsCommited,
             dto.UserId,
             dto.FirebaseToken,
             dto.AccountCreationMoment);
@@ -443,7 +440,7 @@ public sealed class RedisEventDeserializer
         Debug.Assert(dto is not null);
 
         return new(
-            dto.Id, 
+            dto.Id,
             dto.IsCommited,
             dto.UserId,
             dto.UpdateMoment,

@@ -2,16 +2,13 @@
 using Logic.Transport.Senders;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using MimeKit;
-using Models;
 using Models.Enums;
 using Models.StorageModels;
 using Models.UserActionModels;
 using PostgreSQL.Abstractions;
-using System.Net.Mail;
 using System.Text;
 
-namespace Logic;
+namespace Logic.Notifications;
 
 public sealed class EventNotificationsHandler
     : IEventNotificationsHandler
@@ -21,8 +18,8 @@ public sealed class EventNotificationsHandler
         IPushNotificationsSender pushNotificationsSender,
         ICommonUsersUnitOfWork usersUnitOfWork,
         IOptions<NotificationConfiguration> notifyConfiguration,
-        ILogger<EventNotificationsHandler> logger) 
-    { 
+        ILogger<EventNotificationsHandler> logger)
+    {
         _smtpSender = smtpSender
             ?? throw new ArgumentNullException(nameof(smtpSender));
 
@@ -42,7 +39,7 @@ public sealed class EventNotificationsHandler
     public async Task HandleEventsAsync(CancellationToken token)
     {
         _logger.LogInformation("Starting handling events in target handler");
-        
+
         while (!token.IsCancellationRequested)
         {
             var dbEvents = await _usersUnitOfWork.EventsRepository.GetAllEventsAsync(token);
@@ -71,14 +68,14 @@ public sealed class EventNotificationsHandler
 
         foreach (var dbEvent in dbEvents)
         {
-            if (dbEvent.ScheduledStart <= currentTiming) 
+            if (dbEvent.ScheduledStart <= currentTiming)
             {
-                if (dbEvent.Status != EventStatus.Cancelled 
+                if (dbEvent.Status != EventStatus.Cancelled
                     && dbEvent.Status != EventStatus.Finished)
                 {
                     var oldStatus = dbEvent.Status;
 
-                    if (dbEvent.Status is EventStatus.NotStarted 
+                    if (dbEvent.Status is EventStatus.NotStarted
                         or EventStatus.WithinReminderOffset)
                     {
                         dbEvent.Status = EventStatus.Live;
@@ -122,8 +119,8 @@ public sealed class EventNotificationsHandler
 
         foreach (var dbEvent in dbEvents)
         {
-            var isNotificationRequired = 
-                dbEvent.ScheduledStart <= timingWithOffset 
+            var isNotificationRequired =
+                dbEvent.ScheduledStart <= timingWithOffset
                 && dbEvent.ScheduledStart > currentTiming;
 
             if (isNotificationRequired)
@@ -169,20 +166,20 @@ public sealed class EventNotificationsHandler
     {
         token.ThrowIfCancellationRequested();
 
-        var guestsMaps = await 
+        var guestsMaps = await
             _usersUnitOfWork.EventsUsersMapRepository
                 .GetAllMapsAsync(token);
 
-        var guestsMapsRelatedToEvent = 
+        var guestsMapsRelatedToEvent =
             guestsMaps
                 .Where(map => map.EventId == eventId)
                 .ToList();
 
-        var users = await 
+        var users = await
             _usersUnitOfWork.UsersRepository
                 .GetAllUsersAsync(token);
 
-        var allDevicesMaps = 
+        var allDevicesMaps =
             await _usersUnitOfWork.UserDevicesRepository
                 .GetAllDevicesMapsAsync(token);
 
@@ -206,7 +203,7 @@ public sealed class EventNotificationsHandler
 
                 var totalMinutes = (int)_notifyConfiguration.ReminderOffset.TotalMinutes;
 
-                var reminderSMTPInfo = 
+                var reminderSMTPInfo =
                     new UserEmailReminderInfo(
                         subject,
                         eventName,
@@ -218,7 +215,7 @@ public sealed class EventNotificationsHandler
                     CreateAdsPushReminderMessages(
                         userId,
                         subject,
-                        eventName, 
+                        eventName,
                         userName,
                         totalMinutes,
                         allDevicesMaps);
@@ -252,15 +249,15 @@ public sealed class EventNotificationsHandler
         int totalMinutes,
         List<UserDeviceMap> allDeviceMaps)
     {
-        var userMaps = 
+        var userMaps =
             allDeviceMaps
                 .Where(x => x.UserId == userId && x.IsActive)
                 .ToList();
 
         return userMaps
-            .Select(x => 
+            .Select(x =>
                 new UserAdsPushReminderInfo(
-                    subject, 
+                    subject,
                     eventName,
                     userName,
                     x.FirebaseToken,

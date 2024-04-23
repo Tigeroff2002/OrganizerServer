@@ -1,26 +1,22 @@
-﻿using Contracts.RedisContracts;
-using Contracts.RedisContracts.AlertEvents;
+﻿using Contracts.RedisContracts.AlertEvents;
 using Contracts.RedisContracts.GroupEvents;
 using Contracts.RedisContracts.IssueEvents;
 using Contracts.RedisContracts.MeetEvents;
 using Contracts.RedisContracts.TaskEvents;
 using Contracts.RedisContracts.UserEvents;
-
+using Contracts.RedisContracts;
 using Logic.Transport.Abstractions;
-
-using Models.RedisEventModels;
 using Models.RedisEventModels.AlertEvents;
 using Models.RedisEventModels.GroupEvents;
 using Models.RedisEventModels.IssueEvents;
 using Models.RedisEventModels.MeetEvents;
 using Models.RedisEventModels.TaskEvents;
 using Models.RedisEventModels.UserEvents;
-
+using Models.RedisEventModels;
 using Newtonsoft.Json;
-
 using System.Text;
 
-namespace Logic.Transport;
+namespace Logic.Transport.Serialization;
 
 public sealed class RedisEventSerializer
     : ISerializer<BaseEvent>
@@ -59,7 +55,7 @@ public sealed class RedisEventSerializer
                     IsCommited = groupUpdated.IsCommited,
                     UserId = groupUpdated.Id,
                     EventType = RawEventType.GroupParamsChanged,
-                    GroupId= groupUpdated.GroupId,
+                    GroupId = groupUpdated.GroupId,
                     UpdateMoment = groupUpdated.UpdateMoment,
                     Json = groupUpdated.Json
                 },

@@ -4,7 +4,7 @@ using Models.BusinessModels;
 using Newtonsoft.Json;
 using System.Diagnostics;
 
-namespace Logic.Transport;
+namespace Logic.Transport.Serialization;
 
 public sealed class UsersLoginDataDeserializer
     : IDeserializer<UserLoginData>

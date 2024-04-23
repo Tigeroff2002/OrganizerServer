@@ -3,13 +3,11 @@ using Logic.Transport.Senders;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Models.Enums;
-using Models;
-using PostgreSQL.Abstractions;
-using System.Text;
-using Models.UserActionModels;
 using Models.StorageModels;
+using Models.UserActionModels;
+using PostgreSQL.Abstractions;
 
-namespace Logic;
+namespace Logic.Notifications;
 
 public sealed class AlertsNotificationsHandler
     : IAlertsNotificationsHandler

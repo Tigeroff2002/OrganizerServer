@@ -1,17 +1,13 @@
-﻿using Contracts.Request;
-using Contracts.Request.RequestById;
+﻿using Contracts.Request.RequestById;
+using Contracts.Request;
 using Contracts.Response;
 using Logic.Abstractions;
-using Models;
 using Models.Enums;
 using Models.StorageModels;
-using Newtonsoft.Json.Linq;
-using PostgreSQL;
 using PostgreSQL.Abstractions;
 using System.Text;
-using System.Threading.Tasks;
 
-namespace Logic;
+namespace Logic.ControllerHandlers;
 
 public sealed class SnapshotsHandler
     : ISnapshotsHandler
@@ -61,7 +57,7 @@ public sealed class SnapshotsHandler
     }
 
     public async Task<SnapshotDescriptionResult> CreatePersonalSnapshotDescriptionAsync(
-        int userId, 
+        int userId,
         SnapshotInputDTO inputSnapshot,
         CancellationToken token)
     {
@@ -110,7 +106,7 @@ public sealed class SnapshotsHandler
         {
             return (
                 CreateSnapshotCertaintlyForUser(
-                    userId, snapshotType, auditType, creationTime, beginMoment, endMoment), 
+                    userId, snapshotType, auditType, creationTime, beginMoment, endMoment),
                 userId);
         });
 
@@ -162,8 +158,8 @@ public sealed class SnapshotsHandler
             AverageKPI = averageKPI,
             ParticipantKPIs = separateParticipantsResults
                 .Select(
-                    map => new GroupParticipantKPIResponse 
-                    { 
+                    map => new GroupParticipantKPIResponse
+                    {
                         ParticipantId = map.userId,
                         ParticipantName = map.Item1.UserName,
                         ParticipantKPI = map.Item1.KPI
@@ -341,7 +337,7 @@ public sealed class SnapshotsHandler
 
                 var stringBuilder = new StringBuilder();
 
-                var justReportedIssues = 
+                var justReportedIssues =
                     userIssues
                         .Where(x => x.Status == IssueStatus.Reported)
                         .ToList();

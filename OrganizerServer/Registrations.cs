@@ -17,6 +17,9 @@ using Models.UserActionModels;
 using StackExchange.Redis;
 using Models.RedisEventModels;
 using Microsoft.Extensions.DependencyInjection;
+using Logic.Transport.Serialization;
+using Logic.ControllerHandlers;
+using Logic.Notifications;
 
 namespace ToDoCalendarServer;
 
@@ -30,16 +33,31 @@ public static class Registrations
         this IServiceCollection services,
         IConfiguration configuration)
         => services
+            .AddNotificationLogic()
+            .AddNotificationsTransport()
+            .AddSingleton<IUsersDataHandler, UsersDataHandler>()
+            .AddSingleton<IGroupsHandler, GroupsHandler>()
+            .AddSingleton<IEventsHandler, EventsHandler>()
+            .AddSingleton<ITasksHandler, TasksHandler>()
+            .AddSingleton<IIssuesHandler, IssuesHandler>()
+            .AddSingleton<ISnapshotsHandler, SnapshotsHandler>()
+            .AddConfigurations(configuration);
+
+    public static IServiceCollection AddNotificationLogic(
+        this IServiceCollection services)
+        => services
             .AddSingleton<INotificationsHandler, NotificationsHandler>()
             .AddSingleton<IEventNotificationsHandler, EventNotificationsHandler>()
-            .AddSingleton<IAlertsNotificationsHandler, AlertsNotificationsHandler>()
-            .AddSingleton<ISMTPSender, SMTPSender>()
-            .AddSingleton<IPushNotificationsSender, PushNotificationsSender>()
-            .AddSingleton<IUsersDataHandler, UsersDataHandler>()
-            .AddConfigurations(configuration)
-            .AddSingleton<ISnapshotsHandler, SnapshotsHandler>();
+            .AddSingleton<IAlertsNotificationsHandler, AlertsNotificationsHandler>();
 
-    public static IServiceCollection AddSerialization(this IServiceCollection services)
+    public static IServiceCollection AddNotificationsTransport(
+        this IServiceCollection services)
+        => services
+            .AddSingleton<ISMTPSender, SMTPSender>()
+            .AddSingleton<IPushNotificationsSender, PushNotificationsSender>();
+
+    public static IServiceCollection AddSerialization(
+        this IServiceCollection services)
         => services
             .AddSingleton<IDeserializer<UserLoginData>, UsersLoginDataDeserializer>()
             .AddSingleton<IDeserializer<UserRegistrationData>, UsersRegistrationDataDeserializer>()

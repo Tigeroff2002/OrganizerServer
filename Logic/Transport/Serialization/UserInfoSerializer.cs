@@ -1,10 +1,8 @@
 ﻿using Contracts.Response;
-
 using Logic.Transport.Abstractions;
-using Models;
 using Newtonsoft.Json;
 
-namespace Logic.Transport;
+namespace Logic.Transport.Serialization;
 
 public sealed class UserInfoSerializer
     : ISerializer<UserInfoContent>

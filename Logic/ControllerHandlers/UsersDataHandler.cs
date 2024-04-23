@@ -1,12 +1,11 @@
 ﻿using Contracts.Request;
-using Contracts.Response;
 using Contracts.Response.SnapshotsDB;
+using Contracts.Response;
 using Logic.Abstractions;
 using Logic.Transport.Abstractions;
 using Logic.Transport.Senders;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Models;
 using Models.BusinessModels;
 using Models.Enums;
 using Models.StorageModels;
@@ -17,7 +16,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Logic;
+namespace Logic.ControllerHandlers;
 
 public sealed class UsersDataHandler
     : IUsersDataHandler
@@ -55,7 +54,7 @@ public sealed class UsersDataHandler
 
         var email = registrationData.Email;
 
-        var existedUser = 
+        var existedUser =
            await _usersUnitOfWork.UsersRepository
                 .GetUserByEmailAsync(email, token);
 
@@ -80,7 +79,7 @@ public sealed class UsersDataHandler
             UserPhone = registrationData.PhoneNumber
         };
 
-        var confirmResponse = 
+        var confirmResponse =
             await _usersCodeConfirmer.ConfirmAsync(shortUserInfo, token);
 
         var builder = new StringBuilder();
@@ -227,7 +226,7 @@ public sealed class UsersDataHandler
         var response = new LoginResponse();
 
         response.Result = true;
-        response.OutInfo = 
+        response.OutInfo =
             $"Login existed user {userName}" +
             $" with new auth token {authToken}";
         response.UserId = existedUser.Id;
@@ -269,7 +268,7 @@ public sealed class UsersDataHandler
         var userDeviceMaps = await _usersUnitOfWork.UserDevicesRepository
             .GetAllDevicesMapsAsync(token);
 
-        var existedDeviceMap = 
+        var existedDeviceMap =
             userDeviceMaps.FirstOrDefault(
                 x => x.UserId == userId && x.FirebaseToken == firebaseToken);
 
@@ -314,7 +313,7 @@ public sealed class UsersDataHandler
 
         token.ThrowIfCancellationRequested();
 
-        var user = 
+        var user =
             await _usersUnitOfWork.UsersRepository
             .GetUserByIdAsync(userInfoById.UserId, token);
 
@@ -331,7 +330,7 @@ public sealed class UsersDataHandler
 
         var response = new GetResponse();
         response.Result = true;
-        response.OutInfo = 
+        response.OutInfo =
             $"Info about user with with id" +
             $" {userInfoById.UserId} has been received";
 
@@ -341,7 +340,7 @@ public sealed class UsersDataHandler
     }
 
     public async Task<Response> UpdateUserInfo(
-        UserUpdateInfoDTO userUpdateInfo, 
+        UserUpdateInfoDTO userUpdateInfo,
         CancellationToken token)
     {
         ArgumentNullException.ThrowIfNull(userUpdateInfo);
@@ -351,7 +350,7 @@ public sealed class UsersDataHandler
         var existedUser = await _usersUnitOfWork.UsersRepository
             .GetUserByIdAsync(userId, token);
 
-        if (existedUser == null) 
+        if (existedUser == null)
         {
             var response1 = new Response();
             response1.Result = false;
@@ -486,7 +485,7 @@ public sealed class UsersDataHandler
             }
             else
             {
-                response1.OutInfo = 
+                response1.OutInfo =
                     $"Request has illegal root password" +
                     $" {userUpdateRoleDTO.RootPassword}";
             }
@@ -501,7 +500,7 @@ public sealed class UsersDataHandler
         {
             var response1 = new Response();
             response1.Result = false;
-            response1.OutInfo = 
+            response1.OutInfo =
                 $"Requested user with id {userId}" +
                 $" has has an account which was created" +
                 $" less than {_rootConfiguration.MinimalAccountAgeDays} ago";
@@ -518,7 +517,7 @@ public sealed class UsersDataHandler
         _usersUnitOfWork.SaveChanges();
 
         response.Result = true;
-        response.OutInfo = 
+        response.OutInfo =
             $"User with id {userId} has succesfully changed" +
             $" his account type to {requestedRole}";
 
@@ -531,11 +530,11 @@ public sealed class UsersDataHandler
     {
         var userId = user.Id;
 
-        var allGroupsMaps = 
+        var allGroupsMaps =
             await _usersUnitOfWork.GroupingUsersMapRepository
             .GetAllMapsAsync(token);
 
-        var allEventsMaps = 
+        var allEventsMaps =
             await _usersUnitOfWork.EventsUsersMapRepository
             .GetAllMapsAsync(token);
 
@@ -550,7 +549,7 @@ public sealed class UsersDataHandler
         var allEvents = await _usersUnitOfWork.EventsRepository
             .GetAllEventsAsync(token);
 
-        var allTasks = 
+        var allTasks =
             await _usersUnitOfWork.TasksRepository
             .GetAllTasksAsync(token);
 
@@ -669,7 +668,7 @@ public sealed class UsersDataHandler
 
         foreach (var snapshot in userSnapshotsModels)
         {
-            var snapshotContent = 
+            var snapshotContent =
                 JsonConvert.DeserializeObject<PersonalSnapshotContent>(snapshot.Description);
 
             Debug.Assert(snapshotContent is not null);
@@ -725,11 +724,8 @@ public sealed class UsersDataHandler
 
     private static string GenerateNewAuthToken()
     {
-        return (RandomNumberGenerator.GetInt32(10000000) * 1000)
-                .ToString()
-                .PadLeft(10, '0');
+        return Guid.NewGuid().ToString();
     }
-
 
     private const UserRole DEFAULT_USER_ROLE = UserRole.User;
 
