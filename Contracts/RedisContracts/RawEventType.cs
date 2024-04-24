@@ -30,6 +30,8 @@ public enum RawEventType
 
     MeetTerminalStatusReceived,
 
+    MeetGuestChangedDecision,
+
     SnapshotCreated,
 
     TaskAssignedEvent,

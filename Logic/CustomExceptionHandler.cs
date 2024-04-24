@@ -1,6 +1,10 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Logic.Abstractions;
+using Logic.ControllerHandlers;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Models.BusinessModels;
+using Models.Enums;
+using Models.RedisEventModels.AlertEvents;
 using Models.StorageModels;
 using PostgreSQL.Abstractions;
 using System.Net;
@@ -8,17 +12,16 @@ using System.Text.Json;
 
 namespace Logic;
 
-public sealed class CustomExceptionsHandler
+public sealed class CustomExceptionsHandler : DataHandlerBase
 {
     public CustomExceptionsHandler(
         RequestDelegate next,
-        ILogger<CustomExceptionsHandler> logger,
-        IAlertsRepository alertsRepository)
+        ILogger logger,
+        ICommonUsersUnitOfWork commomUnitOfWork,
+        IRedisRepository redisRepository)
+        : base(commomUnitOfWork, redisRepository, logger)
     {
         _next = next ?? throw new ArgumentNullException(nameof(next));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _alertsRepository = alertsRepository
-            ?? throw new ArgumentNullException(nameof(alertsRepository));
     }
 
     public async Task InvokeAsync(HttpContext httpContext)
@@ -46,18 +49,39 @@ public sealed class CustomExceptionsHandler
         context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
         errorResponse.OutInfo += $"Exception: {exception.Message}";
 
-        await CreateBagIssue(errorResponse, CancellationToken.None);
+        var (alertId, alertMoment) = 
+            await CreateBagAlert(errorResponse, CancellationToken.None);
 
-        _logger.LogError(errorResponse.OutInfo);
+        Logger.LogError(errorResponse.OutInfo);
 
-        var result = JsonSerializer.Serialize(errorResponse);
+        var resultJson = JsonSerializer.Serialize(errorResponse);
 
-        await context.Response.WriteAsync(result);
+        var admins =
+            CommonUnitOfWork
+                .UsersRepository
+                .GetAllUsersAsync(CancellationToken.None)
+                .GetAwaiter()
+                .GetResult()
+                .Where(x => x.Role == UserRole.Admin);
+
+        foreach (var user in admins)
+        {
+            await SendEventForCacheAsync(
+                new AlertCreatedEvent(
+                    Id: Guid.NewGuid().ToString(),
+                    IsCommited: false,
+                    UserId: user.Id,
+                    AlertId: alertId,
+                    CreateMoment: alertMoment,
+                    Json: resultJson));
+        }
+
+        await context.Response.WriteAsync(resultJson);
     }
 
-    private async Task CreateBagIssue(Response message, CancellationToken token)
+    private async Task<(int, DateTimeOffset)> CreateBagAlert(Response message, CancellationToken token)
     {
-        var issueMoment = DateTimeOffset.UtcNow;
+        var alertMoment = DateTimeOffset.UtcNow;
 
         var title = "Server internal error 500";
 
@@ -65,16 +89,18 @@ public sealed class CustomExceptionsHandler
         {
             Title = title,
             Description = message.OutInfo!,
-            Moment = issueMoment,
+            Moment = alertMoment,
             IsAlerted = false
         };
 
-        await _alertsRepository.AddAsync(alert, token);
+        await CommonUnitOfWork
+            .AlertsRepository
+            .AddAsync(alert, token);
 
-        _alertsRepository.SaveChanges();
+        CommonUnitOfWork.SaveChanges();
+
+        return await Task.FromResult((alert.Id, alertMoment));
     }
 
     private readonly RequestDelegate _next;
-    private readonly ILogger<CustomExceptionsHandler> _logger;
-    private readonly IAlertsRepository _alertsRepository;
 }

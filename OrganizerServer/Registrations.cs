@@ -44,6 +44,7 @@ public static class Registrations
             .AddSingleton<ISnapshotsHandler, SnapshotsHandler>()
             .AddSingleton<IAlertsReceiverHandler, AlertsReceiverHandler>()
 
+            .AddRedisCache(configuration)
             .AddConfigurations(configuration);
 
     public static IServiceCollection AddNotificationLogic(

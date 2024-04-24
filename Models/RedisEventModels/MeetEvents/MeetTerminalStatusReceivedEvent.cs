@@ -7,7 +7,7 @@ public sealed record class MeetTerminalStatusReceivedEvent(
     string Id,
     bool IsCommited,
     int UserId,
-    int IssueId,
+    int EventId,
     DateTimeOffset TerminalMoment,
     EventStatus TerminalStatus)
-    : MeetBasedEvent(Id, IsCommited, UserId, IssueId);
+    : MeetBasedEvent(Id, IsCommited, UserId, EventId);

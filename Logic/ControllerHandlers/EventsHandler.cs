@@ -5,6 +5,7 @@ using Logic.Abstractions;
 using Microsoft.Extensions.Logging;
 using Models.BusinessModels;
 using Models.Enums;
+using Models.RedisEventModels.MeetEvents;
 using Models.StorageModels;
 using Newtonsoft.Json;
 using PostgreSQL;
@@ -34,6 +35,7 @@ public sealed class EventsHandler
 
         var eventToCreate = 
             JsonConvert.DeserializeObject<EventInputDTO>(schedulingData);
+
         Debug.Assert(eventToCreate != null);
 
         var managerId = eventToCreate.UserId;
@@ -89,6 +91,7 @@ public sealed class EventsHandler
         CommonUnitOfWork.SaveChanges();
 
         var eventId = @event.Id;
+
         @event.Manager = manager;
         @event.RelatedGroup = group!;
 
@@ -174,6 +177,33 @@ public sealed class EventsHandler
 
         CommonUnitOfWork.SaveChanges();
 
+        var dateTimeNow = DateTime.UtcNow;
+
+        await SendEventForCacheAsync(
+            new MeetCreatedEvent(
+                Id: Guid.NewGuid().ToString(),
+                IsCommited: false,
+                UserId: managerId,
+                MeetId: @event.Id,
+                CreatedMoment: dateTimeNow,
+                ScheduledStart: @event.ScheduledStart,
+                Duration: @event.Duration));
+
+        foreach (var map in listGuestsMaps)
+        {
+            var guestId = map.UserId;
+
+            if (guestId != managerId)
+            {
+                await SendEventForCacheAsync(
+                    new MeetGuestInvitedEvent(
+                        Id: Guid.NewGuid().ToString(),
+                        IsCommited: false,
+                        UserId: guestId,
+                        MeetId: @event.Id));
+            }
+        }
+
         var response = new Response();
         response.Result = true;
         response.OutInfo = group != null
@@ -241,34 +271,49 @@ public sealed class EventsHandler
                 return await Task.FromResult(response1);
             }
 
+            var existedGuestsMap = CommonUnitOfWork
+                .EventsUsersMapRepository
+                .GetAllMapsAsync(token)
+                .GetAwaiter()
+                .GetResult()
+                .Where(x => x.EventId == eventId);
+
+            var existedUsers = await CommonUnitOfWork
+                .UsersRepository
+                .GetAllUsersAsync(token);
+
+            var listNewGuestsMap = new List<EventsUsersMap>();
+
             if (updateEventParams.GuestsIds != null)
             {
-                var listGuestsMap = new List<EventsUsersMap>();
-
-                var existedUsers = await CommonUnitOfWork
-                    .UsersRepository
-                    .GetAllUsersAsync(token);
-
                 foreach (var guestId in updateEventParams.GuestsIds)
                 {
-                    var currentUser = existedUsers.FirstOrDefault(x => x.Id == userId);
+                    var currentGuest = existedUsers.FirstOrDefault(x => x.Id == guestId);
 
-                    if (currentUser != null)
+                    if (currentGuest != null)
                     {
-                        var map = new EventsUsersMap
-                        {
-                            UserId = guestId,
-                            EventId = eventId,
-                            DecisionType = DecisionType.Default
-                        };
+                        var existedGuestMap = 
+                            existedGuestsMap
+                                .Where(x => x.UserId == guestId)
+                                .FirstOrDefault();
 
-                        listGuestsMap.Add(map);
+                        if (existedGuestMap == null)
+                        {
+                            var map = new EventsUsersMap
+                            {
+                                UserId = guestId,
+                                EventId = eventId,
+                                DecisionType = DecisionType.Default
+                            };
+
+                            listNewGuestsMap.Add(map);
+                        }
                     }
                 }
 
                 if (existedEvent.EventType != EventType.Personal)
                 {
-                    foreach (var map in listGuestsMap)
+                    foreach (var map in listNewGuestsMap)
                     {
                         await CommonUnitOfWork
                             .EventsUsersMapRepository
@@ -283,51 +328,131 @@ public sealed class EventsHandler
 
             if (!string.IsNullOrWhiteSpace(updateEventParams.Caption))
             {
-                existedEvent.Caption = updateEventParams.Caption;
-                numbers_of_new_params++;
+                if (existedEvent.Caption != updateEventParams.Caption)
+                {
+                    existedEvent.Caption = updateEventParams.Caption;
+                    numbers_of_new_params++;
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(updateEventParams.Description))
             {
-                existedEvent.Description = updateEventParams.Description;
-                numbers_of_new_params++;
+                if (existedEvent.Description != updateEventParams.Description)
+                {
+                    existedEvent.Description = updateEventParams.Description;
+                    numbers_of_new_params++;
+                }
             }
 
             if (updateEventParams.ScheduledStart != DateTimeOffset.MinValue)
             {
-                existedEvent.ScheduledStart = updateEventParams.ScheduledStart;
-                numbers_of_new_params++;
+                if (existedEvent.ScheduledStart != updateEventParams.ScheduledStart)
+                {
+                    existedEvent.ScheduledStart = updateEventParams.ScheduledStart;
+                    numbers_of_new_params++;
+                }
             }
 
             if (updateEventParams.Duration != TimeSpan.Zero)
             {
-                existedEvent.Duration = updateEventParams.Duration;
-                numbers_of_new_params++;
+                if (existedEvent.Duration != updateEventParams.Duration)
+                {
+                    existedEvent.Duration = updateEventParams.Duration;
+                    numbers_of_new_params++;
+                }
             }
 
             if (updateEventParams.EventType != EventType.None)
             {
-                existedEvent.EventType = updateEventParams.EventType;
-                numbers_of_new_params++;
+                if (existedEvent.EventType != updateEventParams.EventType)
+                {
+                    existedEvent.EventType = updateEventParams.EventType;
+                    numbers_of_new_params++;
+                }
             }
+
+            var isStatusChanged = false;
 
             if (updateEventParams.EventStatus != EventStatus.None)
             {
-                existedEvent.Status = updateEventParams.EventStatus;
-                numbers_of_new_params++;
+                if (existedEvent.Status != updateEventParams.EventStatus)
+                {
+                    existedEvent.Status = updateEventParams.EventStatus;
+                    numbers_of_new_params++;
+
+                    isStatusChanged = true;
+                }
             }
+
+            await CommonUnitOfWork
+                .EventsRepository
+                .UpdateAsync(existedEvent, token);
+
+            CommonUnitOfWork.SaveChanges();
 
             if (numbers_of_new_params > 0)
             {
-                await CommonUnitOfWork
-                    .EventsRepository
-                    .UpdateAsync(existedEvent, token);
-
                 response.OutInfo = existedEvent.RelatedGroup != null
                     ? $"Existed event with id = {eventId} related" +
                         $" to group {existedEvent.RelatedGroup.Id} has been modified"
                     : $"Existed event with id = {eventId} personal for manager " +
                         $"with id {existedEvent.Manager.Id} has been modified";
+
+                var dateTimeNow = DateTimeOffset.UtcNow;
+
+                var eventInfo = new EventInfoResponse
+                {
+                    EventId = eventId,
+                    Caption = existedEvent.Caption,
+                    Description = existedEvent.Description,
+                    ScheduledStart = existedEvent.ScheduledStart,
+                    Duration = existedEvent.Duration,
+                    EventType = existedEvent.EventType,
+                    EventStatus = existedEvent.Status
+                };
+
+                var jsonValue = JsonConvert.SerializeObject(eventInfo);
+
+                foreach (var map in existedGuestsMap)
+                {
+                    await SendEventForCacheAsync(
+                        new MeetParamsChangedEvent(
+                            Id: Guid.NewGuid().ToString(),
+                            IsCommited: false,
+                            UserId: map.UserId,
+                            MeetId: eventId,
+                            UpdateMoment: dateTimeNow,
+                            Json: jsonValue));
+                }
+
+                foreach (var map in listNewGuestsMap)
+                {
+                    await SendEventForCacheAsync(
+                        new MeetGuestInvitedEvent(
+                            Id: Guid.NewGuid().ToString(),
+                            IsCommited: false,
+                            UserId: map.UserId,
+                            MeetId: eventId));
+                }
+
+                if (existedEvent.Status 
+                        is EventStatus.Cancelled or EventStatus.Finished)
+                { 
+                    if (isStatusChanged)
+                    {
+                        foreach (var map in existedGuestsMap)
+                        {
+                            await SendEventForCacheAsync(
+                                new MeetTerminalStatusReceivedEvent(
+                                    Id: Guid.NewGuid().ToString(),
+                                    IsCommited: false,
+                                    UserId: map.UserId,
+                                    EventId: eventId,
+                                    TerminalMoment: dateTimeNow,
+                                    TerminalStatus: existedEvent.Status));
+                        }
+                    }
+                }
             }
             else
             {
@@ -335,8 +460,6 @@ public sealed class EventsHandler
                     $"Existed event with id {eventId} has all same parameters" +
                     $" so it has not been modified";
             }
-
-            CommonUnitOfWork.SaveChanges();
 
             response.Result = true;
 
@@ -404,16 +527,34 @@ public sealed class EventsHandler
                 return await Task.FromResult(response1);
             }
 
-            var decisionType = updateEventParams.DecisionType;
+            var isDecisionChanged = false;
 
-            if (decisionType != DecisionType.None)
+            if (updateEventParams.DecisionType != DecisionType.None)
             {
-                await CommonUnitOfWork
-                    .EventsUsersMapRepository
-                    .UpdateDecisionAsync(eventId, userId, decisionType, token);
+                if (existedUserEventMap.DecisionType != updateEventParams.DecisionType)
+                {
+                    isDecisionChanged = true;
+
+                    await CommonUnitOfWork
+                        .EventsUsersMapRepository
+                        .UpdateDecisionAsync(
+                            eventId, userId, updateEventParams.DecisionType, token);
+                }
             }
 
             CommonUnitOfWork.SaveChanges();
+
+            if (isDecisionChanged)
+            {
+                await SendEventForCacheAsync(
+                    new MeetGuestChangedDecisionEvent(
+                        Id: Guid.NewGuid().ToString(),
+                        IsCommited: false,
+                        UserId: userId,
+                        MeetId: eventId,
+                        NewDecision: updateEventParams.DecisionType,
+                        ScheduledStart: existedEvent.ScheduledStart));
+            }
 
             var response = new Response();
             response.Result = true;
@@ -421,10 +562,10 @@ public sealed class EventsHandler
                 ? $"For event with id = {eventId} related" +
                     $" to group {existedEvent.RelatedGroupId}" +
                     $" for user {user.UserName}" +
-                    $" has been changed decision to {decisionType}"
+                    $" has been changed decision to {updateEventParams.DecisionType}"
                 : $"For event with id = {eventId} personal for manager " +
                     $"with id {existedEvent.ManagerId}" +
-                    $" has been changed decision to {decisionType}";
+                    $" has been changed decision to {updateEventParams.DecisionType}";
 
             return await Task.FromResult(response);
         }

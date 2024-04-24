@@ -439,26 +439,38 @@ public sealed class UsersDataHandler
 
             if (!string.IsNullOrWhiteSpace(updateUserInfo.UserName))
             {
-                existedUser.UserName = updateUserInfo.UserName;
-                numbers_of_new_params++;
+                if (existedUser.UserName != updateUserInfo.UserName)
+                {
+                    existedUser.UserName = updateUserInfo.UserName;
+                    numbers_of_new_params++;
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(updateUserInfo.Email))
             {
-                existedUser.Email = updateUserInfo.Email;
-                numbers_of_new_params++;
+                if (existedUser.Email != updateUserInfo.Email)
+                {
+                    existedUser.Email = updateUserInfo.Email;
+                    numbers_of_new_params++;
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(updateUserInfo.Password))
             {
-                existedUser.Password = updateUserInfo.Password;
-                numbers_of_new_params++;
+                if (existedUser.Password != updateUserInfo.Password)
+                {
+                    existedUser.Password = updateUserInfo.Password;
+                    numbers_of_new_params++;
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(updateUserInfo.PhoneNumber))
             {
-                existedUser.PhoneNumber = updateUserInfo.PhoneNumber;
-                numbers_of_new_params++;
+                if (existedUser.PhoneNumber != updateUserInfo.PhoneNumber)
+                {
+                    existedUser.PhoneNumber = updateUserInfo.PhoneNumber;
+                    numbers_of_new_params++;
+                }
             }
 
             string authToken = GenerateNewAuthToken();

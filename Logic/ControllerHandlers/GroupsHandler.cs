@@ -5,6 +5,7 @@ using Logic.Abstractions;
 using Microsoft.Extensions.Logging;
 using Models.BusinessModels;
 using Models.Enums;
+using Models.RedisEventModels.GroupEvents;
 using Models.StorageModels;
 using Newtonsoft.Json;
 using PostgreSQL;
@@ -53,10 +54,11 @@ public sealed class GroupsHandler
             return await Task.FromResult(response1);
         }
 
-        var group = new Group()
+        var group = new Group
         {
             GroupName = groupToCreate.GroupName,
-            Type = groupToCreate.Type
+            Type = groupToCreate.Type,
+            ManagerId = currentUserId
         };
 
         await CommonUnitOfWork.GroupsRepository.AddAsync(group, token);
@@ -115,6 +117,31 @@ public sealed class GroupsHandler
         }
 
         CommonUnitOfWork.SaveChanges();
+
+        var dateTimeNow = DateTimeOffset.UtcNow;
+
+        await SendEventForCacheAsync(
+            new GroupCreatedEvent(
+                Id: Guid.NewGuid().ToString(),
+                IsCommited: false,
+                UserId: currentUserId,
+                GroupId: groupId,
+                CreatedMoment: dateTimeNow));
+
+        foreach (var map in listGroupingUsersMap)
+        {
+            var participantId = map.UserId;
+
+            if (currentUserId != participantId)
+            {
+                await SendEventForCacheAsync(
+                    new GroupParticipantInvitedEvent(
+                        Id: Guid.NewGuid().ToString(),
+                        IsCommited: false,
+                        UserId: participantId,
+                        GroupId: groupId));
+            }
+        }
 
         var response = new Response();
         response.Result = true;
@@ -182,7 +209,11 @@ public sealed class GroupsHandler
                 return await Task.FromResult(response1);
             }
 
-            var listGroupingUsersMap = new List<GroupingUsersMap>();
+            var listNewGroupingUsersMap = new List<GroupingUsersMap>();
+
+            var groupMaps = await CommonUnitOfWork
+                .GroupingUsersMapRepository
+                .GetGroupingUsersMapByGroupIdsAsync(groupId, token);
 
             if (updateGroupParams.Participants != null)
             {
@@ -196,17 +227,27 @@ public sealed class GroupsHandler
 
                     if (currentUser != null)
                     {
-                        var map = new GroupingUsersMap
-                        {
-                            UserId = userId,
-                            GroupId = groupId,
-                        };
+                        var existedParticipantMap = 
+                            groupMaps
+                                .Where(
+                                    x => x.GroupId == groupId 
+                                    && x.UserId == userId)
+                                .FirstOrDefault();
 
-                        listGroupingUsersMap.Add(map);
+                        if (existedParticipantMap == null)
+                        {
+                            var map = new GroupingUsersMap
+                            {
+                                UserId = userId,
+                                GroupId = groupId,
+                            };
+
+                            listNewGroupingUsersMap.Add(map);
+                        }
                     }
                 }
 
-                foreach (var map in listGroupingUsersMap)
+                foreach (var map in listNewGroupingUsersMap)
                 {
                     await CommonUnitOfWork
                         .GroupingUsersMapRepository
@@ -214,14 +255,24 @@ public sealed class GroupsHandler
                 }
             }
 
+            var number_of_params = 0;
+
             if (!string.IsNullOrWhiteSpace(updateGroupParams.GroupName))
             {
-                existedGroup.GroupName = updateGroupParams.GroupName;
+                if (existedGroup.GroupName != updateGroupParams.GroupName)
+                {
+                    existedGroup.GroupName = updateGroupParams.GroupName;
+                    number_of_params++;
+                }
             }
 
             if (updateGroupParams.Type != GroupType.None)
             {
-                existedGroup.Type = updateGroupParams.Type;
+                if (existedGroup.Type != updateGroupParams.Type)
+                {
+                    existedGroup.Type = updateGroupParams.Type;
+                    number_of_params++;
+                }
             }
 
             await CommonUnitOfWork
@@ -232,7 +283,48 @@ public sealed class GroupsHandler
 
             var response = new Response();
             response.Result = true;
-            response.OutInfo = $"Group with id {groupId} has been modified";
+
+            if (number_of_params > 0)
+            {
+                response.OutInfo = $"Group {groupId} info has been modified";
+
+                var dateTimeNow = DateTimeOffset.UtcNow;
+
+                var groupInfo = new GroupInfoResponse
+                {
+                    GroupId = groupId,
+                    GroupName = existedGroup.GroupName,
+                    Type = existedGroup.Type
+                };
+
+                var jsonValue = JsonConvert.SerializeObject(groupInfo);
+
+                foreach (var map in groupMaps)
+                {
+                    await SendEventForCacheAsync(
+                        new GroupParamsChangedEvent(
+                            Id: Guid.NewGuid().ToString(),
+                            IsCommited: false,
+                            UserId: map.UserId,
+                            GroupId: groupId,
+                            UpdateMoment: dateTimeNow,
+                            Json: jsonValue));
+                }
+
+                foreach (var map in listNewGroupingUsersMap)
+                {
+                    await SendEventForCacheAsync(
+                        new GroupParticipantInvitedEvent(
+                            Id: Guid.NewGuid().ToString(),
+                            IsCommited: false,
+                            UserId: map.UserId,
+                            GroupId: groupId));
+                }
+            }
+            else
+            {
+                response.OutInfo = $"Group {groupId} info has not been modified";
+            }
 
             var json = JsonConvert.SerializeObject(response);
 
@@ -325,6 +417,13 @@ public sealed class GroupsHandler
                 .DeleteAsync(groupId, participantId, token);
 
             CommonUnitOfWork.SaveChanges();
+
+            await SendEventForCacheAsync(
+                new GroupParticipantDeletedEvent(
+                    Id: Guid.NewGuid().ToString(),
+                    IsCommited: false,
+                    UserId: participantId,
+                    GroupId: groupId));
 
             var response = new Response();
             response.Result = true;

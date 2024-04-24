@@ -10,4 +10,7 @@ public sealed class AlertCreatedEventDTO
 
     [JsonProperty("create_moment", Required = Required.Always)]
     public required DateTimeOffset CreatedMoment { get; init; }
+
+    [JsonProperty("json", Required = Required.Always)]
+    public required string Json { get; init; }
 }

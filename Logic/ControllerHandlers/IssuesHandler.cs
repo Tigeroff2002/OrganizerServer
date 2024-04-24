@@ -147,32 +147,51 @@ public sealed class IssuesHandler
 
             if (!string.IsNullOrWhiteSpace(issueUpdateParams.Title))
             {
-                existedIssue.Title = issueUpdateParams.Title;
-                numbers_of_new_params++;
+                if (existedIssue.Title != issueUpdateParams.Title)
+                {
+                    existedIssue.Title = issueUpdateParams.Title;
+                    numbers_of_new_params++;
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(issueUpdateParams.Description))
             {
-                existedIssue.Description = issueUpdateParams.Description;
-                numbers_of_new_params++;
+                if (existedIssue.Description != issueUpdateParams.Description)
+                {
+                    existedIssue.Description = issueUpdateParams.Description;
+                    numbers_of_new_params++;
+                }
             }
 
             if (issueUpdateParams.IssueType != IssueType.None)
             {
-                existedIssue.IssueType = issueUpdateParams.IssueType;
-                numbers_of_new_params++;
+                if (existedIssue.IssueType != issueUpdateParams.IssueType)
+                {
+                    existedIssue.IssueType = issueUpdateParams.IssueType;
+                    numbers_of_new_params++;
+                }
             }
+
+            var isStatusChanged = false;
 
             if (issueUpdateParams.IssueStatus != IssueStatus.None)
             {
-                existedIssue.Status = issueUpdateParams.IssueStatus;
-                numbers_of_new_params++;
+                if (existedIssue.Status != issueUpdateParams.IssueStatus)
+                {
+                    existedIssue.Status = issueUpdateParams.IssueStatus;
+                    numbers_of_new_params++;
+
+                    isStatusChanged = true;
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(issueUpdateParams.ImgLink))
             {
-                existedIssue.ImgLink = issueUpdateParams.ImgLink;
-                numbers_of_new_params++;
+                if (existedIssue.ImgLink != issueUpdateParams.ImgLink)
+                {
+                    existedIssue.ImgLink = issueUpdateParams.ImgLink;
+                    numbers_of_new_params++;
+                }
             }
 
             await CommonUnitOfWork
@@ -187,22 +206,41 @@ public sealed class IssuesHandler
 
                 var dateTimeNow = DateTime.UtcNow;
 
+                var issueShortInfo = new IssueInfoResponse
+                {
+                    IssueId = existedIssue.Id,
+                    Title = existedIssue.Title,
+                    Description = existedIssue.Description,
+                    IssueType = existedIssue.IssueType,
+                    IssueStatus = existedIssue.Status,
+                    CreateMoment = dateTimeNow,
+                    ImgLink = existedIssue.ImgLink
+                };
+
+                var json = JsonConvert.SerializeObject(issueShortInfo);
+
                 await SendEventForCacheAsync(
                     new IssueParamsChangedEvent(
                         Id: Guid.NewGuid().ToString(),
                         IsCommited: false,
+                        UserId: currentUserId,
                         IssueId: issueId,
                         UpdateMoment: dateTimeNow,
-                        Json: ));
+                        Json: json));
 
                 if (existedIssue.Status is IssueStatus.Closed)
                 {
-                    await SendEventForCacheAsync(
-                        new IssueTerminalStatusReceivedEvent(
-                            Id: Guid.NewGuid().ToString(),
-                            IsCommited: false,
-                            UserId: currentUserId,
-                            TerminalMoment: dateTimeNow,))
+                    if (isStatusChanged)
+                    {
+                        await SendEventForCacheAsync(
+                            new IssueTerminalStatusReceivedEvent(
+                                Id: Guid.NewGuid().ToString(),
+                                IsCommited: false,
+                                UserId: currentUserId,
+                                IssueId: issueId,
+                                TerminalMoment: dateTimeNow,
+                                TerminalStatus: existedIssue.Status));
+                    }
                 }
             }
             else

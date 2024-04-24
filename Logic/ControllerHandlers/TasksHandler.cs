@@ -174,26 +174,42 @@ public sealed class TasksHandler : DataHandlerBase, ITasksHandler
 
             if (!string.IsNullOrWhiteSpace(taskUpdateParams.TaskCaption))
             {
-                existedTask.Caption = taskUpdateParams.TaskCaption;
-                numbers_of_new_params++;
+                if (existedTask.Caption != taskUpdateParams.TaskCaption)
+                {
+                    existedTask.Caption = taskUpdateParams.TaskCaption;
+                    numbers_of_new_params++;
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(taskUpdateParams.TaskDescription))
             {
-                existedTask.Description = taskUpdateParams.TaskDescription;
-                numbers_of_new_params++;
+                if (existedTask.Description != taskUpdateParams.TaskDescription)
+                {
+                    existedTask.Description = taskUpdateParams.TaskDescription;
+                    numbers_of_new_params++;
+                }
             }
 
             if (taskUpdateParams.TaskType != TaskType.None)
             {
-                existedTask.TaskType = taskUpdateParams.TaskType;
-                numbers_of_new_params++;
+                if (existedTask.TaskType != taskUpdateParams.TaskType)
+                {
+                    existedTask.TaskType = taskUpdateParams.TaskType;
+                    numbers_of_new_params++;
+                }
             }
+
+            var isTaskStatusChanged = false;
 
             if (taskUpdateParams.TaskStatus != TaskCurrentStatus.None)
             {
-                existedTask.TaskStatus = taskUpdateParams.TaskStatus;
-                numbers_of_new_params++;
+                if (existedTask.TaskStatus != taskUpdateParams.TaskStatus)
+                {
+                    existedTask.TaskStatus = taskUpdateParams.TaskStatus;
+                    numbers_of_new_params++;
+
+                    isTaskStatusChanged = true;
+                }
             }
 
             var currentImplementerId = taskUpdateParams.ImplementerId;
@@ -219,12 +235,11 @@ public sealed class TasksHandler : DataHandlerBase, ITasksHandler
 
                 if (existedTask.ImplementerId != currentImplementerId)
                 {
-                    implementerChanged = (true, existedTask.ImplementerId, currentImplementerId);
+                    implementerChanged.Item1 = true;
+
+                    existedTask.Implementer = implementer;
+                    numbers_of_new_params++;
                 }
-
-                existedTask.Implementer = implementer;
-
-                numbers_of_new_params++;
             }
 
             await CommonUnitOfWork
@@ -291,14 +306,17 @@ public sealed class TasksHandler : DataHandlerBase, ITasksHandler
                 if (existedTask.TaskStatus == TaskCurrentStatus.Review 
                     || existedTask.TaskStatus == TaskCurrentStatus.Done)
                 {
-                    await SendEventForCacheAsync(
-                        new TaskTerminalStatusReceivedEvent(
-                            Id: Guid.NewGuid().ToString(),
-                            IsCommited: false,
-                            UserId: implementerId,
-                            TaskId: taskId,
-                            TerminalMoment: dateTime,
-                            TerminalStatus: existedTask.TaskStatus));
+                    if (isTaskStatusChanged)
+                    {
+                        await SendEventForCacheAsync(
+                            new TaskTerminalStatusReceivedEvent(
+                                Id: Guid.NewGuid().ToString(),
+                                IsCommited: false,
+                                UserId: implementerId,
+                                TaskId: taskId,
+                                TerminalMoment: dateTime,
+                                TerminalStatus: existedTask.TaskStatus));
+                    }
                 }
 
                 if (implementerChanged.Item1)

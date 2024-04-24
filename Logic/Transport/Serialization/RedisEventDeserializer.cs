@@ -77,6 +77,9 @@ public sealed class RedisEventDeserializer
             RawEventType.MeetTerminalStatusReceived =>
                 CreateMeetTerminatedFromSource(reader),
 
+            RawEventType.MeetGuestChangedDecision =>
+                CreateMeetChangedDecisionFromSource(reader),
+
             RawEventType.SnapshotCreated =>
                 CreateSnapshotCreatedFromSource(reader),
 
@@ -122,7 +125,8 @@ public sealed class RedisEventDeserializer
             dto.IsCommited,
             dto.UserId,
             dto.AlertId,
-            dto.CreatedMoment);
+            dto.CreatedMoment,
+            dto.Json);
     }
 
     private GroupCreatedEvent CreateGroupCreatedFromSource(
@@ -295,6 +299,22 @@ public sealed class RedisEventDeserializer
             dto.MeetId,
             dto.TerminalMoment,
             dto.TerminalStatus);
+    }
+
+    private MeetGuestChangedDecisionEvent CreateMeetChangedDecisionFromSource(
+        JsonTextReader reader)
+    {
+        var dto = _deserializer.Deserialize<MeetGuestChangedDecisionEventDTO>(reader);
+
+        Debug.Assert(dto is not null);
+
+        return new(
+            dto.Id,
+            dto.IsCommited,
+            dto.UserId,
+            dto.MeetId,
+            dto.NewDecision,
+            dto.ScheduledStart);
     }
 
     private SnapshotCreatedEvent CreateSnapshotCreatedFromSource(

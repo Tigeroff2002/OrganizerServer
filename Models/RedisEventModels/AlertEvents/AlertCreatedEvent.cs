@@ -5,5 +5,6 @@ public sealed record class AlertCreatedEvent(
     bool IsCommited,
     int UserId,
     int AlertId,
-    DateTimeOffset CreateMoment) 
+    DateTimeOffset CreateMoment,
+    string Json) 
     : UserRelatedEvent(Id, IsCommited, UserId);

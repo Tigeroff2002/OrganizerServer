@@ -1,8 +1,10 @@
 ﻿using Logic.Abstractions;
+using Logic.ControllerHandlers;
 using Logic.Transport.Senders;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Models.Enums;
+using Models.RedisEventModels.MeetEvents;
 using Models.StorageModels;
 using Models.UserActionModels;
 using PostgreSQL.Abstractions;
@@ -11,14 +13,16 @@ using System.Text;
 namespace Logic.Notifications;
 
 public sealed class EventNotificationsHandler
-    : IEventNotificationsHandler
+    : DataHandlerBase, IEventNotificationsHandler
 {
     public EventNotificationsHandler(
         ISMTPSender smtpSender,
         IPushNotificationsSender pushNotificationsSender,
         ICommonUsersUnitOfWork usersUnitOfWork,
         IOptions<NotificationConfiguration> notifyConfiguration,
+        IRedisRepository redisRepository,
         ILogger<EventNotificationsHandler> logger)
+        : base(usersUnitOfWork, redisRepository, logger)
     {
         _smtpSender = smtpSender
             ?? throw new ArgumentNullException(nameof(smtpSender));
@@ -26,35 +30,32 @@ public sealed class EventNotificationsHandler
         _pushNotificationsSender = pushNotificationsSender
             ?? throw new ArgumentNullException(nameof(pushNotificationsSender));
 
-        _usersUnitOfWork = usersUnitOfWork
-            ?? throw new ArgumentNullException(nameof(usersUnitOfWork));
-
         ArgumentNullException.ThrowIfNull(notifyConfiguration);
 
         _notifyConfiguration = notifyConfiguration.Value;
-
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task HandleEventsAsync(CancellationToken token)
     {
-        _logger.LogInformation("Starting handling events in target handler");
+        Logger.LogInformation("Starting handling events in target handler");
 
         while (!token.IsCancellationRequested)
         {
-            var dbEvents = await _usersUnitOfWork.EventsRepository.GetAllEventsAsync(token);
+            var dbEvents = await CommonUnitOfWork
+                .EventsRepository
+                .GetAllEventsAsync(token);
 
             await HandleEventsNotificationsAsync(dbEvents, token);
 
             HandleEventStatuses(dbEvents, token);
 
-            _usersUnitOfWork.SaveChanges();
+            CommonUnitOfWork.SaveChanges();
 
-            Task.Delay(_notifyConfiguration.IterationDelay, token).GetAwaiter().GetResult();
+            await Task.Delay(_notifyConfiguration.IterationDelay, token);
         }
     }
 
-    private void HandleEventStatuses(
+    private async void HandleEventStatuses(
         List<Event>? dbEvents, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
@@ -88,15 +89,37 @@ public sealed class EventNotificationsHandler
                         if (dbEvent.Status != EventStatus.Finished)
                         {
                             dbEvent.Status = EventStatus.Finished;
+
+                            var guestMaps = CommonUnitOfWork
+                                .EventsUsersMapRepository
+                                .GetAllMapsAsync(token)
+                                .GetAwaiter()
+                                .GetResult()
+                                .Where(x => x.EventId == dbEvent.Id);
+
+                            foreach (var map in guestMaps)
+                            {
+                                await SendEventForCacheAsync(
+                                    new MeetTerminalStatusReceivedEvent(
+                                        Id: Guid.NewGuid().ToString(),
+                                        IsCommited: false,
+                                        UserId: map.UserId,
+                                        EventId: dbEvent.Id,
+                                        TerminalMoment: currentTiming,
+                                        TerminalStatus: EventStatus.Finished));
+                            }
                         }
                     }
 
-                    _logger.LogInformation(
-                        "Status of event {EventId} was changed" +
-                        " from {OldStatus} to {NewStatus}",
-                        dbEvent.Id,
-                        oldStatus,
-                        dbEvent.Status);
+                    if (dbEvent.Status != oldStatus)
+                    {
+                        Logger.LogInformation(
+                            "Status of event {EventId} was changed" +
+                            " from {OldStatus} to {NewStatus}",
+                            dbEvent.Id,
+                            oldStatus,
+                            dbEvent.Status);
+                    }
                 }
             }
         }
@@ -132,14 +155,14 @@ public sealed class EventNotificationsHandler
                     {
                         dbEvent.Status = EventStatus.WithinReminderOffset;
 
-                        _logger.LogInformation(
+                        Logger.LogInformation(
                             "Status of event {EventId} was changed" +
                             " from {OldStatus} to {NewStatus}",
                             dbEvent.Id,
                             EventStatus.NotStarted,
                             EventStatus.WithinReminderOffset);
 
-                        _logger.LogInformation(
+                        Logger.LogInformation(
                             "Start reminding users related for visiting event {EventId}",
                             dbEvent.Id);
 
@@ -154,7 +177,11 @@ public sealed class EventNotificationsHandler
                             $" : {endOfEvent.ToLocalTime()}.");
 
                         // отправка уведомлений по SMTP и ADS PUSH
-                        await SendRemindersForUsersAsync(dbEvent.Id, eventName.ToString(), token);
+                        await SendRemindersForUsersAsync(
+                            dbEvent.Id,
+                            eventName.ToString(),
+                            dbEvent.ScheduledStart,
+                            token);
                     }
                 }
             }
@@ -162,12 +189,16 @@ public sealed class EventNotificationsHandler
     }
 
     private async Task SendRemindersForUsersAsync(
-        int eventId, string eventName, CancellationToken token)
+        int eventId,
+        string eventName,
+        DateTimeOffset scheduledStart,
+        CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
 
         var guestsMaps = await
-            _usersUnitOfWork.EventsUsersMapRepository
+            CommonUnitOfWork
+                .EventsUsersMapRepository
                 .GetAllMapsAsync(token);
 
         var guestsMapsRelatedToEvent =
@@ -176,11 +207,13 @@ public sealed class EventNotificationsHandler
                 .ToList();
 
         var users = await
-            _usersUnitOfWork.UsersRepository
+            CommonUnitOfWork
+                .UsersRepository
                 .GetAllUsersAsync(token);
 
         var allDevicesMaps =
-            await _usersUnitOfWork.UserDevicesRepository
+            await CommonUnitOfWork
+                .UserDevicesRepository
                 .GetAllDevicesMapsAsync(token);
 
         foreach (var map in guestsMapsRelatedToEvent)
@@ -194,7 +227,7 @@ public sealed class EventNotificationsHandler
                 var userName = currentUser.UserName;
                 var email = currentUser.Email;
 
-                _logger.LogInformation(
+                Logger.LogInformation(
                     "Sending reminder for user {UserName} to email adress {Email}",
                     userName,
                     email);
@@ -220,9 +253,18 @@ public sealed class EventNotificationsHandler
                         totalMinutes,
                         allDevicesMaps);
 
+                await SendEventForCacheAsync(
+                    new MeetSoonBeginEvent(
+                        Id: Guid.NewGuid().ToString(),
+                        IsCommited: false,
+                        UserId: userId,
+                        MeetId: eventId,
+                        RemainingTime: _notifyConfiguration.ReminderOffset,
+                        ScheduledStart: scheduledStart));
+
                 await _smtpSender.SendSMTPNotificationAsync(reminderSMTPInfo, token);
 
-                _logger.LogInformation(
+                Logger.LogInformation(
                     "Reminder for SMTP for user" +
                     " with email {Email} has been succesfully sent",
                     email);
@@ -233,7 +275,9 @@ public sealed class EventNotificationsHandler
                             async () => await _pushNotificationsSender
                                 .SendAdsPushNotificationAsync(ads, token))));
 
-                _logger.LogInformation(
+                // продумать логику комита созданных доменных событий
+
+                Logger.LogInformation(
                     "Reminders of ads push for user" +
                     " with name {UserName} has been succesfully sent",
                     userName);
@@ -267,7 +311,5 @@ public sealed class EventNotificationsHandler
 
     private readonly ISMTPSender _smtpSender;
     private readonly IPushNotificationsSender _pushNotificationsSender;
-    private readonly ICommonUsersUnitOfWork _usersUnitOfWork;
     private readonly NotificationConfiguration _notifyConfiguration;
-    private readonly ILogger<EventNotificationsHandler> _logger;
 }

@@ -35,7 +35,8 @@ public sealed class RedisEventSerializer
                     UserId = alertCreated.UserId,
                     EventType = RawEventType.AlertCreated,
                     AlertId = alertCreated.AlertId,
-                    CreatedMoment = alertCreated.CreateMoment
+                    CreatedMoment = alertCreated.CreateMoment,
+                    Json = alertCreated.Json
                 },
 
             _ when entity is GroupCreatedEvent groupCreated
@@ -173,6 +174,17 @@ public sealed class RedisEventSerializer
                     MeetId = meetTerminaled.MeetId,
                     TerminalMoment = meetTerminaled.TerminalMoment,
                     TerminalStatus = meetTerminaled.TerminalStatus
+                },
+            _ when entity is MeetGuestChangedDecisionEvent meetChangedUserDecision
+                => new MeetGuestChangedDecisionEventDTO
+                {
+                    Id = meetChangedUserDecision.Id,
+                    IsCommited = meetChangedUserDecision.IsCommited,
+                    UserId = meetChangedUserDecision.UserId,
+                    EventType = RawEventType.MeetGuestChangedDecision,
+                    MeetId = meetChangedUserDecision.MeetId,
+                    NewDecision = meetChangedUserDecision.NewDecision,
+                    ScheduledStart = meetChangedUserDecision.ScheduledStart
                 },
 
             _ when entity is TaskAssignedEvent taskAssigned
