@@ -6,54 +6,19 @@ using Models.Enums;
 using Models.StorageModels;
 using PostgreSQL.Abstractions;
 using System.Text;
+using Microsoft.Extensions.Logging;
 
 namespace Logic.ControllerHandlers;
 
 public sealed class SnapshotsHandler
-    : ISnapshotsHandler
+    : DataHandlerBase, ISnapshotsHandler
 {
     public SnapshotsHandler(
-        ICommonUsersUnitOfWork usersUnitOfWork)
+        ICommonUsersUnitOfWork usersUnitOfWork,
+        IRedisRepository redisRepository,
+        ILogger<SnapshotsHandler> logger)
+        : base(usersUnitOfWork, redisRepository, logger)
     {
-        _usersUnitOfWork = usersUnitOfWork
-            ?? throw new ArgumentNullException(nameof(usersUnitOfWork));
-    }
-
-    private async Task UpdateEntitiesRepositorySnapshotsAsync(CancellationToken token)
-    {
-        _dbUsers = await _usersUnitOfWork
-            .UsersRepository
-            .GetAllUsersAsync(token);
-
-        _dbTasks = await _usersUnitOfWork
-            .TasksRepository
-            .GetAllTasksAsync(token);
-
-        _dbEvents = await _usersUnitOfWork
-            .EventsRepository
-            .GetAllEventsAsync(token);
-
-        _dbIssues = await _usersUnitOfWork
-            .IssuesRepository
-            .GetAllIssuesAsync(token);
-
-        _dbGroupsMaps =
-            await _usersUnitOfWork
-                .GroupingUsersMapRepository
-                .GetAllMapsAsync(token);
-
-        _dbEventsMaps = await _usersUnitOfWork
-            .EventsUsersMapRepository
-            .GetAllMapsAsync(token);
-    }
-
-    private async Task UpdateAllEntitiesRepositorySnapshotsAsync(CancellationToken token)
-    {
-        await UpdateEntitiesRepositorySnapshotsAsync(token);
-
-        _dbGroupsMaps = await _usersUnitOfWork
-            .GroupingUsersMapRepository
-            .GetAllMapsAsync(token);
     }
 
     public async Task<SnapshotDescriptionResult> CreatePersonalSnapshotDescriptionAsync(
@@ -415,12 +380,48 @@ public sealed class SnapshotsHandler
         throw new ArgumentException($"User with id {userId} was not found");
     }
 
+    private async Task UpdateEntitiesRepositorySnapshotsAsync(
+    CancellationToken token)
+    {
+        _dbUsers = await CommonUnitOfWork
+            .UsersRepository
+            .GetAllUsersAsync(token);
+
+        _dbTasks = await CommonUnitOfWork
+            .TasksRepository
+            .GetAllTasksAsync(token);
+
+        _dbEvents = await CommonUnitOfWork
+            .EventsRepository
+            .GetAllEventsAsync(token);
+
+        _dbIssues = await CommonUnitOfWork
+            .IssuesRepository
+            .GetAllIssuesAsync(token);
+
+        _dbGroupsMaps =
+            await CommonUnitOfWork
+                .GroupingUsersMapRepository
+                .GetAllMapsAsync(token);
+
+        _dbEventsMaps = await CommonUnitOfWork
+            .EventsUsersMapRepository
+            .GetAllMapsAsync(token);
+    }
+
+    private async Task UpdateAllEntitiesRepositorySnapshotsAsync(CancellationToken token)
+    {
+        await UpdateEntitiesRepositorySnapshotsAsync(token);
+
+        _dbGroupsMaps = await CommonUnitOfWork
+            .GroupingUsersMapRepository
+            .GetAllMapsAsync(token);
+    }
+
     private List<User>? _dbUsers;
     private List<UserTask>? _dbTasks;
     private List<Event>? _dbEvents;
     private List<Issue>? _dbIssues;
     private List<EventsUsersMap>? _dbEventsMaps;
     private List<GroupingUsersMap>? _dbGroupsMaps;
-
-    private readonly ICommonUsersUnitOfWork _usersUnitOfWork;
 }

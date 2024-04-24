@@ -2,6 +2,7 @@
 using Contracts.Request.RequestById;
 using Contracts.Response;
 using Logic.Abstractions;
+using Microsoft.Extensions.Logging;
 using Models.BusinessModels;
 using Models.Enums;
 using Models.StorageModels;
@@ -12,12 +13,14 @@ using System.Diagnostics;
 
 namespace Logic.ControllerHandlers;
 
-public sealed class TasksHandler : ITasksHandler
+public sealed class TasksHandler : DataHandlerBase, ITasksHandler
 {
-    public TasksHandler(ICommonUsersUnitOfWork commonUnitOfWork)
+    public TasksHandler(
+        ICommonUsersUnitOfWork commonUnitOfWork,
+        IRedisRepository redisRepository, 
+        ILogger<TasksHandler> logger)
+        : base(commonUnitOfWork, redisRepository, logger)
     {
-        _commonUnitOfWork = commonUnitOfWork
-            ?? throw new ArgumentNullException(nameof(commonUnitOfWork));
     }
 
     public async Task<Response> TryCreateTask(
@@ -36,11 +39,11 @@ public sealed class TasksHandler : ITasksHandler
         var reporterId = taskToCreate.UserId;
         var implementerId = taskToCreate.ImplementerId;
 
-        var reporter = await _commonUnitOfWork
+        var reporter = await CommonUnitOfWork
             .UsersRepository
             .GetUserByIdAsync(reporterId, token);
 
-        var implementer = await _commonUnitOfWork
+        var implementer = await CommonUnitOfWork
             .UsersRepository
             .GetUserByIdAsync(implementerId, token);
 
@@ -81,9 +84,9 @@ public sealed class TasksHandler : ITasksHandler
             task.ImplementerId = task.ReporterId;
         }
 
-        await _commonUnitOfWork.TasksRepository.AddAsync(task, token);
+        await CommonUnitOfWork.TasksRepository.AddAsync(task, token);
 
-        _commonUnitOfWork.SaveChanges();
+        CommonUnitOfWork.SaveChanges();
 
         var taskId = task.Id;
 
@@ -112,7 +115,7 @@ public sealed class TasksHandler : ITasksHandler
 
         var taskId = taskUpdateParams.TaskId;
 
-        var existedTask = await _commonUnitOfWork
+        var existedTask = await CommonUnitOfWork
             .TasksRepository
             .GetTaskByIdAsync(
             taskUpdateParams.TaskId, token);
@@ -122,11 +125,11 @@ public sealed class TasksHandler : ITasksHandler
 
         if (existedTask != null)
         {
-            var reporter = await _commonUnitOfWork
+            var reporter = await CommonUnitOfWork
                 .UsersRepository
                 .GetUserByIdAsync(reporterId, token);
 
-            var implementer = await _commonUnitOfWork
+            var implementer = await CommonUnitOfWork
                 .UsersRepository
                 .GetUserByIdAsync(implementerId, token);
 
@@ -180,7 +183,7 @@ public sealed class TasksHandler : ITasksHandler
             {
                 var currentImplementerId = taskUpdateParams.ImplementerId;
 
-                implementer = await _commonUnitOfWork
+                implementer = await CommonUnitOfWork
                     .UsersRepository
                     .GetUserByIdAsync(currentImplementerId, token);
 
@@ -202,7 +205,7 @@ public sealed class TasksHandler : ITasksHandler
 
             if (numbers_of_new_params > 0)
             {
-                await _commonUnitOfWork
+                await CommonUnitOfWork
                     .TasksRepository
                     .UpdateAsync(existedTask, token);
 
@@ -215,7 +218,7 @@ public sealed class TasksHandler : ITasksHandler
                     $" so it has not been modified";
             }
 
-            _commonUnitOfWork.SaveChanges();
+            CommonUnitOfWork.SaveChanges();
 
             response.Result = true;
 
@@ -244,7 +247,7 @@ public sealed class TasksHandler : ITasksHandler
 
         var taskId = taskToDelete.TaskId;
 
-        var existedTask = await _commonUnitOfWork
+        var existedTask = await CommonUnitOfWork
             .TasksRepository
             .GetTaskByIdAsync(taskId, token);
 
@@ -252,7 +255,7 @@ public sealed class TasksHandler : ITasksHandler
 
         if (existedTask != null)
         {
-            var reporter = await _commonUnitOfWork
+            var reporter = await CommonUnitOfWork
                 .UsersRepository
                 .GetUserByIdAsync(reporterId, token);
 
@@ -282,9 +285,9 @@ public sealed class TasksHandler : ITasksHandler
                 return await Task.FromResult(response1);
             }
 
-            await _commonUnitOfWork.TasksRepository.DeleteAsync(taskId, token);
+            await CommonUnitOfWork.TasksRepository.DeleteAsync(taskId, token);
 
-            _commonUnitOfWork.SaveChanges();
+            CommonUnitOfWork.SaveChanges();
 
             var response = new Response();
             response.Result = true;
@@ -315,7 +318,7 @@ public sealed class TasksHandler : ITasksHandler
 
         var taskId = taskWithIdRequest.TaskId;
 
-        var existedTask = await _commonUnitOfWork
+        var existedTask = await CommonUnitOfWork
             .TasksRepository
             .GetTaskByIdAsync(taskId, token);
 
@@ -324,11 +327,11 @@ public sealed class TasksHandler : ITasksHandler
             var reporterId = existedTask.ReporterId;
             var implementerId = existedTask.ImplementerId;
 
-            var reporter = await _commonUnitOfWork
+            var reporter = await CommonUnitOfWork
                 .UsersRepository
                 .GetUserByIdAsync(reporterId, token);
 
-            var implementer = await _commonUnitOfWork
+            var implementer = await CommonUnitOfWork
                 .UsersRepository
                 .GetUserByIdAsync(implementerId, token);
 
@@ -422,6 +425,4 @@ public sealed class TasksHandler : ITasksHandler
 
         return await Task.FromResult(response2);
     }
-
-    private readonly ICommonUsersUnitOfWork _commonUnitOfWork;
 }

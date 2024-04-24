@@ -20,10 +20,9 @@ using Logic.Transport.Serialization;
 namespace Logic.ControllerHandlers;
 
 public sealed class UsersDataHandler
-    : IUsersDataHandler
+    : DataHandlerBase, IUsersDataHandler
 {
     public UsersDataHandler(
-        ICommonUsersUnitOfWork usersUnitOfWork,
         IOptions<RootConfiguration> rootConfiguration,
         ISMTPSender usersCodeConfirmer,
         ISerializer<UserInfoContent> userInfoSerializer,
@@ -31,14 +30,14 @@ public sealed class UsersDataHandler
         IDeserializer<UserLoginData> usersLoginDataDeserializer,
         IDeserializer<UserInfoById> userInfoByIdDeserializer,
         IDeserializer<UserLogoutDeviceById> userLogoutByIdDeserializer,
+        ICommonUsersUnitOfWork commonUnitOfWork,
+        IRedisRepository redisRepository,
         ILogger<UsersDataHandler> logger)
+        : base(commonUnitOfWork, redisRepository, logger)
     {
         ArgumentNullException.ThrowIfNull(rootConfiguration);
 
         _rootConfiguration = rootConfiguration.Value;
-
-        _usersUnitOfWork = usersUnitOfWork
-            ?? throw new ArgumentNullException(nameof(usersUnitOfWork));
 
         _usersCodeConfirmer = usersCodeConfirmer
             ?? throw new ArgumentNullException(nameof(usersCodeConfirmer));
@@ -57,8 +56,6 @@ public sealed class UsersDataHandler
 
         _userLogoutByIdDeserializer = userLogoutByIdDeserializer
             ?? throw new ArgumentNullException(nameof(userLogoutByIdDeserializer));
-
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task<Response> TryRegisterUser(
@@ -75,12 +72,13 @@ public sealed class UsersDataHandler
         var email = userRegistrationData.Email;
 
         var existedUser =
-           await _usersUnitOfWork.UsersRepository
+           await CommonUnitOfWork
+           .UsersRepository
                 .GetUserByEmailAsync(email, token);
 
         if (existedUser != null)
         {
-            _logger.LogInformation(
+            Logger.LogInformation(
                 "User with email {Email} was already in DB",
                 email);
 
@@ -110,7 +108,7 @@ public sealed class UsersDataHandler
 
         if (!confirmResult)
         {
-            _logger.LogInformation(
+            Logger.LogInformation(
                 "User account link confirmation was not succesfull");
 
             var response2 = new RegistrationResponse();
@@ -145,11 +143,11 @@ public sealed class UsersDataHandler
 
         user.AuthToken = authToken;
 
-        _logger.LogInformation("Registrating new user {Email}", user.Email);
+        Logger.LogInformation("Registrating new user {Email}", user.Email);
 
-        await _usersUnitOfWork.UsersRepository.AddAsync(user, token);
+        await CommonUnitOfWork.UsersRepository.AddAsync(user, token);
 
-        _usersUnitOfWork.SaveChanges();
+        CommonUnitOfWork.SaveChanges();
 
         var currentFirebaseToken = userRegistrationData.FirebaseToken;
 
@@ -160,9 +158,11 @@ public sealed class UsersDataHandler
         userDeviceMap.TokenSetMoment = registrationTime;
         userDeviceMap.IsActive = true;
 
-        await _usersUnitOfWork.UserDevicesRepository.AddAsync(userDeviceMap, token);
+        await CommonUnitOfWork
+            .UserDevicesRepository
+            .AddAsync(userDeviceMap, token);
 
-        _usersUnitOfWork.SaveChanges();
+        CommonUnitOfWork.SaveChanges();
 
         var response = new RegistrationResponse();
         response.Result = true;
@@ -195,12 +195,13 @@ public sealed class UsersDataHandler
         var email = userLoginData.Email;
 
         var existedUser =
-            await _usersUnitOfWork.UsersRepository
+            await CommonUnitOfWork
+                .UsersRepository
                 .GetUserByEmailAsync(email, token);
 
         if (existedUser == null)
         {
-            _logger.LogInformation(
+            Logger.LogInformation(
                 "User with email {Email} was not already in DB",
                 email);
 
@@ -213,7 +214,7 @@ public sealed class UsersDataHandler
 
         if (existedUser.Password != userLoginData.Password)
         {
-            _logger.LogInformation("Password not equals");
+            Logger.LogInformation("Password not equals");
 
             var response2 = new LoginResponse();
             response2.Result = false;
@@ -226,7 +227,9 @@ public sealed class UsersDataHandler
 
         existedUser.AuthToken = authToken;
 
-        await _usersUnitOfWork.UsersRepository.UpdateAsync(existedUser, token);
+        await CommonUnitOfWork
+            .UsersRepository
+            .UpdateAsync(existedUser, token);
 
         var loginTime = DateTimeOffset.UtcNow;
 
@@ -239,9 +242,11 @@ public sealed class UsersDataHandler
         userDeviceMap.TokenSetMoment = loginTime;
         userDeviceMap.IsActive = true;
 
-        await _usersUnitOfWork.UserDevicesRepository.AddAsync(userDeviceMap, token);
+        await CommonUnitOfWork
+            .UserDevicesRepository
+            .AddAsync(userDeviceMap, token);
 
-        _usersUnitOfWork.SaveChanges();
+        CommonUnitOfWork.SaveChanges();
 
         var userName = existedUser.UserName;
 
@@ -273,12 +278,13 @@ public sealed class UsersDataHandler
         var firebaseToken = userLogoutData.FirebaseToken;
 
         var existedUser =
-            await _usersUnitOfWork.UsersRepository
+            await CommonUnitOfWork
+                .UsersRepository
                 .GetUserByIdAsync(userId, token);
 
         if (existedUser == null)
         {
-            _logger.LogInformation(
+            Logger.LogInformation(
                 "User with id {Id} was not already in DB",
                 userId);
 
@@ -289,7 +295,8 @@ public sealed class UsersDataHandler
             return await Task.FromResult(response1);
         }
 
-        var userDeviceMaps = await _usersUnitOfWork.UserDevicesRepository
+        var userDeviceMaps = await CommonUnitOfWork
+            .UserDevicesRepository
             .GetAllDevicesMapsAsync(token);
 
         var existedDeviceMap =
@@ -300,7 +307,7 @@ public sealed class UsersDataHandler
 
         if (existedDeviceMap == null)
         {
-            _logger.LogInformation(
+            Logger.LogInformation(
                 "User with id {Id} not synchronized" +
                 " with firebase token {Token} was not already in DB",
                 userId,
@@ -315,10 +322,11 @@ public sealed class UsersDataHandler
             return await Task.FromResult(response1);
         }
 
-        await _usersUnitOfWork.UserDevicesRepository
+        await CommonUnitOfWork
+            .UserDevicesRepository
             .DeleteAsync(userId, firebaseToken, token);
 
-        _usersUnitOfWork.SaveChanges();
+        CommonUnitOfWork.SaveChanges();
 
         var response = new Response();
         response.Result = true;
@@ -340,7 +348,8 @@ public sealed class UsersDataHandler
         var userInfoByIdRequest = _userInfoByIdDeserializer.Deserialize(userInfoById);
 
         var user =
-            await _usersUnitOfWork.UsersRepository
+            await CommonUnitOfWork
+            .UsersRepository
             .GetUserByIdAsync(userInfoByIdRequest.UserId, token);
 
         if (user == null)
@@ -354,13 +363,15 @@ public sealed class UsersDataHandler
             return await Task.FromResult(response1);
         }
 
-        var userInfoContent = await FillContentModelRelatedUserInformationAsync(user, token);
+        var userInfoContent = 
+            await FillContentModelRelatedUserInformationAsync(user, token);
 
         var response = new GetResponse();
         response.Result = true;
         response.OutInfo =
             $"Info about user with with id" +
-            $" {userInfoByIdRequest.UserId} has been received";
+            $" {userInfoByIdRequest.UserId}" +
+            $" has been received";
 
         response.RequestedInfo = _userInfoSerializer.Serialize(userInfoContent);
 
@@ -382,7 +393,8 @@ public sealed class UsersDataHandler
 
         var userId = updateUserInfo.UserId;
 
-        var existedUser = await _usersUnitOfWork.UsersRepository
+        var existedUser = await CommonUnitOfWork
+            .UsersRepository
             .GetUserByIdAsync(userId, token);
 
         if (existedUser == null)
@@ -428,9 +440,11 @@ public sealed class UsersDataHandler
 
             existedUser.AuthToken = authToken;
 
-            await _usersUnitOfWork.UsersRepository.UpdateAsync(existedUser, token);
+            await CommonUnitOfWork
+                .UsersRepository
+                .UpdateAsync(existedUser, token);
 
-            _usersUnitOfWork.UsersRepository.SaveChanges();
+            CommonUnitOfWork.UsersRepository.SaveChanges();
 
             response1.Result = true;
 
@@ -473,7 +487,8 @@ public sealed class UsersDataHandler
 
         var userId = updateUserRole.UserId;
 
-        var existedUser = await _usersUnitOfWork.UsersRepository
+        var existedUser = await CommonUnitOfWork
+            .UsersRepository
             .GetUserByIdAsync(userId, token);
 
         if (existedUser == null)
@@ -491,7 +506,9 @@ public sealed class UsersDataHandler
         {
             var response1 = new Response();
             response1.Result = false;
-            response1.OutInfo = $"User with id {userId} already has a role {requestedRole}";
+            response1.OutInfo = 
+                $"User with id {userId}" +
+                $" already has a role {requestedRole}";
 
             return await Task.FromResult(response1);
         }
@@ -502,9 +519,11 @@ public sealed class UsersDataHandler
 
             existedUser.Role = requestedRole;
 
-            await _usersUnitOfWork.UsersRepository.UpdateAsync(existedUser, token);
+            await CommonUnitOfWork
+                .UsersRepository
+                .UpdateAsync(existedUser, token);
 
-            _usersUnitOfWork.SaveChanges();
+            CommonUnitOfWork.SaveChanges();
 
             response1.Result = true;
             response1.OutInfo =
@@ -552,9 +571,11 @@ public sealed class UsersDataHandler
 
         existedUser.Role = requestedRole;
 
-        await _usersUnitOfWork.UsersRepository.UpdateAsync(existedUser, token);
+        await CommonUnitOfWork
+            .UsersRepository
+            .UpdateAsync(existedUser, token);
 
-        _usersUnitOfWork.SaveChanges();
+        CommonUnitOfWork.SaveChanges();
 
         response.Result = true;
         response.OutInfo =
@@ -571,11 +592,13 @@ public sealed class UsersDataHandler
         var userId = user.Id;
 
         var allGroupsMaps =
-            await _usersUnitOfWork.GroupingUsersMapRepository
+            await CommonUnitOfWork
+            .GroupingUsersMapRepository
             .GetAllMapsAsync(token);
 
         var allEventsMaps =
-            await _usersUnitOfWork.EventsUsersMapRepository
+            await CommonUnitOfWork
+            .EventsUsersMapRepository
             .GetAllMapsAsync(token);
 
         var userGroupMaps = allGroupsMaps
@@ -586,18 +609,21 @@ public sealed class UsersDataHandler
             .Where(map => map.UserId == userId)
             .ToList();
 
-        var allEvents = await _usersUnitOfWork.EventsRepository
+        var allEvents = await CommonUnitOfWork
+            .EventsRepository
             .GetAllEventsAsync(token);
 
         var allTasks =
-            await _usersUnitOfWork.TasksRepository
+            await CommonUnitOfWork
+            .TasksRepository
             .GetAllTasksAsync(token);
 
         var userTasksModels = allTasks
             .Where(task => task.ImplementerId == userId)
             .ToList();
 
-        var allIssues = await _usersUnitOfWork.IssuesRepository
+        var allIssues = await CommonUnitOfWork
+            .IssuesRepository
             .GetAllIssuesAsync(token);
 
         var userIssuesModels =
@@ -605,7 +631,8 @@ public sealed class UsersDataHandler
             .Where(x => x.UserId == userId)
             .ToList();
 
-        var allSnapshots = await _usersUnitOfWork.SnapshotsRepository
+        var allSnapshots = await CommonUnitOfWork
+            .SnapshotsRepository
             .GetAllSnapshotsAsync(token);
 
         var userSnapshotsModels = allSnapshots
@@ -618,7 +645,8 @@ public sealed class UsersDataHandler
         {
             var reporterId = task.ReporterId;
 
-            var reporter = await _usersUnitOfWork.UsersRepository
+            var reporter = await CommonUnitOfWork
+                .UsersRepository
                 .GetUserByIdAsync(reporterId, token);
 
             var reporterInfo = new ShortUserInfo
@@ -648,7 +676,8 @@ public sealed class UsersDataHandler
         {
             var groupId = groupMap.GroupId;
 
-            var group = await _usersUnitOfWork.GroupsRepository
+            var group = await CommonUnitOfWork
+                .GroupsRepository
                 .GetGroupByIdAsync(groupId, token);
 
             if (group != null)
@@ -670,14 +699,16 @@ public sealed class UsersDataHandler
         {
             var eventId = eventMap.EventId;
 
-            var @event = await _usersUnitOfWork.EventsRepository
+            var @event = await CommonUnitOfWork
+                .EventsRepository
                 .GetEventByIdAsync(eventId, token);
 
             if (@event != null)
             {
                 var managerId = @event!.ManagerId;
 
-                var manager = await _usersUnitOfWork.UsersRepository
+                var manager = await CommonUnitOfWork
+                    .UsersRepository
                     .GetUserByIdAsync(managerId, token);
 
                 var managerInfo = new ShortUserInfo
@@ -769,11 +800,9 @@ public sealed class UsersDataHandler
 
     private const UserRole DEFAULT_USER_ROLE = UserRole.User;
 
-    private readonly ICommonUsersUnitOfWork _usersUnitOfWork;
     private readonly ISMTPSender _usersCodeConfirmer;
     private readonly ISerializer<UserInfoContent> _userInfoSerializer;
     private readonly RootConfiguration _rootConfiguration;
-    private readonly ILogger _logger;
 
     private readonly IDeserializer<UserRegistrationData> _usersRegistrationDataDeserializer;
     private readonly IDeserializer<UserLoginData> _usersLoginDataDeserializer;

@@ -2,6 +2,7 @@
 using Contracts.Request.RequestById;
 using Contracts.Response;
 using Logic.Abstractions;
+using Microsoft.Extensions.Logging;
 using Models.BusinessModels;
 using Models.Enums;
 using Models.StorageModels;
@@ -12,12 +13,15 @@ using System.Diagnostics;
 
 namespace Logic.ControllerHandlers;
 
-public sealed class EventsHandler : IEventsHandler
+public sealed class EventsHandler 
+    : DataHandlerBase, IEventsHandler
 {
-    public EventsHandler(ICommonUsersUnitOfWork commonUnitOfWork)
+    public EventsHandler(
+        ICommonUsersUnitOfWork commonUnitOfWork,
+        IRedisRepository redisRepository,
+        ILogger<EventsHandler> logger)
+        : base(commonUnitOfWork, redisRepository, logger)
     {
-        _commonUnitOfWork = commonUnitOfWork 
-            ?? throw new ArgumentNullException(nameof(commonUnitOfWork));
     }
 
     public async Task<Response> TryScheduleEvent(
@@ -35,7 +39,7 @@ public sealed class EventsHandler : IEventsHandler
         var managerId = eventToCreate.UserId;
         var groupId = eventToCreate.GroupId;
 
-        var manager = await _commonUnitOfWork
+        var manager = await CommonUnitOfWork
             .UsersRepository
             .GetUserByIdAsync(managerId, token);
 
@@ -50,7 +54,7 @@ public sealed class EventsHandler : IEventsHandler
             return await Task.FromResult(response1);
         }
 
-        var group = await _commonUnitOfWork
+        var group = await CommonUnitOfWork
             .GroupsRepository
             .GetGroupByIdAsync(groupId, token);
 
@@ -80,9 +84,9 @@ public sealed class EventsHandler : IEventsHandler
             RelatedGroupId = groupId
         };
 
-        await _commonUnitOfWork.EventsRepository.AddAsync(@event, token);
+        await CommonUnitOfWork.EventsRepository.AddAsync(@event, token);
 
-        _commonUnitOfWork.SaveChanges();
+        CommonUnitOfWork.SaveChanges();
 
         var eventId = @event.Id;
         @event.Manager = manager;
@@ -90,7 +94,7 @@ public sealed class EventsHandler : IEventsHandler
 
         var listGuestsMaps = new List<EventsUsersMap>();
 
-        var existedUsers = await _commonUnitOfWork
+        var existedUsers = await CommonUnitOfWork
             .UsersRepository
             .GetAllUsersAsync(token);
 
@@ -104,7 +108,7 @@ public sealed class EventsHandler : IEventsHandler
         if (eventToCreate.EventType 
             is EventType.Meeting or EventType.StandUp)
         {
-            var allMaps = await _commonUnitOfWork
+            var allMaps = await CommonUnitOfWork
                 .GroupingUsersMapRepository
                 .GetAllMapsAsync(token);
 
@@ -163,12 +167,12 @@ public sealed class EventsHandler : IEventsHandler
 
         foreach (var map in listGuestsMaps)
         {
-            await _commonUnitOfWork
+            await CommonUnitOfWork
                 .EventsUsersMapRepository
                 .AddAsync(map, token);
         }
 
-        _commonUnitOfWork.SaveChanges();
+        CommonUnitOfWork.SaveChanges();
 
         var response = new Response();
         response.Result = true;
@@ -196,7 +200,7 @@ public sealed class EventsHandler : IEventsHandler
 
         var eventId = updateEventParams.EventId;
 
-        var existedEvent = await _commonUnitOfWork
+        var existedEvent = await CommonUnitOfWork
             .EventsRepository
             .GetEventByIdAsync(eventId, token);
 
@@ -204,7 +208,7 @@ public sealed class EventsHandler : IEventsHandler
         {
             var userId = updateEventParams.UserId;
 
-            var user = await _commonUnitOfWork
+            var user = await CommonUnitOfWork
                 .UsersRepository
                 .GetUserByIdAsync(userId, token);
 
@@ -221,7 +225,7 @@ public sealed class EventsHandler : IEventsHandler
 
             var managerId = existedEvent.ManagerId;
 
-            var manager = await _commonUnitOfWork
+            var manager = await CommonUnitOfWork
                 .UsersRepository
                 .GetUserByIdAsync(userId, token);
 
@@ -241,7 +245,7 @@ public sealed class EventsHandler : IEventsHandler
             {
                 var listGuestsMap = new List<EventsUsersMap>();
 
-                var existedUsers = await _commonUnitOfWork
+                var existedUsers = await CommonUnitOfWork
                     .UsersRepository
                     .GetAllUsersAsync(token);
 
@@ -266,7 +270,7 @@ public sealed class EventsHandler : IEventsHandler
                 {
                     foreach (var map in listGuestsMap)
                     {
-                        await _commonUnitOfWork
+                        await CommonUnitOfWork
                             .EventsUsersMapRepository
                             .AddAsync(map, token);
                     }
@@ -315,7 +319,7 @@ public sealed class EventsHandler : IEventsHandler
 
             if (numbers_of_new_params > 0)
             {
-                await _commonUnitOfWork
+                await CommonUnitOfWork
                     .EventsRepository
                     .UpdateAsync(existedEvent, token);
 
@@ -332,7 +336,7 @@ public sealed class EventsHandler : IEventsHandler
                     $" so it has not been modified";
             }
 
-            _commonUnitOfWork.SaveChanges();
+            CommonUnitOfWork.SaveChanges();
 
             response.Result = true;
 
@@ -362,7 +366,7 @@ public sealed class EventsHandler : IEventsHandler
 
         var eventId = updateEventParams.EventId;
 
-        var existedEvent = await _commonUnitOfWork
+        var existedEvent = await CommonUnitOfWork
             .EventsRepository
             .GetEventByIdAsync(eventId, token);
 
@@ -370,7 +374,7 @@ public sealed class EventsHandler : IEventsHandler
         {
             var userId = updateEventParams.UserId;
 
-            var user = await _commonUnitOfWork
+            var user = await CommonUnitOfWork
                 .UsersRepository
                 .GetUserByIdAsync(userId, token);
 
@@ -385,7 +389,7 @@ public sealed class EventsHandler : IEventsHandler
                 return await Task.FromResult(response1);
             }
 
-            var existedUserEventMap = await _commonUnitOfWork
+            var existedUserEventMap = await CommonUnitOfWork
                 .EventsUsersMapRepository
                 .GetEventUserMapByIdsAsync(eventId, userId, token);
 
@@ -404,12 +408,12 @@ public sealed class EventsHandler : IEventsHandler
 
             if (decisionType != DecisionType.None)
             {
-                await _commonUnitOfWork
+                await CommonUnitOfWork
                     .EventsUsersMapRepository
                     .UpdateDecisionAsync(eventId, userId, decisionType, token);
             }
 
-            _commonUnitOfWork.SaveChanges();
+            CommonUnitOfWork.SaveChanges();
 
             var response = new Response();
             response.Result = true;
@@ -447,7 +451,7 @@ public sealed class EventsHandler : IEventsHandler
 
         var eventId = eventDeleteParams.EventId;
 
-        var existedEvent = await _commonUnitOfWork
+        var existedEvent = await CommonUnitOfWork
             .EventsRepository
             .GetEventByIdAsync(eventId, token);
 
@@ -456,7 +460,7 @@ public sealed class EventsHandler : IEventsHandler
             var userId = eventDeleteParams.UserId;
             var managerId = existedEvent.Manager.Id;
 
-            var user = await _commonUnitOfWork
+            var user = await CommonUnitOfWork
                 .UsersRepository
                 .GetUserByIdAsync(userId, token);
 
@@ -483,9 +487,9 @@ public sealed class EventsHandler : IEventsHandler
                 return await Task.FromResult(response1);
             }
 
-            await _commonUnitOfWork.EventsRepository.DeleteAsync(eventId, token);
+            await CommonUnitOfWork.EventsRepository.DeleteAsync(eventId, token);
 
-            _commonUnitOfWork.SaveChanges();
+            CommonUnitOfWork.SaveChanges();
 
             var response = new Response();
             response.Result = true;
@@ -517,7 +521,7 @@ public sealed class EventsHandler : IEventsHandler
         var userId = eventByIdRequest.UserId;
         var eventId = eventByIdRequest.EventId;
 
-        var existedEvent = await _commonUnitOfWork
+        var existedEvent = await CommonUnitOfWork
             .EventsRepository
             .GetEventByIdAsync(eventId, token);
 
@@ -528,7 +532,7 @@ public sealed class EventsHandler : IEventsHandler
                 existedEvent.GuestsMap = new List<EventsUsersMap>();
             }
 
-            var existedUserEventMap = await _commonUnitOfWork
+            var existedUserEventMap = await CommonUnitOfWork
                 .EventsUsersMapRepository
                 .GetEventUserMapByIdsAsync(eventId, userId, token);
 
@@ -544,7 +548,7 @@ public sealed class EventsHandler : IEventsHandler
                 return await Task.FromResult(response1);
             }
 
-            var allEventMaps = await _commonUnitOfWork
+            var allEventMaps = await CommonUnitOfWork
                 .EventsUsersMapRepository
                 .GetAllMapsAsync(token);
 
@@ -556,7 +560,7 @@ public sealed class EventsHandler : IEventsHandler
             {
                 var participantId = userMap.UserId;
 
-                var user = await _commonUnitOfWork
+                var user = await CommonUnitOfWork
                     .UsersRepository
                     .GetUserByIdAsync(participantId, token);
 
@@ -576,7 +580,7 @@ public sealed class EventsHandler : IEventsHandler
 
             var relatedGroupId = existedEvent.RelatedGroupId;
 
-            var relatedGroup = await _commonUnitOfWork
+            var relatedGroup = await CommonUnitOfWork
                 .GroupsRepository
                 .GetGroupByIdAsync(relatedGroupId, token);
 
@@ -584,7 +588,7 @@ public sealed class EventsHandler : IEventsHandler
 
             if (relatedGroup != null)
             {
-                var existedGroupMaps = await _commonUnitOfWork
+                var existedGroupMaps = await CommonUnitOfWork
                     .GroupingUsersMapRepository
                     .GetGroupingUsersMapByGroupIdsAsync(relatedGroupId, token);
 
@@ -592,7 +596,7 @@ public sealed class EventsHandler : IEventsHandler
                 {
                     var participantId = userMap.UserId;
 
-                    var user = await _commonUnitOfWork
+                    var user = await CommonUnitOfWork
                         .UsersRepository
                         .GetUserByIdAsync(participantId, token);
 
@@ -647,7 +651,9 @@ public sealed class EventsHandler : IEventsHandler
 
             var getResponse = new GetResponse();
             getResponse.Result = true;
-            getResponse.OutInfo = $"Info about event with id {existedEvent.Id} was found";
+            getResponse.OutInfo = 
+                $"Info about event with id" +
+                $" {existedEvent.Id} was found";
             getResponse.RequestedInfo = eventInfo;
 
             return await Task.FromResult(getResponse);
@@ -655,10 +661,9 @@ public sealed class EventsHandler : IEventsHandler
 
         var response2 = new GetResponse();
         response2.Result = false;
-        response2.OutInfo = $"No such event with id {eventByIdRequest.EventId}";
+        response2.OutInfo = $"No such event with id" +
+            $" {eventByIdRequest.EventId}";
 
         return await Task.FromResult(response2);
     }
-
-    private readonly ICommonUsersUnitOfWork _commonUnitOfWork;
 }

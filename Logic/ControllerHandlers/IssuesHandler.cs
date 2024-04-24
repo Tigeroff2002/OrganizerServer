@@ -2,6 +2,7 @@
 using Contracts.Request.RequestById;
 using Contracts.Response;
 using Logic.Abstractions;
+using Microsoft.Extensions.Logging;
 using Models.BusinessModels;
 using Models.Enums;
 using Models.StorageModels;
@@ -12,12 +13,15 @@ using System.Diagnostics;
 
 namespace Logic.ControllerHandlers;
 
-public sealed class IssuesHandler : IIssuesHandler
+public sealed class IssuesHandler 
+    : DataHandlerBase, IIssuesHandler
 {
-    public IssuesHandler(ICommonUsersUnitOfWork commonUnitOfWork)
+    public IssuesHandler(
+        ICommonUsersUnitOfWork commonUnitOfWork,
+        IRedisRepository redisRepository,
+        ILogger<IssuesHandler> logger)
+        : base(commonUnitOfWork, redisRepository, logger)
     {
-        _commonUnitOfWork = commonUnitOfWork
-            ?? throw new ArgumentNullException(nameof(commonUnitOfWork));
     }
 
     public async Task<Response> TryCreateIssue(
@@ -35,7 +39,7 @@ public sealed class IssuesHandler : IIssuesHandler
         var userId = issueToCreate.UserId;
         var issueType = issueToCreate.IssueType;
 
-        var user = await _commonUnitOfWork
+        var user = await CommonUnitOfWork
             .UsersRepository
             .GetUserByIdAsync(userId, token);
 
@@ -63,9 +67,9 @@ public sealed class IssuesHandler : IIssuesHandler
             UserId = user.Id
         };
 
-        await _commonUnitOfWork.IssuesRepository.AddAsync(issue, token);
+        await CommonUnitOfWork.IssuesRepository.AddAsync(issue, token);
 
-        _commonUnitOfWork.SaveChanges();
+        CommonUnitOfWork.SaveChanges();
 
         var issueId = issue.Id;
 
@@ -94,7 +98,7 @@ public sealed class IssuesHandler : IIssuesHandler
 
         var issueId = issueUpdateParams.IssueId;
 
-        var existedIssue = await _commonUnitOfWork
+        var existedIssue = await CommonUnitOfWork
             .IssuesRepository
             .GetIssueByIdAsync(issueId, token);
 
@@ -102,7 +106,7 @@ public sealed class IssuesHandler : IIssuesHandler
 
         if (existedIssue != null)
         {
-            var currentUser = await _commonUnitOfWork
+            var currentUser = await CommonUnitOfWork
                 .UsersRepository
                 .GetUserByIdAsync(currentUserId, token);
 
@@ -164,7 +168,7 @@ public sealed class IssuesHandler : IIssuesHandler
 
             if (numbers_of_new_params > 0)
             {
-                await _commonUnitOfWork
+                await CommonUnitOfWork
                     .IssuesRepository
                     .UpdateAsync(existedIssue, token);
 
@@ -177,7 +181,7 @@ public sealed class IssuesHandler : IIssuesHandler
                     $" so it has not been modified";
             }
 
-            _commonUnitOfWork.SaveChanges();
+            CommonUnitOfWork.SaveChanges();
 
             response.Result = true;
 
@@ -206,7 +210,7 @@ public sealed class IssuesHandler : IIssuesHandler
 
         var issueId = issueToDelete.IssueId;
 
-        var existedIssue = await _commonUnitOfWork
+        var existedIssue = await CommonUnitOfWork
             .IssuesRepository
             .GetIssueByIdAsync(issueId, token);
 
@@ -225,11 +229,11 @@ public sealed class IssuesHandler : IIssuesHandler
                 return await Task.FromResult(response1);
             }
 
-            await _commonUnitOfWork
+            await CommonUnitOfWork
                 .IssuesRepository
                 .DeleteAsync(issueId, token);
 
-            _commonUnitOfWork.SaveChanges();
+            CommonUnitOfWork.SaveChanges();
 
             var response = new Response();
             response.Result = true;
@@ -260,7 +264,7 @@ public sealed class IssuesHandler : IIssuesHandler
 
         var issueId = issueWithIdRequest.IssueId;
 
-        var existedIssue = await _commonUnitOfWork
+        var existedIssue = await CommonUnitOfWork
             .IssuesRepository
             .GetIssueByIdAsync(issueId, token);
 
@@ -268,7 +272,7 @@ public sealed class IssuesHandler : IIssuesHandler
         {
             var userId = existedIssue!.UserId;
 
-            var manager = await _commonUnitOfWork
+            var manager = await CommonUnitOfWork
                 .UsersRepository
                 .GetUserByIdAsync(userId, token);
 
@@ -338,7 +342,7 @@ public sealed class IssuesHandler : IIssuesHandler
 
         var userId = requestDTO.UserId;
 
-        var existedUser = await _commonUnitOfWork
+        var existedUser = await CommonUnitOfWork
             .UsersRepository
             .GetUserByIdAsync(userId, token);
 
@@ -365,12 +369,12 @@ public sealed class IssuesHandler : IIssuesHandler
         }
 
         var allUsers =
-            await _commonUnitOfWork
+            await CommonUnitOfWork
                 .UsersRepository
                 .GetAllUsersAsync(token);
 
         var allIssues =
-            _commonUnitOfWork
+            CommonUnitOfWork
                 .IssuesRepository
                 .GetAllIssuesAsync(token)
                 .GetAwaiter().GetResult()
@@ -406,6 +410,4 @@ public sealed class IssuesHandler : IIssuesHandler
 
         return await Task.FromResult(getResponse);
     }
-
-    private readonly ICommonUsersUnitOfWork _commonUnitOfWork;
 }

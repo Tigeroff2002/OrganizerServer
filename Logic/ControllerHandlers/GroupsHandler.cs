@@ -2,6 +2,7 @@
 using Contracts.Request.RequestById;
 using Contracts.Response;
 using Logic.Abstractions;
+using Microsoft.Extensions.Logging;
 using Models.BusinessModels;
 using Models.Enums;
 using Models.StorageModels;
@@ -12,12 +13,15 @@ using System.Diagnostics;
 
 namespace Logic.ControllerHandlers;
 
-public sealed class GroupsHandler : IGroupsHandler
+public sealed class GroupsHandler 
+    : DataHandlerBase, IGroupsHandler
 {
-    public GroupsHandler(ICommonUsersUnitOfWork commonUnitOfWork)
+    public GroupsHandler(
+        ICommonUsersUnitOfWork commonUnitOfWork,
+        IRedisRepository redisRepository,
+        ILogger<GroupsHandler> logger)
+        : base(commonUnitOfWork, redisRepository, logger)
     {
-        _commonUnitOfWork = commonUnitOfWork 
-            ?? throw new ArgumentNullException(nameof(commonUnitOfWork));
     }
 
     public async Task<Response> TryCreateGroup(
@@ -34,7 +38,7 @@ public sealed class GroupsHandler : IGroupsHandler
 
         var currentUserId = groupToCreate.UserId;
 
-        var selfUser = await _commonUnitOfWork
+        var selfUser = await CommonUnitOfWork
             .UsersRepository
             .GetUserByIdAsync(currentUserId, token);
 
@@ -55,15 +59,15 @@ public sealed class GroupsHandler : IGroupsHandler
             Type = groupToCreate.Type
         };
 
-        await _commonUnitOfWork.GroupsRepository.AddAsync(group, token);
+        await CommonUnitOfWork.GroupsRepository.AddAsync(group, token);
 
-        _commonUnitOfWork.SaveChanges();
+        CommonUnitOfWork.SaveChanges();
 
         var groupId = group.Id;
 
         var listGroupingUsersMap = new List<GroupingUsersMap>();
 
-        var existedUsers = await _commonUnitOfWork
+        var existedUsers = await CommonUnitOfWork
             .UsersRepository
             .GetAllUsersAsync(token);
 
@@ -107,10 +111,10 @@ public sealed class GroupsHandler : IGroupsHandler
 
         foreach (var map in listGroupingUsersMap)
         {
-            await _commonUnitOfWork.GroupingUsersMapRepository.AddAsync(map, token);
+            await CommonUnitOfWork.GroupingUsersMapRepository.AddAsync(map, token);
         }
 
-        _commonUnitOfWork.SaveChanges();
+        CommonUnitOfWork.SaveChanges();
 
         var response = new Response();
         response.Result = true;
@@ -137,7 +141,7 @@ public sealed class GroupsHandler : IGroupsHandler
         var groupId = updateGroupParams.GroupId;
         var currentUserId = updateGroupParams.UserId;
 
-        var currentUserFromRequest = await _commonUnitOfWork
+        var currentUserFromRequest = await CommonUnitOfWork
             .UsersRepository
             .GetUserByIdAsync(currentUserId, token);
 
@@ -152,7 +156,7 @@ public sealed class GroupsHandler : IGroupsHandler
             return await Task.FromResult(response1);
         }
 
-        var existedGroup = await _commonUnitOfWork
+        var existedGroup = await CommonUnitOfWork
             .GroupsRepository
             .GetGroupByIdAsync(groupId, token);
 
@@ -163,7 +167,7 @@ public sealed class GroupsHandler : IGroupsHandler
                 existedGroup.ParticipantsMap = new List<GroupingUsersMap>();
             }
 
-            var existedMap = await _commonUnitOfWork
+            var existedMap = await CommonUnitOfWork
                 .GroupingUsersMapRepository
                 .GetGroupingUserMapByIdsAsync(groupId, currentUserId, token);
 
@@ -182,7 +186,7 @@ public sealed class GroupsHandler : IGroupsHandler
 
             if (updateGroupParams.Participants != null)
             {
-                var existedUsers = await _commonUnitOfWork
+                var existedUsers = await CommonUnitOfWork
                     .UsersRepository
                     .GetAllUsersAsync(token);
 
@@ -204,7 +208,7 @@ public sealed class GroupsHandler : IGroupsHandler
 
                 foreach (var map in listGroupingUsersMap)
                 {
-                    await _commonUnitOfWork
+                    await CommonUnitOfWork
                         .GroupingUsersMapRepository
                         .AddAsync(map, token);
                 }
@@ -220,11 +224,11 @@ public sealed class GroupsHandler : IGroupsHandler
                 existedGroup.Type = updateGroupParams.Type;
             }
 
-            await _commonUnitOfWork
+            await CommonUnitOfWork
                 .GroupsRepository
                 .UpdateAsync(existedGroup, token);
 
-            _commonUnitOfWork.SaveChanges();
+            CommonUnitOfWork.SaveChanges();
 
             var response = new Response();
             response.Result = true;
@@ -259,13 +263,13 @@ public sealed class GroupsHandler : IGroupsHandler
         var groupId = groupDeleteParticipant.GroupId;
         var participantId = groupDeleteParticipant.Participant_Id;
 
-        var existedGroup = await _commonUnitOfWork
+        var existedGroup = await CommonUnitOfWork
             .GroupsRepository
             .GetGroupByIdAsync(groupId, token);
 
         var requestParticipantId = groupDeleteParticipant.Participant_Id;
 
-        var existedUser = await _commonUnitOfWork
+        var existedUser = await CommonUnitOfWork
             .UsersRepository
             .GetUserByIdAsync(requestParticipantId, token);
 
@@ -275,7 +279,8 @@ public sealed class GroupsHandler : IGroupsHandler
             response1.Result = false;
             response1.OutInfo =
                 $"Group has not been modified cause" +
-                $" current participant with id {requestParticipantId} was not found";
+                $" current participant with id" +
+                $" {requestParticipantId} was not found";
 
             return await Task.FromResult(response1);
         }
@@ -288,7 +293,8 @@ public sealed class GroupsHandler : IGroupsHandler
                 response1.Result = false;
                 response1.OutInfo =
                     $"Group has not been modified cause" +
-                    $" delete participant request was made by user {existedUser.Id}" +
+                    $" delete participant request was made" +
+                    $" by user {existedUser.Id}" +
                     $" thats not manager of group {groupId} was not found";
 
                 return await Task.FromResult(response1);
@@ -299,7 +305,7 @@ public sealed class GroupsHandler : IGroupsHandler
                 existedGroup.ParticipantsMap = new List<GroupingUsersMap>();
             }
 
-            var existedUserMap = await _commonUnitOfWork
+            var existedUserMap = await CommonUnitOfWork
                 .GroupingUsersMapRepository
                 .GetGroupingUserMapByIdsAsync(groupId, existedUser.Id, token);
 
@@ -314,24 +320,27 @@ public sealed class GroupsHandler : IGroupsHandler
                 return await Task.FromResult(response1);
             }
 
-            await _commonUnitOfWork
+            await CommonUnitOfWork
                 .GroupingUsersMapRepository
                 .DeleteAsync(groupId, participantId, token);
 
-            _commonUnitOfWork.SaveChanges();
+            CommonUnitOfWork.SaveChanges();
 
             var response = new Response();
             response.Result = true;
             response.OutInfo =
-                $"Participant with id {groupDeleteParticipant.Participant_Id}" +
-                $" has been deleted from group with id {groupDeleteParticipant.GroupId}";
+                $"Participant with id" +
+                $" {groupDeleteParticipant.Participant_Id}" +
+                $" has been deleted from group" +
+                $" with id {groupDeleteParticipant.GroupId}";
 
             return await Task.FromResult(response);
         }
 
         var response2 = new Response();
         response2.Result = false;
-        response2.OutInfo = $"No such group with id {groupDeleteParticipant.GroupId}";
+        response2.OutInfo = $"No such group with" +
+            $" id {groupDeleteParticipant.GroupId}";
 
         return await Task.FromResult(response2);
     }
@@ -353,7 +362,7 @@ public sealed class GroupsHandler : IGroupsHandler
         var userId = groupByIdRequest.UserId;
         var groupId = groupByIdRequest.GroupId;
 
-        var existedUser = await _commonUnitOfWork
+        var existedUser = await CommonUnitOfWork
             .UsersRepository
             .GetUserByIdAsync(userId, token);
 
@@ -368,7 +377,7 @@ public sealed class GroupsHandler : IGroupsHandler
             return await Task.FromResult(response1);
         }
 
-        var existedGroup = await _commonUnitOfWork
+        var existedGroup = await CommonUnitOfWork
             .GroupsRepository
             .GetGroupByIdAsync(groupId, token);
 
@@ -379,7 +388,7 @@ public sealed class GroupsHandler : IGroupsHandler
                 existedGroup.ParticipantsMap = new List<GroupingUsersMap>();
             }
 
-            var existedUserGroupMap = await _commonUnitOfWork
+            var existedUserGroupMap = await CommonUnitOfWork
                 .GroupingUsersMapRepository
                 .GetGroupingUserMapByIdsAsync(groupId, userId, token);
 
@@ -396,7 +405,7 @@ public sealed class GroupsHandler : IGroupsHandler
                 return await Task.FromResult(response1);
             }
 
-            var existedMaps = await _commonUnitOfWork
+            var existedMaps = await CommonUnitOfWork
                 .GroupingUsersMapRepository
                 .GetGroupingUsersMapByGroupIdsAsync(groupId, token);
 
@@ -406,7 +415,7 @@ public sealed class GroupsHandler : IGroupsHandler
             {
                 var participantId = userMap.UserId;
 
-                var user = await _commonUnitOfWork
+                var user = await CommonUnitOfWork
                     .UsersRepository
                     .GetUserByIdAsync(participantId, token);
 
@@ -476,25 +485,25 @@ public sealed class GroupsHandler : IGroupsHandler
         var groupId = participantCalendarRequest.GroupId;
         var participantId = participantCalendarRequest.ParticipantId;
 
-        var existedGroup = await _commonUnitOfWork
+        var existedGroup = await CommonUnitOfWork
             .GroupsRepository
             .GetGroupByIdAsync(groupId, token);
 
         if (existedGroup != null)
         {
-            var existedUser = await _commonUnitOfWork
+            var existedUser = await CommonUnitOfWork
                 .UsersRepository
                 .GetUserByIdAsync(userId, token);
 
             if (existedUser != null)
             {
-                var participant = await _commonUnitOfWork
+                var participant = await CommonUnitOfWork
                     .UsersRepository
                     .GetUserByIdAsync(participantId, token);
 
                 if (participant != null)
                 {
-                    var allGroupMaps = await _commonUnitOfWork
+                    var allGroupMaps = await CommonUnitOfWork
                         .GroupingUsersMapRepository
                         .GetAllMapsAsync(token);
 
@@ -511,7 +520,7 @@ public sealed class GroupsHandler : IGroupsHandler
                         {
                             var resultEvents = new List<EventInfoResponse>();
 
-                            var allEventMaps = await _commonUnitOfWork
+                            var allEventMaps = await CommonUnitOfWork
                                 .EventsUsersMapRepository
                                 .GetAllMapsAsync(token);
 
@@ -522,7 +531,7 @@ public sealed class GroupsHandler : IGroupsHandler
                             foreach (var eventMap in participantEventsInGroup)
                             {
                                 var currentEventId = eventMap.EventId;
-                                var existedEvent = await _commonUnitOfWork
+                                var existedEvent = await CommonUnitOfWork
                                     .EventsRepository
                                     .GetEventByIdAsync(currentEventId, token);
 
@@ -601,6 +610,4 @@ public sealed class GroupsHandler : IGroupsHandler
         return await Task.FromResult(response2);
 
     }
-
-    private ICommonUsersUnitOfWork _commonUnitOfWork;
 }

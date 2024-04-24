@@ -1,6 +1,7 @@
 ﻿using Contracts.Request;
 using Contracts.Response;
 using Logic.Abstractions;
+using Microsoft.Extensions.Logging;
 using Models.BusinessModels;
 using Models.Enums;
 using Newtonsoft.Json;
@@ -11,12 +12,14 @@ using System.Diagnostics;
 namespace Logic.ControllerHandlers;
 
 public sealed class AlertsReceiverHandler
-    : IAlertsReceiverHandler
+    : DataHandlerBase, IAlertsReceiverHandler
 {
-    public AlertsReceiverHandler(ICommonUsersUnitOfWork commonUnitOfWork)
+    public AlertsReceiverHandler(
+        ICommonUsersUnitOfWork commonUnitOfWork,
+        IRedisRepository redisRepository,
+        ILogger<AlertsReceiverHandler> logger)
+         : base(commonUnitOfWork, redisRepository, logger)
     {
-        _commonUnitOfWork = commonUnitOfWork
-            ?? throw new ArgumentNullException(nameof(commonUnitOfWork));
     }
 
     public async Task<GetResponse> GetAllAlerts(
@@ -34,7 +37,7 @@ public sealed class AlertsReceiverHandler
 
         var userId = requestDTO.UserId;
 
-        var existedUser = await _commonUnitOfWork
+        var existedUser = await CommonUnitOfWork
             .UsersRepository
             .GetUserByIdAsync(userId, token);
 
@@ -61,7 +64,7 @@ public sealed class AlertsReceiverHandler
         }
 
         var allIAlerts =
-            _commonUnitOfWork
+            CommonUnitOfWork
                 .AlertsRepository
                 .GetAllAlertsAsync(token)
                 .GetAwaiter().GetResult()
@@ -90,6 +93,4 @@ public sealed class AlertsReceiverHandler
 
         return await Task.FromResult(getResponse);
     }
-
-    private readonly ICommonUsersUnitOfWork _commonUnitOfWork;
 }
