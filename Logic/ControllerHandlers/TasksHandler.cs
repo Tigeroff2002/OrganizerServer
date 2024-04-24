@@ -5,6 +5,8 @@ using Logic.Abstractions;
 using Microsoft.Extensions.Logging;
 using Models.BusinessModels;
 using Models.Enums;
+using Models.RedisEventModels.TaskEvents;
+using Models.RedisEventModels.UserEvents;
 using Models.StorageModels;
 using Newtonsoft.Json;
 using PostgreSQL;
@@ -89,6 +91,21 @@ public sealed class TasksHandler : DataHandlerBase, ITasksHandler
         CommonUnitOfWork.SaveChanges();
 
         var taskId = task.Id;
+
+        await SendEventForCacheAsync(
+            new TaskCreatedEvent(
+                Id: Guid.NewGuid().ToString(),
+                IsCommited: false,
+                UserId: reporterId,
+                TaskId: taskId,
+                CreatedMoment: DateTimeOffset.UtcNow));
+
+        await SendEventForCacheAsync(
+            new TaskAssignedEvent(
+                Id: Guid.NewGuid().ToString(),
+                IsCommited: false,
+                UserId: implementerId,
+                TaskId: taskId));
 
         var response = new Response();
         response.Result = true;
@@ -179,10 +196,12 @@ public sealed class TasksHandler : DataHandlerBase, ITasksHandler
                 numbers_of_new_params++;
             }
 
+            var currentImplementerId = taskUpdateParams.ImplementerId;
+
+            var implementerChanged = (false, existedTask.ImplementerId, currentImplementerId);
+
             if (taskUpdateParams.ImplementerId != -1)
             {
-                var currentImplementerId = taskUpdateParams.ImplementerId;
-
                 implementer = await CommonUnitOfWork
                     .UsersRepository
                     .GetUserByIdAsync(currentImplementerId, token);
@@ -198,18 +217,106 @@ public sealed class TasksHandler : DataHandlerBase, ITasksHandler
                     return await Task.FromResult(response1);
                 }
 
+                if (existedTask.ImplementerId != currentImplementerId)
+                {
+                    implementerChanged = (true, existedTask.ImplementerId, currentImplementerId);
+                }
+
                 existedTask.Implementer = implementer;
 
                 numbers_of_new_params++;
             }
 
+            await CommonUnitOfWork
+                .TasksRepository
+                .UpdateAsync(existedTask, token);
+
+            CommonUnitOfWork.SaveChanges();
+
             if (numbers_of_new_params > 0)
             {
-                await CommonUnitOfWork
-                    .TasksRepository
-                    .UpdateAsync(existedTask, token);
-
                 response.OutInfo = $"Task with id {taskId} has been modified";
+
+                var dateTime = DateTimeOffset.UtcNow;
+
+                var taskInfo = new TaskInfoResponse
+                {
+                    TaskId = taskId,
+                    TaskCaption = existedTask.Caption,
+                    TaskDescription = existedTask.Description,
+                    TaskType = existedTask.TaskType,
+                    TaskStatus = existedTask.TaskStatus,
+                    Reporter = reporter is not null
+                        ? new ShortUserInfo
+                        {
+                            UserId = reporterId,
+                            UserName = reporter.UserName,
+                            UserEmail = reporter.Email,
+                            UserPhone = reporter.PhoneNumber,
+                            Role = reporter.Role,
+                        }
+                        : null!,
+                    Implementer = implementer is not null
+                        ? new ShortUserInfo
+                        {
+                            UserId = implementerId,
+                            UserName = implementer.UserName,
+                            UserEmail = implementer.Email,
+                            UserPhone = implementer.PhoneNumber,
+                            Role = implementer.Role
+                        }
+                        : null!
+                };
+
+                var json = JsonConvert.SerializeObject(taskInfo);
+
+                await SendEventForCacheAsync(
+                    new TaskParamsChangedEvent(
+                        Id: Guid.NewGuid().ToString(),
+                        IsCommited: false,
+                        UserId: reporterId,
+                        TaskId: taskId,
+                        UpdateMoment: dateTime,
+                        Json: json));
+
+                await SendEventForCacheAsync(
+                    new TaskParamsChangedEvent(
+                        Id: Guid.NewGuid().ToString(),
+                        IsCommited: false,
+                        UserId: implementerId,
+                        TaskId: taskId,
+                        UpdateMoment: dateTime,
+                        Json: json));
+
+                if (existedTask.TaskStatus == TaskCurrentStatus.Review 
+                    || existedTask.TaskStatus == TaskCurrentStatus.Done)
+                {
+                    await SendEventForCacheAsync(
+                        new TaskTerminalStatusReceivedEvent(
+                            Id: Guid.NewGuid().ToString(),
+                            IsCommited: false,
+                            UserId: implementerId,
+                            TaskId: taskId,
+                            TerminalMoment: dateTime,
+                            TerminalStatus: existedTask.TaskStatus));
+                }
+
+                if (implementerChanged.Item1)
+                {
+                    await SendEventForCacheAsync(
+                        new TaskUnassignedEvent(
+                            Id: Guid.NewGuid().ToString(),
+                            IsCommited: false,
+                            UserId: implementerChanged.ImplementerId,
+                            TaskId: taskId));
+
+                    await SendEventForCacheAsync(
+                        new TaskAssignedEvent(
+                            Id: Guid.NewGuid().ToString(),
+                            IsCommited: false,
+                            UserId: implementerChanged.currentImplementerId,
+                            TaskId: taskId));
+                }
             }
             else
             {
@@ -217,8 +324,6 @@ public sealed class TasksHandler : DataHandlerBase, ITasksHandler
                     $"Task with id {taskId} has all same parameters" +
                     $" so it has not been modified";
             }
-
-            CommonUnitOfWork.SaveChanges();
 
             response.Result = true;
 

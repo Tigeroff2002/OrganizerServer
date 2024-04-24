@@ -16,6 +16,8 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using Logic.Transport.Serialization;
+using Models.RedisEventModels.UserEvents;
+using FirebaseAdmin.Auth;
 
 namespace Logic.ControllerHandlers;
 
@@ -73,7 +75,7 @@ public sealed class UsersDataHandler
 
         var existedUser =
            await CommonUnitOfWork
-           .UsersRepository
+                .UsersRepository
                 .GetUserByEmailAsync(email, token);
 
         if (existedUser != null)
@@ -149,12 +151,12 @@ public sealed class UsersDataHandler
 
         CommonUnitOfWork.SaveChanges();
 
-        var currentFirebaseToken = userRegistrationData.FirebaseToken;
+        var firebaseToken = userRegistrationData.FirebaseToken;
 
         var userDeviceMap = new UserDeviceMap();
 
         userDeviceMap.UserId = user.Id;
-        userDeviceMap.FirebaseToken = currentFirebaseToken;
+        userDeviceMap.FirebaseToken = firebaseToken;
         userDeviceMap.TokenSetMoment = registrationTime;
         userDeviceMap.IsActive = true;
 
@@ -163,6 +165,14 @@ public sealed class UsersDataHandler
             .AddAsync(userDeviceMap, token);
 
         CommonUnitOfWork.SaveChanges();
+
+        await SendEventForCacheAsync(
+            new UserRegistrationEvent(
+                Id: GenerateNewAuthToken(),
+                IsCommited: false,
+                UserId: user.Id,
+                FirebaseToken: firebaseToken,
+                AccountCreationMoment: registrationTime));
 
         var response = new RegistrationResponse();
         response.Result = true;
@@ -175,7 +185,7 @@ public sealed class UsersDataHandler
         response.OutInfo = builder.ToString();
         response.UserId = user.Id;
         response.Token = authToken;
-        response.FirebaseToken = currentFirebaseToken;
+        response.FirebaseToken = firebaseToken;
         response.UserName = user.UserName;
         response.RegistrationCase = RegistrationCase.ConfirmationSucceeded;
 
@@ -247,6 +257,14 @@ public sealed class UsersDataHandler
             .AddAsync(userDeviceMap, token);
 
         CommonUnitOfWork.SaveChanges();
+
+        await SendEventForCacheAsync(
+            new UserLoginEvent(
+                Id: GenerateNewAuthToken(),
+                IsCommited: false,
+                UserId: existedUser.Id,
+                FirebaseToken: currentFirebaseToken,
+                TokenSetMoment: loginTime));
 
         var userName = existedUser.UserName;
 
@@ -327,6 +345,13 @@ public sealed class UsersDataHandler
             .DeleteAsync(userId, firebaseToken, token);
 
         CommonUnitOfWork.SaveChanges();
+
+        await SendEventForCacheAsync(
+            new UserLogoutEvent(
+                Id: GenerateNewAuthToken(),
+                IsCommited: false,
+                UserId: existedUser.Id,
+                FirebaseToken: firebaseToken));
 
         var response = new Response();
         response.Result = true;
@@ -454,6 +479,25 @@ public sealed class UsersDataHandler
                     $"Updating info existed user with id {userId}" +
                     $" and email {existedUser.Email}" +
                     $" with new auth token {authToken}";
+
+                var shortUserInfo = new ShortUserInfo
+                {
+                    UserId = existedUser.Id,
+                    UserName = existedUser.UserName,
+                    UserEmail = existedUser.Email,
+                    UserPhone = existedUser.PhoneNumber,
+                    Role = existedUser.Role,
+                };
+
+                var json = JsonConvert.SerializeObject(shortUserInfo);
+
+                await SendEventForCacheAsync(
+                    new UserInfoUpdateEvent(
+                        Id: GenerateNewAuthToken(),
+                        IsCommited: false,
+                        UserId: existedUser.Id,
+                        UpdateMoment: DateTimeOffset.UtcNow,
+                        Json: json));
             }
             else
             {
@@ -576,6 +620,14 @@ public sealed class UsersDataHandler
             .UpdateAsync(existedUser, token);
 
         CommonUnitOfWork.SaveChanges();
+
+        await SendEventForCacheAsync(
+            new UserRoleChangedEvent(
+                Id: GenerateNewAuthToken(),
+                IsCommited: false,
+                UserId: existedUser.Id,
+                UpdateMoment: DateTimeOffset.UtcNow,
+                NewRole: updateUserRole.NewRole));
 
         response.Result = true;
         response.OutInfo =

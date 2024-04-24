@@ -5,6 +5,7 @@ using Logic.Abstractions;
 using Microsoft.Extensions.Logging;
 using Models.BusinessModels;
 using Models.Enums;
+using Models.RedisEventModels.IssueEvents;
 using Models.StorageModels;
 using Newtonsoft.Json;
 using PostgreSQL;
@@ -72,6 +73,14 @@ public sealed class IssuesHandler
         CommonUnitOfWork.SaveChanges();
 
         var issueId = issue.Id;
+
+        await SendEventForCacheAsync(
+            new IssueCreatedEvent(
+                Id: Guid.NewGuid().ToString(),
+                IsCommited: false,
+                UserId: user.Id,
+                IssueId: issueId,
+                CreatedMoment: issueMoment));
 
         var response = new Response();
         response.Result = true;
@@ -166,13 +175,35 @@ public sealed class IssuesHandler
                 numbers_of_new_params++;
             }
 
+            await CommonUnitOfWork
+                .IssuesRepository
+                .UpdateAsync(existedIssue, token);
+
+            CommonUnitOfWork.SaveChanges();
+
             if (numbers_of_new_params > 0)
             {
-                await CommonUnitOfWork
-                    .IssuesRepository
-                    .UpdateAsync(existedIssue, token);
-
                 response.OutInfo = $"Issue with id {issueId} has been modified";
+
+                var dateTimeNow = DateTime.UtcNow;
+
+                await SendEventForCacheAsync(
+                    new IssueParamsChangedEvent(
+                        Id: Guid.NewGuid().ToString(),
+                        IsCommited: false,
+                        IssueId: issueId,
+                        UpdateMoment: dateTimeNow,
+                        Json: ));
+
+                if (existedIssue.Status is IssueStatus.Closed)
+                {
+                    await SendEventForCacheAsync(
+                        new IssueTerminalStatusReceivedEvent(
+                            Id: Guid.NewGuid().ToString(),
+                            IsCommited: false,
+                            UserId: currentUserId,
+                            TerminalMoment: dateTimeNow,))
+                }
             }
             else
             {
@@ -180,8 +211,6 @@ public sealed class IssuesHandler
                     $"Issue with id {issueId} has all same parameters" +
                     $" so it has not been modified";
             }
-
-            CommonUnitOfWork.SaveChanges();
 
             response.Result = true;
 
