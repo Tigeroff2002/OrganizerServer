@@ -7,6 +7,7 @@ using Models.BusinessModels;
 using Models.Enums;
 using Models.RedisEventModels.IssueEvents;
 using Models.StorageModels;
+using Models.UserActionModels;
 using Newtonsoft.Json;
 using PostgreSQL;
 using PostgreSQL.Abstractions;
@@ -82,7 +83,11 @@ public sealed class IssuesHandler
                 IssueId: issueId,
                 CreatedMoment: issueMoment));
 
-        var response = new Response();
+        var response = new ResponseWithId()
+        {
+            Id = issueId
+        };
+
         response.Result = true;
         response.OutInfo =
             $"New snapshot with id = {issueId}" +

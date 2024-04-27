@@ -8,6 +8,7 @@ using Models.Enums;
 using Models.RedisEventModels.TaskEvents;
 using Models.RedisEventModels.UserEvents;
 using Models.StorageModels;
+using Models.UserActionModels;
 using Newtonsoft.Json;
 using PostgreSQL;
 using PostgreSQL.Abstractions;
@@ -107,7 +108,11 @@ public sealed class TasksHandler : DataHandlerBase, ITasksHandler
                 UserId: implementerId,
                 TaskId: taskId));
 
-        var response = new Response();
+        var response = new ResponseWithId()
+        {
+            Id = taskId,
+        };
+
         response.Result = true;
         response.OutInfo =
             $"New task with id = {taskId}" +

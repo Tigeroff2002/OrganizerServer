@@ -7,6 +7,7 @@ using Models.BusinessModels;
 using Models.Enums;
 using Models.RedisEventModels.GroupEvents;
 using Models.StorageModels;
+using Models.UserActionModels;
 using Newtonsoft.Json;
 using PostgreSQL;
 using PostgreSQL.Abstractions;
@@ -143,7 +144,11 @@ public sealed class GroupsHandler
             }
         }
 
-        var response = new Response();
+        var response = new ResponseWithId() 
+        { 
+            Id = groupId 
+        };
+
         response.Result = true;
         response.OutInfo =
             $"New group with id = {groupId}" +

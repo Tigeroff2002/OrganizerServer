@@ -7,6 +7,7 @@ using Models.BusinessModels;
 using Models.Enums;
 using Models.RedisEventModels.MeetEvents;
 using Models.StorageModels;
+using Models.UserActionModels;
 using Newtonsoft.Json;
 using PostgreSQL;
 using PostgreSQL.Abstractions;
@@ -204,7 +205,11 @@ public sealed class EventsHandler
             }
         }
 
-        var response = new Response();
+        var response = new ResponseWithId() 
+        {
+            Id = eventId
+        };
+
         response.Result = true;
         response.OutInfo = group != null
             ? $"New event with id = {eventId} related to group {groupId}" +

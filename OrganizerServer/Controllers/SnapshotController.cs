@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Models.StorageModels;
 using Contracts.Request.RequestById;
 using Models.RedisEventModels.SnapshotEvents;
+using Models.UserActionModels;
 
 namespace ToDoCalendarServer.Controllers;
 
@@ -108,7 +109,11 @@ public sealed class SnapshotController : ControllerBase
                 SnapshotId: snapshotId,
                 CreateMoment: dateTimeNow));
 
-        var response = new Response();
+        var response = new ResponseWithId()
+        {
+            Id = snapshotId
+        };
+
         response.Result = true;
         response.OutInfo =
             $"New snapshot with id = {snapshotId}" +
@@ -222,7 +227,11 @@ public sealed class SnapshotController : ControllerBase
                 SnapshotId: snapshotId,
                 CreateMoment: dateTimeNow));
 
-        var response = new Response();
+        var response = new ResponseWithId()
+        {
+            Id = snapshotId
+        };
+
         response.Result = true;
         response.OutInfo =
             $"New group snapshot with id = {snapshotId}" +
