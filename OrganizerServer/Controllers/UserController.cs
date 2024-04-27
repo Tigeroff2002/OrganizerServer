@@ -14,17 +14,8 @@ namespace ToDoCalendarServer.Controllers;
 [Route("users")]
 public sealed class UserController : ControllerBase
 {
-    public UserController(
-        ILogger<UserController> logger,
-        IUsersDataHandler usersDataHandler,
-        IDeserializer<UserRegistrationData> usersRegistrationDataDeserializer,
-        IDeserializer<UserLoginData> usersLoginDataDeserializer,
-        IDeserializer<UserInfoById> userInfoByIdDeserializer,
-        IDeserializer<UserLogoutDeviceById> userLogoutByIdDeserializer) 
+    public UserController(IUsersDataHandler usersDataHandler) 
     {
-        _logger = logger 
-            ?? throw new ArgumentNullException(nameof(logger));
-
         _usersDataHandler = usersDataHandler 
             ?? throw new ArgumentNullException(nameof(usersDataHandler));
     }
@@ -111,10 +102,5 @@ public sealed class UserController : ControllerBase
         return Ok(json);
     }
 
-    private readonly ILogger<UserController> _logger;
     private readonly IUsersDataHandler _usersDataHandler;
-    private readonly IDeserializer<UserRegistrationData> _usersRegistrationDataDeserializer;
-    private readonly IDeserializer<UserLoginData> _usersLoginDataDeserializer;
-    private readonly IDeserializer<UserInfoById> _userInfoByIdDeserializer;
-    private readonly IDeserializer<UserLogoutDeviceById> _userLogoutByIdDeserializer;
 }

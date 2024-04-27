@@ -16,7 +16,7 @@ public sealed class CustomExceptionsHandler : DataHandlerBase
 {
     public CustomExceptionsHandler(
         RequestDelegate next,
-        ILogger logger,
+        ILogger<CustomExceptionsHandler> logger,
         ICommonUsersUnitOfWork commomUnitOfWork,
         IRedisRepository redisRepository)
         : base(commomUnitOfWork, redisRepository, logger)

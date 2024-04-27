@@ -14,7 +14,7 @@ public abstract class DataHandlerBase
     public DataHandlerBase(
         ICommonUsersUnitOfWork commonUnitOfWork, 
         IRedisRepository redisRepository,
-        ILogger logger)
+        ILogger<DataHandlerBase> logger)
     {
         CommonUnitOfWork = commonUnitOfWork 
             ?? throw new ArgumentNullException(nameof(commonUnitOfWork));
