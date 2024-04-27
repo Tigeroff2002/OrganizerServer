@@ -47,6 +47,19 @@ services:
       - postgres
     restart: always
 
+  cache:
+    image: redis:6.2-alpine
+    restart: always
+    environment:
+        REDIS_HOST: cache
+        REDIS_PORT: 6379
+        REDIS_PASSWORD: eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
+    ports:
+        - '6379:6379'
+    command: redis-server --save 20 1 --loglevel warning --requirepass eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
+    volumes: 
+      - cache:/data
+
   organizer-app:
     build:
         context: .
@@ -57,6 +70,7 @@ services:
        - 3500:80
     depends_on:
      - postgres
+     - cache 
     networks:
       - postgres
     restart: always
@@ -64,4 +78,7 @@ services:
 
 networks:
   postgres:
+    driver: bridge
+
+  cache: 
     driver: bridge
