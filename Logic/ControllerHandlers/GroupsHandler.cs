@@ -297,6 +297,7 @@ public sealed class GroupsHandler
 
                 var groupInfo = new GroupInfoResponse
                 {
+                    ManagerId = existedGroup.ManagerId,
                     GroupId = groupId,
                     GroupName = existedGroup.GroupName,
                     Type = existedGroup.Type
@@ -537,20 +538,13 @@ public sealed class GroupsHandler
                 }
             }
 
-            var groupContent = new GroupContent
-            {
-                Participants = listOfUsersInfo
-            };
-
-            var content = JsonConvert.SerializeObject(groupContent);
-
             var groupInfo = new GroupInfoResponse
             {
+                ManagerId = existedGroup.ManagerId,
                 GroupId = groupId,
                 GroupName = existedGroup.GroupName,
                 Type = existedGroup.Type,
-                Participants = listOfUsersInfo,
-                Content = content
+                Participants = listOfUsersInfo
             };
 
             var getResponse = new GetResponse();

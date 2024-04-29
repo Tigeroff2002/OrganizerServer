@@ -748,6 +748,7 @@ public sealed class UsersDataHandler
             {
                 var groupInfo = new GroupInfoResponse
                 {
+                    ManagerId = group.ManagerId,
                     GroupId = groupId,
                     GroupName = group!.GroupName,
                     Type = group!.Type
