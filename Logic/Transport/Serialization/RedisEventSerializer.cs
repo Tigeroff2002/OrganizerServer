@@ -15,6 +15,8 @@ using Models.RedisEventModels.UserEvents;
 using Models.RedisEventModels;
 using Newtonsoft.Json;
 using System.Text;
+using Models.RedisEventModels.SnapshotEvents;
+using Contracts.RedisContracts.SnapshotEvents;
 
 namespace Logic.Transport.Serialization;
 
@@ -288,6 +290,17 @@ public sealed class RedisEventSerializer
                     EventType = RawEventType.UserRoleChanged,
                     UpdateMoment = userRoleChanged.UpdateMoment,
                     NewRole = userRoleChanged.NewRole
+                },
+
+            _ when entity is SnapshotCreatedEvent snapshotCreated
+                => new SnapshotCreatedEventDTO
+                {
+                    Id = snapshotCreated.Id,
+                    IsCommited = snapshotCreated.IsCommited,
+                    UserId = snapshotCreated.UserId,
+                    EventType = RawEventType.SnapshotCreated,
+                    CreatedMoment = snapshotCreated.CreateMoment,
+                    SnapshotId = snapshotCreated.SnapshotId,
                 },
 
             _ => throw new InvalidOperationException(
