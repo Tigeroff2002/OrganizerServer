@@ -356,6 +356,7 @@ public sealed class SnapshotController : ControllerBase
 
                 var personalSnapshotInfo = new PersonalSnapshotInfoResponse
                 {
+                    SnapshotId = existedSnapshot.Id,
                     BeginMoment = existedSnapshot.BeginMoment,
                     EndMoment = existedSnapshot.EndMoment,
                     SnapshotType = existedSnapshot.SnapshotType,
@@ -379,6 +380,7 @@ public sealed class SnapshotController : ControllerBase
 
                 var groupSnapshotInfo = new GroupSnapshotInfoResponse
                 {
+                    SnapshotId = existedSnapshot.Id,
                     BeginMoment = existedSnapshot.BeginMoment,
                     EndMoment = existedSnapshot.EndMoment,
                     SnapshotType = existedSnapshot.SnapshotType,
@@ -476,6 +478,7 @@ public sealed class SnapshotController : ControllerBase
 
                 var groupSnapshotInfo = new GroupSnapshotInfoResponse
                 {
+                    SnapshotId = groupSnapshot.Id,
                     BeginMoment = groupSnapshot.BeginMoment,
                     EndMoment = groupSnapshot.EndMoment,
                     SnapshotType = groupSnapshot.SnapshotType,

@@ -810,6 +810,7 @@ public sealed class UsersDataHandler
 
             var snapshotInfo = new PersonalSnapshotInfoResponse
             {
+                SnapshotId = snapshot.Id,
                 BeginMoment = snapshot.BeginMoment,
                 EndMoment = snapshot.EndMoment,
                 SnapshotType = snapshot.SnapshotType,

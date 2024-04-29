@@ -556,9 +556,7 @@ public sealed class GroupsHandler
             var getResponse = new GetResponse();
             getResponse.Result = true;
             getResponse.OutInfo = $"Info about group with id {groupByIdRequest.GroupId} was found";
-            getResponse.RequestedInfo = groupInfo;
-
-            var json = JsonConvert.SerializeObject(getResponse);
+            getResponse.RequestedInfo = JsonConvert.SerializeObject(groupInfo);
 
             return await Task.FromResult(getResponse);
         }
