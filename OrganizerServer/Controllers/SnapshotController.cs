@@ -394,7 +394,7 @@ public sealed class SnapshotController : ControllerBase
                     $"Info about group snapshot with id {snapshotId}" +
                     $" by user with id {userId} for group with id" +
                     $" {groupSnapshotInfo.GroupId} was received";
-                getResponse.RequestedInfo = groupSnapshotInfo;
+                getResponse.RequestedInfo = JsonConvert.SerializeObject(groupSnapshotInfo);
             }
 
             var json = JsonConvert.SerializeObject(getResponse);

@@ -89,7 +89,7 @@ public sealed class AlertsReceiverHandler
         getResponse.OutInfo =
             $"Info about all system alerts" +
             $" for admin with id {userId} was received";
-        getResponse.RequestedInfo = systemAlertsResponseModel;
+        getResponse.RequestedInfo = JsonConvert.SerializeObject(systemAlertsResponseModel);
 
         return await Task.FromResult(getResponse);
     }

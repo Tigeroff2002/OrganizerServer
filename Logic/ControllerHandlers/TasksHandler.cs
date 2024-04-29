@@ -542,7 +542,7 @@ public sealed class TasksHandler : DataHandlerBase, ITasksHandler
 
             getReponse.Result = true;
             getReponse.OutInfo = $"Info about task with id {taskId} was received";
-            getReponse.RequestedInfo = taskInfo;
+            getReponse.RequestedInfo = JsonConvert.SerializeObject(taskInfo);
 
             return await Task.FromResult(getReponse);
         }

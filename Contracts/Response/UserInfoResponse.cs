@@ -1,6 +1,7 @@
 ﻿using Models;
 using Models.Enums;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace Contracts.Response;
 
@@ -21,6 +22,7 @@ public sealed class UserInfoResponse
     [JsonProperty("phone_number", Required = Required.Always)]
     public required string PhoneNumber { get; init; }
 
+    [JsonConverter(typeof(StringEnumConverter))]
     [JsonProperty("user_role", Required = Required.Always)]
     public required UserRole Role { get; init; }
 

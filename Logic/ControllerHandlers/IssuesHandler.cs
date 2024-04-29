@@ -387,7 +387,7 @@ public sealed class IssuesHandler
             getResponse.OutInfo =
                 $"Info about issue with id {issueId}" +
                 $" by user with id {userId} was received";
-            getResponse.RequestedInfo = issueInfo;
+            getResponse.RequestedInfo = JsonConvert.SerializeObject(issueInfo);
 
             return await Task.FromResult(getResponse);
         }
@@ -478,7 +478,7 @@ public sealed class IssuesHandler
         getResponse.OutInfo =
             $"Info about all users not closed issues" +
             $" for admin with id {userId} was received";
-        getResponse.RequestedInfo = issuesResponseModel;
+        getResponse.RequestedInfo = JsonConvert.SerializeObject(issuesResponseModel);
 
         return await Task.FromResult(getResponse);
     }
