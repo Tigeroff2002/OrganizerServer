@@ -104,6 +104,12 @@ public static class Registrations
                     var connectionString = configuration.GetConnectionString("RedisConnection")!;
 
                     return ConnectionMultiplexer.Connect(connectionString);
+                    /*
+                     * sudo apt install redis-server
+                     * sudo systemctl restart redis.service
+                     * sudo systemctl status redis
+                     * redis-cli
+                     */
                 })
             .Configure<RedisConfiguration>(
                 (_) => new RedisConfiguration
