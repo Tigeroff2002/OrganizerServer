@@ -16,6 +16,10 @@ public interface IGroupsHandler
         string deleteParticipantData,
         CancellationToken token);
 
+    public Task<Response> TryDeleteGroup(
+        string deleteGroupData,
+        CancellationToken token);
+
     public Task<GetResponse> GetGroupInfo(
         string groupInfoById,
         CancellationToken token);

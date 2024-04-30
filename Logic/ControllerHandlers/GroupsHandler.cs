@@ -1,4 +1,5 @@
-﻿using Contracts.Request;
+﻿using AdsPush.Abstraction.Vapid;
+using Contracts.Request;
 using Contracts.Request.RequestById;
 using Contracts.Response;
 using Logic.Abstractions;
@@ -450,6 +451,78 @@ public sealed class GroupsHandler
         return await Task.FromResult(response2);
     }
 
+    public async Task<Response> TryDeleteGroup(
+        string deleteGroupData, 
+        CancellationToken token)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(deleteGroupData);
+
+        token.ThrowIfCancellationRequested();
+
+        var groupDelete =
+            JsonConvert.DeserializeObject<GroupDetailsRequest>(deleteGroupData);
+
+        Debug.Assert(groupDelete != null);
+
+        var groupId = groupDelete.GroupId;
+
+        var existedGroup = await CommonUnitOfWork
+            .GroupsRepository
+            .GetGroupByIdAsync(groupId, token);
+
+        var userId = groupDelete.UserId;
+
+        var existedUser = await CommonUnitOfWork
+            .UsersRepository
+            .GetUserByIdAsync(userId, token);
+
+        if (existedUser == null)
+        {
+            var response1 = new Response();
+            response1.Result = false;
+            response1.OutInfo =
+                $"Group has not been modified cause" +
+                $" current user with id" +
+                $" {userId} was not found in db";
+
+            return await Task.FromResult(response1);
+        }
+
+        if (existedGroup != null)
+        {
+            if (existedUser.Id != existedGroup.ManagerId)
+            {
+                var response1 = new Response();
+                response1.Result = false;
+                response1.OutInfo =
+                    $"Group has not been modified cause" +
+                    $" delete participant request was made" +
+                    $" by user {existedUser.Id}" +
+                    $" thats not manager of group {groupId} was not found";
+
+                return await Task.FromResult(response1);
+            }
+
+            await CommonUnitOfWork
+                .GroupsRepository
+                .DeleteAsync(groupId, token);
+
+            CommonUnitOfWork.SaveChanges();
+
+            var response = new Response();
+            response.Result = true;
+            response.OutInfo = $"Group {groupId} was deleted";
+
+            return await Task.FromResult(response);
+        }
+
+        var response2 = new Response();
+        response2.Result = false;
+        response2.OutInfo = $"No such group {groupId}";
+
+        return await Task.FromResult(response2);
+    }
+
     public async Task<GetResponse> GetGroupInfo(
         string groupInfoById,
         CancellationToken token)
@@ -504,8 +577,6 @@ public sealed class GroupsHandler
                 response1.OutInfo =
                     $"Info about group with id {groupId}" +
                     $" was not accessed cause user with id {userId} not related to that";
-
-                var json1 = JsonConvert.SerializeObject(response1);
 
                 return await Task.FromResult(response1);
             }
