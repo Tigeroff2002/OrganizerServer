@@ -703,6 +703,7 @@ public sealed class UsersDataHandler
 
         var userSnapshotsModels = allSnapshots
             .Where(snapshot => snapshot.UserId == userId)
+            .Where(snapshot => snapshot.SnapshotAuditType == SnapshotAuditType.Personal)
             .ToList();
 
         var userTasks = new List<TaskInfoResponse>();
