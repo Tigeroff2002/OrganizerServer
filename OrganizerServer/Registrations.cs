@@ -20,6 +20,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Logic.Transport.Serialization;
 using Logic.ControllerHandlers;
 using Logic.Notifications;
+using Logic.Transport.Receivers;
+using OrganizerServer.Services;
 
 namespace ToDoCalendarServer;
 
@@ -27,7 +29,9 @@ public static class Registrations
 {
     public static IServiceCollection AddHostedServices(
         this IServiceCollection services)
-        => services.AddHostedService<NotifyService>();
+        => services
+            .AddHostedService<EventNotifyService>()
+            .AddHostedService<RedisProcessorService>();
 
     public static IServiceCollection AddLogic(
         this IServiceCollection services,
@@ -43,6 +47,10 @@ public static class Registrations
             .AddSingleton<IIssuesHandler, IssuesHandler>()
             .AddSingleton<ISnapshotsHandler, SnapshotsHandler>()
             .AddSingleton<IAlertsReceiverHandler, AlertsReceiverHandler>()
+
+            .AddSingleton<IRedisProcessor, RedisProcessor>()
+            .AddSingleton<IRedisMessagesReceiver, RedisMessagesReceiver>()
+            .AddSingleton<IRedisEventsAliaser, RedisEventsAliaser>()
 
             .AddRedisCache(configuration)
             .AddConfigurations(configuration);
@@ -68,8 +76,8 @@ public static class Registrations
             .AddSingleton<IDeserializer<UserInfoById>, UserInfoByIdDeserializer>()
             .AddSingleton<IDeserializer<UserLogoutDeviceById>, UserLogoutDeviceByIdDeserializer>()
             .AddSingleton<ISerializer<UserInfoContent>, UserInfoSerializer>()
-            .AddSingleton<ISerializer<BaseEvent>, RedisEventSerializer>()
-            .AddSingleton<IDeserializer<BaseEvent>, RedisEventDeserializer>();
+            .AddSingleton<ISerializer<UserRelatedEvent>, RedisEventSerializer>()
+            .AddSingleton<IDeserializer<UserRelatedEvent>, RedisEventDeserializer>();
 
     public static IServiceCollection AddStorage(
         this IServiceCollection services,
@@ -124,6 +132,8 @@ public static class Registrations
         => services
             .Configure<SmtpConfiguration>(
                 configuration.GetSection(nameof(SmtpConfiguration)))
+            .Configure<RedisReadingConfiguration>(
+                configuration.GetSection(nameof(RedisReadingConfiguration)))
             .Configure<NotificationConfiguration>(
                 configuration.GetSection(nameof(NotificationConfiguration)))
             .Configure<RootConfiguration>(

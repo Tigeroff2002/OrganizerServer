@@ -25,7 +25,7 @@ public abstract class DataHandlerBase
         Logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task SendEventForCacheAsync(BaseEvent @event)
+    public async Task SendEventForCacheAsync(UserRelatedEvent @event)
     {
         ArgumentNullException.ThrowIfNull(@event);
 

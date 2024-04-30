@@ -13,8 +13,8 @@ namespace Logic;
 public sealed class RedisRepository : IRedisRepository
 {
     public RedisRepository(
-        ISerializer<BaseEvent> serializer,
-        IDeserializer<BaseEvent> deserializer,
+        ISerializer<UserRelatedEvent> serializer,
+        IDeserializer<UserRelatedEvent> deserializer,
         IConnectionMultiplexer connectionMultiplexer,
         IOptions<RedisConfiguration> redisOptions,
         ILogger<RedisRepository> logger)
@@ -34,7 +34,7 @@ public sealed class RedisRepository : IRedisRepository
     }
 
     public async Task InsertEventAsync(
-        BaseEvent @event,
+        UserRelatedEvent @event,
         CancellationToken token = default)
     {
         ArgumentNullException.ThrowIfNull(@event);
@@ -116,7 +116,7 @@ public sealed class RedisRepository : IRedisRepository
         await transactionLog;
     }
 
-    public async Task<List<BaseEvent>> GetEventsAsync(
+    public async Task<List<UserRelatedEvent>> GetEventsAsync(
         bool takeOnlyNotCommited = false,
         CancellationToken token = default)
     {
@@ -128,7 +128,7 @@ public sealed class RedisRepository : IRedisRepository
             .GetServer(_redisConfiguration.HostAndPort)
             .KeysAsync();
 
-        var listOfEvents = new List<BaseEvent>();
+        var listOfEvents = new List<UserRelatedEvent>();
 
         await foreach (var key in keys)
         {
@@ -155,8 +155,8 @@ public sealed class RedisRepository : IRedisRepository
         return listOfEvents;
     }
 
-    private readonly ISerializer<BaseEvent> _serializer;
-    private readonly IDeserializer<BaseEvent> _deserializer;
+    private readonly ISerializer<UserRelatedEvent> _serializer;
+    private readonly IDeserializer<UserRelatedEvent> _deserializer;
     private readonly IConnectionMultiplexer _connectionMultiplexer;
     private readonly RedisConfiguration _redisConfiguration;
     private readonly ILogger _logger;

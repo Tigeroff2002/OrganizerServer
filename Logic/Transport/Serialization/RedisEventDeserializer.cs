@@ -21,9 +21,9 @@ using System.Diagnostics;
 namespace Logic.Transport.Serialization;
 
 public sealed class RedisEventDeserializer
-    : IDeserializer<BaseEvent>
+    : IDeserializer<UserRelatedEvent>
 {
-    public BaseEvent Deserialize(string source)
+    public UserRelatedEvent Deserialize(string source)
     {
         ArgumentException.ThrowIfNullOrEmpty(source, nameof(source));
 

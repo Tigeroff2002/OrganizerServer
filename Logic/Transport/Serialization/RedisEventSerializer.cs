@@ -21,9 +21,9 @@ using Contracts.RedisContracts.SnapshotEvents;
 namespace Logic.Transport.Serialization;
 
 public sealed class RedisEventSerializer
-    : ISerializer<BaseEvent>
+    : ISerializer<UserRelatedEvent>
 {
-    public string Serialize(BaseEvent entity)
+    public string Serialize(UserRelatedEvent entity)
     {
         ArgumentNullException.ThrowIfNull(entity);
 
