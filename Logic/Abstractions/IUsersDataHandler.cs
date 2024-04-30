@@ -29,4 +29,24 @@ public interface IUsersDataHandler
     public Task<Response> UpdateUserRoleAsync(
         string userUpdateRoleDTO,
         CancellationToken token);
+
+    public Task<GetResponse> GetAllUsers(
+        string getAllUsersDTO,
+        CancellationToken token);
+
+    public Task<GetResponse> GetAllUsersNotInGroup(
+        string getAllUsersNotInGroupDTO,
+        CancellationToken token);
+
+    public Task<GetResponse> GetAdmins(
+        string getAdminsDTO,
+        CancellationToken token);
+
+    public Task<GetResponse> GetUsersFromGroup(
+        string getGroupUsersDTO,
+        CancellationToken token);
+
+    public Task<GetResponse> GetGroupUsersNotInEvent(
+        string getgroupUsersNotInEventDTO,
+        CancellationToken token);
 }

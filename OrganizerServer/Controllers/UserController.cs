@@ -61,21 +61,6 @@ public sealed class UserController : ControllerBase
         return result.Result ? Ok(json) : BadRequest(json);
     }
 
-    [Route("get_info")]
-    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
-    public async Task<IActionResult> GetInfoAsync(CancellationToken token)
-    {
-        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
-        
-        var userInfoResponse = await _usersDataHandler.GetUserInfo(body, token);
-
-        Debug.Assert(userInfoResponse != null);
-
-        var get_json = JsonConvert.SerializeObject(userInfoResponse);
-
-        return Ok(get_json);
-    }
-
     [Route("update_user_info")]
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> UpdateUserInfo(CancellationToken token)
@@ -100,6 +85,96 @@ public sealed class UserController : ControllerBase
         var json = JsonConvert.SerializeObject(response);
 
         return Ok(json);
+    }
+
+    [Route("get_info")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
+    public async Task<IActionResult> GetUserInfoAsync(CancellationToken token)
+    {
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
+
+        var userInfoResponse = await _usersDataHandler.GetUserInfo(body, token);
+
+        Debug.Assert(userInfoResponse != null);
+
+        var get_json = JsonConvert.SerializeObject(userInfoResponse);
+
+        return Ok(get_json);
+    }
+
+    [Route("get_all_users")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
+    public async Task<IActionResult> GetAllUsersAsync(CancellationToken token)
+    {
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
+
+        var usersResponse = await _usersDataHandler.GetAllUsers(body, token);
+
+        Debug.Assert(usersResponse != null);
+
+        var get_json = JsonConvert.SerializeObject(usersResponse);
+
+        return Ok(get_json);
+    }
+
+    [Route("get_admins")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
+    public async Task<IActionResult> GetAdminsAsync(CancellationToken token)
+    {
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
+
+        var usersResponse = await _usersDataHandler.GetAdmins(body, token);
+
+        Debug.Assert(usersResponse != null);
+
+        var get_json = JsonConvert.SerializeObject(usersResponse);
+
+        return Ok(get_json);
+    }
+
+    [Route("get_group_users")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
+    public async Task<IActionResult> GetGroupUsersAsync(CancellationToken token)
+    {
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
+
+        var usersResponse = await _usersDataHandler.GetUsersFromGroup(body, token);
+
+        Debug.Assert(usersResponse != null);
+
+        var get_json = JsonConvert.SerializeObject(usersResponse);
+
+        return Ok(get_json);
+    }
+
+    [Route("get_not_group_users")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
+    public async Task<IActionResult> GetNotGroupUsersAsync(CancellationToken token)
+    {
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
+
+        var usersResponse = await _usersDataHandler.GetAllUsersNotInGroup(body, token);
+
+        Debug.Assert(usersResponse != null);
+
+        var get_json = JsonConvert.SerializeObject(usersResponse);
+
+        return Ok(get_json);
+    }
+
+    [Route("get_group_users_not_in_event")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
+    public async Task<IActionResult> GetAllGroupUsersNotInEventAsync(CancellationToken token)
+    {
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
+
+        var usersResponse = await _usersDataHandler.GetGroupUsersNotInEvent(body, token);
+
+        Debug.Assert(usersResponse != null);
+
+        var get_json = JsonConvert.SerializeObject(usersResponse);
+
+        return Ok(get_json);
     }
 
     private readonly IUsersDataHandler _usersDataHandler;

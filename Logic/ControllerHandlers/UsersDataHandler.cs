@@ -18,6 +18,7 @@ using System.Text;
 using Logic.Transport.Serialization;
 using Models.RedisEventModels.UserEvents;
 using FirebaseAdmin.Auth;
+using Contracts.Request.UsersListRequests;
 
 namespace Logic.ControllerHandlers;
 
@@ -877,6 +878,425 @@ public sealed class UsersDataHandler
     private static string GenerateNewAuthToken()
     {
         return Guid.NewGuid().ToString();
+    }
+
+    public async Task<GetResponse> GetAllUsers(
+        string getAllUsersDTO, 
+        CancellationToken token)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(getAllUsersDTO);
+
+        token.ThrowIfCancellationRequested();
+
+        var getAllUsers =
+            JsonConvert.DeserializeObject<AllUsersRequestDTO>(getAllUsersDTO);
+
+        Debug.Assert(getAllUsers != null);
+
+        var userId = getAllUsers.UserId;
+
+        var existedUser = await CommonUnitOfWork
+            .UsersRepository
+            .GetUserByIdAsync(userId, token);
+
+        if (existedUser == null)
+        {
+            var response2 = new GetResponse();
+            response2.Result = false;
+            response2.OutInfo = $"No such user with id {userId} found in db";
+
+            return await Task.FromResult(response2);
+        }
+
+        var allUsers = await CommonUnitOfWork.UsersRepository.GetAllUsersAsync(token);
+
+        var allUsersInfo = new List<ShortUserInfo>();
+
+        foreach (var user in allUsers)
+        {
+            allUsersInfo.Add(new()
+            {
+                UserId = user.Id,
+                UserEmail = user.Email,
+                UserName = user.UserName,
+                UserPhone = user.PhoneNumber,
+                Role = user.Role,
+            });
+        }
+
+        var usersListResponse = new UsersListResponse
+        {
+            Users = allUsersInfo
+        };
+
+        var response1 = new GetResponse();
+        response1.Result = false;
+        response1.OutInfo = $"Info about all users was received";
+        response1.RequestedInfo = JsonConvert.SerializeObject(usersListResponse);
+
+        return await Task.FromResult(response1);
+    }
+
+    public async Task<GetResponse> GetAdmins(
+        string getAdminsDTO,
+        CancellationToken token)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(getAdminsDTO);
+
+        token.ThrowIfCancellationRequested();
+
+        var getAdmins =
+            JsonConvert.DeserializeObject<AdminsListRequestDTO>(getAdminsDTO);
+
+        Debug.Assert(getAdmins != null);
+
+        var userId = getAdmins.UserId;
+
+        var existedUser = await CommonUnitOfWork
+            .UsersRepository
+            .GetUserByIdAsync(userId, token);
+
+        if (existedUser == null)
+        {
+            var response2 = new GetResponse();
+            response2.Result = false;
+            response2.OutInfo = $"No such user with id {userId} found in db";
+
+            return await Task.FromResult(response2);
+        }
+
+        var allUsers = await CommonUnitOfWork.UsersRepository.GetAllUsersAsync(token);
+
+        var allAdmins = allUsers.Where(x => x.Role == UserRole.Admin);
+
+        var allAdminsInfo = new List<ShortUserInfo>();
+
+        foreach (var user in allAdmins)
+        {
+            allAdminsInfo.Add(new()
+            {
+                UserId = user.Id,
+                UserEmail = user.Email,
+                UserName = user.UserName,
+                UserPhone = user.PhoneNumber,
+                Role = user.Role,
+            });
+        }
+
+        var usersListResponse = new UsersListResponse
+        {
+            Users = allAdminsInfo
+        };
+
+        var response1 = new GetResponse();
+        response1.Result = false;
+        response1.OutInfo = $"Info about all admins was received";
+        response1.RequestedInfo = JsonConvert.SerializeObject(usersListResponse);
+
+        return await Task.FromResult(response1);
+    }
+
+    public async Task<GetResponse> GetAllUsersNotInGroup(
+        string getAllUsersNotInGroupDTO, 
+        CancellationToken token)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(getAllUsersNotInGroupDTO);
+
+        token.ThrowIfCancellationRequested();
+
+        var getAllUsersNotInGroup =
+            JsonConvert.DeserializeObject<AllUsersNotInGroupDTO>(
+                getAllUsersNotInGroupDTO);
+
+        Debug.Assert(getAllUsersNotInGroup != null);
+
+        var userId = getAllUsersNotInGroup.UserId;
+
+        var existedUser = await CommonUnitOfWork
+            .UsersRepository
+            .GetUserByIdAsync(userId, token);
+
+        if (existedUser == null)
+        {
+            var response2 = new GetResponse();
+            response2.Result = false;
+            response2.OutInfo = $"No such user with id {userId} found in db";
+
+            return await Task.FromResult(response2);
+        }
+
+        var groupId = getAllUsersNotInGroup.GroupId;
+
+        var existedGroup = await CommonUnitOfWork
+            .GroupsRepository
+            .GetGroupByIdAsync(groupId, token);
+
+        if (existedGroup == null)
+        {
+            var response2 = new GetResponse();
+            response2.Result = false;
+            response2.OutInfo = $"No such group with id {groupId} found in db";
+
+            return await Task.FromResult(response2);
+        }
+
+        var allUsers = await CommonUnitOfWork
+            .UsersRepository
+            .GetAllUsersAsync(token);
+
+        var allUserGroupMaps = await CommonUnitOfWork
+            .GroupingUsersMapRepository
+            .GetGroupingUsersMapByGroupIdsAsync(groupId, token);
+
+        var allUsersNotInGroupInfo = new List<ShortUserInfo>();
+
+        foreach (var user in allUsers)
+        {
+            var userExistedInGroup = 
+                allUserGroupMaps
+                    .Where(x => x.UserId == user.Id 
+                        && x.GroupId == groupId)
+                    .FirstOrDefault();
+
+            if (userExistedInGroup == null)
+            {
+                allUsersNotInGroupInfo.Add(new()
+                {
+                    UserId = user.Id,
+                    UserEmail = user.Email,
+                    UserName = user.UserName,
+                    UserPhone = user.PhoneNumber,
+                    Role = user.Role,
+                });
+            }
+        }
+
+        var usersListResponse = new UsersListResponse
+        {
+            Users = allUsersNotInGroupInfo
+        };
+
+        var response1 = new GetResponse();
+        response1.Result = false;
+        response1.OutInfo = $"Info about all users not in group {groupId} was received";
+        response1.RequestedInfo = JsonConvert.SerializeObject(usersListResponse);
+
+        return await Task.FromResult(response1);
+    }
+
+    public async Task<GetResponse> GetUsersFromGroup(
+        string getGroupUsersDTO, 
+        CancellationToken token)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(getGroupUsersDTO);
+
+        token.ThrowIfCancellationRequested();
+
+        var getAllUsersInGroup =
+            JsonConvert.DeserializeObject<AllGroupUsersDTO>(getGroupUsersDTO);
+
+        Debug.Assert(getAllUsersInGroup != null);
+
+        var userId = getAllUsersInGroup.UserId;
+
+        var existedUser = await CommonUnitOfWork
+            .UsersRepository
+            .GetUserByIdAsync(userId, token);
+
+        if (existedUser == null)
+        {
+            var response2 = new GetResponse();
+            response2.Result = false;
+            response2.OutInfo = $"No such user with id {userId} found in db";
+
+            return await Task.FromResult(response2);
+        }
+
+        var groupId = getAllUsersInGroup.GroupId;
+
+        var existedGroup = await CommonUnitOfWork
+            .GroupsRepository
+            .GetGroupByIdAsync(groupId, token);
+
+        if (existedGroup == null)
+        {
+            var response2 = new GetResponse();
+            response2.Result = false;
+            response2.OutInfo = $"No such group with id {groupId} found in db";
+
+            return await Task.FromResult(response2);
+        }
+
+        var allUsers = await CommonUnitOfWork
+            .UsersRepository
+            .GetAllUsersAsync(token);
+
+        var allUserGroupMaps = await CommonUnitOfWork
+            .GroupingUsersMapRepository
+            .GetGroupingUsersMapByGroupIdsAsync(groupId, token);
+
+        var allUsersInGroupInfo = new List<ShortUserInfo>();
+
+        foreach (var user in allUsers)
+        {
+            var userExistedInGroup =
+                allUserGroupMaps
+                    .Where(x => x.UserId == user.Id
+                        && x.GroupId == groupId)
+                    .FirstOrDefault();
+
+            if (userExistedInGroup != null)
+            {
+                allUsersInGroupInfo.Add(new()
+                {
+                    UserId = user.Id,
+                    UserEmail = user.Email,
+                    UserName = user.UserName,
+                    UserPhone = user.PhoneNumber,
+                    Role = user.Role,
+                });
+            }
+        }
+
+        var usersListResponse = new UsersListResponse
+        {
+            Users = allUsersInGroupInfo
+        };
+
+        var response1 = new GetResponse();
+        response1.Result = false;
+        response1.OutInfo = $"Info about all users in group {groupId} was received";
+        response1.RequestedInfo = JsonConvert.SerializeObject(usersListResponse);
+
+        return await Task.FromResult(response1);
+    }
+
+    public async Task<GetResponse> GetGroupUsersNotInEvent(
+        string getGroupUsersNotInEventDTO,
+        CancellationToken token)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(getGroupUsersNotInEventDTO);
+
+        token.ThrowIfCancellationRequested();
+
+        var getGroupUsersNotInEvent =
+            JsonConvert.DeserializeObject<AllGroupUsersNotInEventDTO>(
+                getGroupUsersNotInEventDTO);
+
+        Debug.Assert(getGroupUsersNotInEvent != null);
+
+        var userId = getGroupUsersNotInEvent.UserId;
+
+        var existedUser = await CommonUnitOfWork
+            .UsersRepository
+            .GetUserByIdAsync(userId, token);
+
+        if (existedUser == null)
+        {
+            var response2 = new GetResponse();
+            response2.Result = false;
+            response2.OutInfo = $"No such user with id {userId} found in db";
+
+            return await Task.FromResult(response2);
+        }
+
+        var groupId = getGroupUsersNotInEvent.GroupId;
+
+        var existedGroup = await CommonUnitOfWork
+            .GroupsRepository
+            .GetGroupByIdAsync(groupId, token);
+
+        if (existedGroup == null)
+        {
+            var response2 = new GetResponse();
+            response2.Result = false;
+            response2.OutInfo = $"No such group with id {groupId} found in db";
+
+            return await Task.FromResult(response2);
+        }
+
+        var eventId = getGroupUsersNotInEvent.EventId;
+
+        var existedEvent = await CommonUnitOfWork
+            .EventsRepository
+            .GetEventByIdAsync(eventId, token);
+
+        if (existedEvent == null)
+        {
+            var response2 = new GetResponse();
+            response2.Result = false;
+            response2.OutInfo = $"No such event with id {eventId} found in db";
+
+            return await Task.FromResult(response2);
+        }
+
+        var allUsers = await CommonUnitOfWork
+            .UsersRepository
+            .GetAllUsersAsync(token);
+
+        var allUserGroupMaps = await CommonUnitOfWork
+            .GroupingUsersMapRepository
+            .GetGroupingUsersMapByGroupIdsAsync(groupId, token);
+
+        var allUserEventMaps = CommonUnitOfWork
+            .EventsUsersMapRepository
+            .GetAllMapsAsync(token)
+            .GetAwaiter()
+            .GetResult()
+            .Where(x => x.EventId == eventId);
+
+        var allGroupUsers = new List<User>();
+
+        foreach (var user in allUsers)
+        {
+            var userExistedInGroup =
+                allUserGroupMaps
+                    .Where(x => x.UserId == user.Id
+                        && x.GroupId == groupId)
+                    .FirstOrDefault();
+
+            if (userExistedInGroup != null)
+            {
+                allGroupUsers.Add(user);
+            }
+        }
+
+        var allGroupUsersNotInEventInfo = new List<ShortUserInfo>();
+
+        foreach (var groupUser in allGroupUsers)
+        {
+            var userExistedInEvent =
+                allUserEventMaps
+                    .Where(x => x.UserId == groupUser.Id
+                        && x.EventId == eventId)
+                    .FirstOrDefault();
+
+            if (userExistedInEvent == null)
+            {
+                allGroupUsersNotInEventInfo.Add(new()
+                {
+                    UserId = groupUser.Id,
+                    UserEmail = groupUser.Email,
+                    UserName = groupUser.UserName,
+                    UserPhone = groupUser.PhoneNumber,
+                    Role = groupUser.Role,
+                });
+            }
+        }
+
+        var usersListResponse = new UsersListResponse
+        {
+            Users = allGroupUsersNotInEventInfo
+        };
+
+        var response1 = new GetResponse();
+        response1.Result = false;
+        response1.OutInfo = 
+            $"Info about all users in group {groupId}" +
+            $" not guests of event {eventId} - was received";
+        response1.RequestedInfo = JsonConvert.SerializeObject(usersListResponse);
+
+        return await Task.FromResult(response1);
     }
 
     private const UserRole DEFAULT_USER_ROLE = UserRole.User;
