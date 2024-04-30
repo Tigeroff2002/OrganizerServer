@@ -369,7 +369,7 @@ public sealed class SnapshotController : ControllerBase
                 getResponse.OutInfo =
                     $"Info about personal snapshot with id {snapshotId}" +
                     $" for user with id {userId} was received";
-                getResponse.RequestedInfo = personalSnapshotInfo;
+                getResponse.RequestedInfo = JsonConvert.SerializeObject(personalSnapshotInfo);
             }
             else if (existedSnapshot.SnapshotAuditType == SnapshotAuditType.Group)
             {
@@ -505,7 +505,7 @@ public sealed class SnapshotController : ControllerBase
                 $"Info about group snapshots with id" +
                 $" by user with id {userId} for group with id" +
                 $" {groupId} was received";
-            getResponse.RequestedInfo = groupSnapshotsResponseModel;
+            getResponse.RequestedInfo = JsonConvert.SerializeObject(groupSnapshotsResponseModel);
 
             var json = JsonConvert.SerializeObject(getResponse);
 

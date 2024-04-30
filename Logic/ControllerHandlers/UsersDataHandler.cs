@@ -683,7 +683,8 @@ public sealed class UsersDataHandler
             .GetAllTasksAsync(token);
 
         var userTasksModels = allTasks
-            .Where(task => task.ImplementerId == userId)
+            .Where(task => task.ImplementerId == userId 
+                || task.ReporterId == userId)
             .ToList();
 
         var allIssues = await CommonUnitOfWork
@@ -708,10 +709,15 @@ public sealed class UsersDataHandler
         foreach (var task in userTasksModels)
         {
             var reporterId = task.ReporterId;
+            var implementerId = task.ImplementerId;
 
             var reporter = await CommonUnitOfWork
                 .UsersRepository
                 .GetUserByIdAsync(reporterId, token);
+
+            var implementer = await CommonUnitOfWork
+                .UsersRepository
+                .GetUserByIdAsync(implementerId, token);
 
             var reporterInfo = new ShortUserInfo
             {
@@ -721,6 +727,14 @@ public sealed class UsersDataHandler
                 UserPhone = reporter!.PhoneNumber
             };
 
+            var implementerInfo = new ShortUserInfo
+            {
+                UserId = implementer!.Id,
+                UserEmail = implementer!.Email,
+                UserName = implementer!.UserName,
+                UserPhone = implementer!.PhoneNumber
+            };
+
             var taskInfo = new TaskInfoResponse
             {
                 TaskId = task.Id,
@@ -728,7 +742,8 @@ public sealed class UsersDataHandler
                 TaskDescription = task!.Description,
                 TaskType = task!.TaskType,
                 TaskStatus = task!.TaskStatus,
-                Reporter = reporterInfo
+                Reporter = reporterInfo,
+                Implementer = implementerInfo
             };
 
             userTasks.Add(taskInfo);
