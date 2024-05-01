@@ -100,7 +100,10 @@ public static class Registrations
             .AddSingleton<IMessageRepository, MessageRepository>()
 
             .AddSingleton<ICommonUsersUnitOfWork, CommonUsersUnitOfWork>()
-            .AddSingleton<IUsersMessagingUnitOfWork, UsersMessagingUnitOfWork>();
+            .AddSingleton<IUsersMessagingUnitOfWork, UsersMessagingUnitOfWork>()
+
+            .AddNpgsqlDataSource(configuration.GetConnectionString("DefaultConnection")!);
+            
 
     public static IServiceCollection AddRedisCache(
         this IServiceCollection services,
@@ -118,11 +121,6 @@ public static class Registrations
                      * sudo systemctl status redis
                      * redis-cli
                      */
-                })
-            .Configure<RedisConfiguration>(
-                (_) => new RedisConfiguration
-                {
-                    HostAndPort = configuration.GetSection("ConnectionStrings")["RedisConnection"]!
                 })
             .AddSingleton<IRedisRepository, RedisRepository>();
 

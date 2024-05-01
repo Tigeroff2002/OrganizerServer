@@ -2,7 +2,7 @@
 
 namespace Contracts.RedisContracts;
 
-public abstract class UserRelatedEventDTO
+public class UserRelatedEventDTO
     : BaseEventDTO
 {
     [JsonProperty("user_id", Required = Required.Always)]

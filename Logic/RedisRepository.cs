@@ -16,7 +16,7 @@ public sealed class RedisRepository : IRedisRepository
         ISerializer<UserRelatedEvent> serializer,
         IDeserializer<UserRelatedEvent> deserializer,
         IConnectionMultiplexer connectionMultiplexer,
-        IOptions<RedisConfiguration> redisOptions,
+        IOptions<RedisReadingConfiguration> redisOptions,
         ILogger<RedisRepository> logger)
     {
         _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
@@ -45,7 +45,7 @@ public sealed class RedisRepository : IRedisRepository
 
         var transaction = database.CreateTransaction();
 
-        var transactionLog = transaction.SetAddAsync(
+        var transactionLog = transaction.StringSetAsync(
             new RedisKey(@event.Id), new RedisValue(json));
 
         await transaction.ExecuteAsync();
@@ -85,7 +85,7 @@ public sealed class RedisRepository : IRedisRepository
                     "Event with key {EventId} has been commited",
                 @event.Id);
 
-                var redisValue = new RedisValue(_serializer.Serialize(@event));
+                var redisValue = _serializer.Serialize(@event);
 
                 var transactionLog = 
                     transaction.StringSetAsync(new RedisKey(key), redisValue);
@@ -158,6 +158,6 @@ public sealed class RedisRepository : IRedisRepository
     private readonly ISerializer<UserRelatedEvent> _serializer;
     private readonly IDeserializer<UserRelatedEvent> _deserializer;
     private readonly IConnectionMultiplexer _connectionMultiplexer;
-    private readonly RedisConfiguration _redisConfiguration;
+    private readonly RedisReadingConfiguration _redisConfiguration;
     private readonly ILogger _logger;
 }

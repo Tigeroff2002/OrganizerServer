@@ -8,6 +8,7 @@ using Models.RedisEventModels.MeetEvents;
 using Models.StorageModels;
 using Models.UserActionModels;
 using Models.UserActionModels.NotificationModels;
+using Npgsql;
 using PostgreSQL.Abstractions;
 using System.Text;
 
@@ -22,6 +23,7 @@ public sealed class EventNotificationsHandler
         ICommonUsersUnitOfWork usersUnitOfWork,
         IOptions<NotificationConfiguration> notifyConfiguration,
         IRedisRepository redisRepository,
+        NpgsqlDataSource npgsqlDataSource,
         ILogger<EventNotificationsHandler> logger)
         : base(usersUnitOfWork, redisRepository, logger)
     {
@@ -34,6 +36,9 @@ public sealed class EventNotificationsHandler
         ArgumentNullException.ThrowIfNull(notifyConfiguration);
 
         _notifyConfiguration = notifyConfiguration.Value;
+
+        _npgSqlDataSource = npgsqlDataSource 
+            ?? throw new ArgumentNullException(nameof(npgsqlDataSource));
     }
 
     public async Task HandleEventsAsync(CancellationToken token)
@@ -46,11 +51,9 @@ public sealed class EventNotificationsHandler
                 .EventsRepository
                 .GetAllEventsAsync(token);
 
-            await HandleEventsNotificationsAsync(dbEvents, token);
+            // await HandleEventsNotificationsAsync(dbEvents, token);
 
             HandleEventStatuses(dbEvents, token);
-
-            CommonUnitOfWork.SaveChanges();
 
             await Task.Delay(_notifyConfiguration.IterationDelay, token);
         }
@@ -70,13 +73,13 @@ public sealed class EventNotificationsHandler
 
         foreach (var dbEvent in dbEvents)
         {
+            var oldStatus = dbEvent.Status;
+
             if (dbEvent.ScheduledStart <= currentTiming)
             {
                 if (dbEvent.Status != EventStatus.Cancelled
                     && dbEvent.Status != EventStatus.Finished)
                 {
-                    var oldStatus = dbEvent.Status;
-
                     if (dbEvent.Status is EventStatus.NotStarted
                         or EventStatus.WithinReminderOffset)
                     {
@@ -111,17 +114,64 @@ public sealed class EventNotificationsHandler
                             }
                         }
                     }
+                }
+            }
 
-                    if (dbEvent.Status != oldStatus)
+            var timingWithOffset = currentTiming.Add(_notifyConfiguration.ReminderOffset);
+
+            var isEventSoonBegin =
+                dbEvent.ScheduledStart <= timingWithOffset
+                && dbEvent.ScheduledStart > currentTiming;
+
+            if (isEventSoonBegin)
+            {
+                if (dbEvent.Status == EventStatus.NotStarted)
+                {
+                    dbEvent.Status = EventStatus.WithinReminderOffset;
+
+                    var guestMaps = CommonUnitOfWork
+                        .EventsUsersMapRepository
+                        .GetAllMapsAsync(token)
+                        .GetAwaiter()
+                        .GetResult()
+                        .Where(x => x.EventId == dbEvent.Id);
+
+                    foreach (var map in guestMaps)
                     {
-                        Logger.LogInformation(
-                            "Status of event {EventId} was changed" +
-                            " from {OldStatus} to {NewStatus}",
-                            dbEvent.Id,
-                            oldStatus,
-                            dbEvent.Status);
+                        await SendEventForCacheAsync(
+                            new MeetSoonBeginEvent(
+                                Id: Guid.NewGuid().ToString(),
+                                IsCommited: false,
+                                UserId: map.UserId,
+                                MeetId: dbEvent.Id,
+                                RemainingTime: _notifyConfiguration.ReminderOffset,
+                                ScheduledStart: dbEvent.ScheduledStart));
                     }
                 }
+            }
+
+            if (dbEvent.Status != oldStatus)
+            {
+                Logger.LogInformation(
+                    "Status of event {EventId} was changed" +
+                    " from {OldStatus} to {NewStatus}",
+                    dbEvent.Id,
+                    oldStatus,
+                    dbEvent.Status);
+
+                await using var connection = _npgSqlDataSource.CreateConnection();
+
+                await connection.OpenAsync();
+
+                await using var command = connection.CreateCommand();
+
+                command.CommandText = 
+                    $"UPDATE events SET status = '{ToCamelCase(dbEvent.Status.ToString())}'" +
+                    $" WHERE id = {dbEvent.Id}";
+
+                await command.ExecuteNonQueryAsync();
+
+                await connection.CloseAsync();
             }
         }
     }
@@ -277,7 +327,6 @@ public sealed class EventNotificationsHandler
                                 .SendAdsPushNotificationAsync(ads, token))));
 
                 // продумать логику комита созданных доменных событий
-
                 Logger.LogInformation(
                     "Reminders of ads push for user" +
                     " with name {UserName} has been succesfully sent",
@@ -310,7 +359,13 @@ public sealed class EventNotificationsHandler
             .ToList();
     }
 
+    private string ToCamelCase(string str)
+    {
+        return string.Concat(str.Select((x, i) => i > 0 && char.IsUpper(x) ? "_" + x.ToString() : x.ToString())).ToLower();
+    }
+
     private readonly ISMTPSender _smtpSender;
     private readonly IPushNotificationsSender _pushNotificationsSender;
     private readonly NotificationConfiguration _notifyConfiguration;
+    private readonly NpgsqlDataSource _npgSqlDataSource;
 }

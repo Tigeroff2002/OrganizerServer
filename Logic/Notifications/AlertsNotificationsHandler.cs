@@ -39,9 +39,9 @@ public sealed class AlertsNotificationsHandler
         {
             var dbAlerts = await _usersUnitOfWork.AlertsRepository.GetAllAlertsAsync(token);
 
-            await HandleAlertsNotificationsAsync(dbAlerts, token);
+            //await HandleAlertsNotificationsAsync(dbAlerts, token);
 
-            _usersUnitOfWork.SaveChanges();
+            //_usersUnitOfWork.SaveChanges();
 
             Task.Delay(_notifyConfiguration.IterationDelay, token).GetAwaiter().GetResult();
         }

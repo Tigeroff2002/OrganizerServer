@@ -27,9 +27,11 @@ public sealed class RedisEventDeserializer
     {
         ArgumentException.ThrowIfNullOrEmpty(source, nameof(source));
 
-        using var reader = new JsonTextReader(new StringReader(source));
+        using var reader0 = new JsonTextReader(new StringReader(source));
 
-        var rawDTO = _deserializer.Deserialize<BaseEventDTO>(reader);
+        var rawDTO = _deserializer.Deserialize<UserRelatedEventDTO>(reader0);
+
+        using var reader = new JsonTextReader(new StringReader(source));
 
         Debug.Assert(rawDTO is not null);
 
