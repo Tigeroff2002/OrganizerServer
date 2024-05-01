@@ -1,17 +1,18 @@
-﻿namespace Models.UserActionModels;
+﻿using FirebaseAdmin.Auth;
 
-public sealed record class UserAdsPushReminderInfo
-    : UserReminderInfo
+namespace Models.UserActionModels.NotificationModels;
+
+public record class UserAdsPushContentInfo
+    : UserNotificationInfo
 {
     public string FirebaseToken { get; }
 
-    public UserAdsPushReminderInfo(
+    public UserAdsPushContentInfo(
         string subject,
-        string eventName,
         string userName,
-        string firebaseToken,
-        int totalMinutes)
-        : base(subject, eventName, userName, totalMinutes)
+        string description,
+        string firebaseToken)
+        : base(subject, description, userName)
     {
         if (string.IsNullOrWhiteSpace(firebaseToken))
         {

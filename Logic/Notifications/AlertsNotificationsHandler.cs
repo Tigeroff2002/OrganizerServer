@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Models.Enums;
 using Models.StorageModels;
-using Models.UserActionModels;
+using Models.UserActionModels.NotificationModels;
 using PostgreSQL.Abstractions;
 
 namespace Logic.Notifications;

@@ -1,26 +1,23 @@
-﻿namespace Models.UserActionModels;
+﻿namespace Models.UserActionModels.NotificationModels;
 
 public record class UserReminderInfo
     : UserNotificationInfo
 {
-    public string EventName { get; }
-
     public int TotalMinutes { get; }
 
     public UserReminderInfo(
         string subject,
-        string eventName,
+        string description,
         string userName,
         int totalMinutes)
-        : base(subject, userName)
+        : base(subject, description, userName)
     {
 
-        if (string.IsNullOrWhiteSpace(eventName))
+        if (string.IsNullOrWhiteSpace(description))
         {
             throw new ArgumentException("Event name should not be empty or white-spaces");
         }
 
-        EventName = eventName;
         TotalMinutes = totalMinutes;
     }
 }

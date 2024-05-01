@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Models.StorageModels;
 using Models.UserActionModels;
+using Models.UserActionModels.NotificationModels;
 using PostgreSQL.Abstractions;
 
 namespace Logic;
@@ -58,14 +59,13 @@ public sealed class RedisProcessor : IRedisProcessor
                 var eventName = _eventsAliaser.GetAliasForEvent(message);
 
                 var emailMessage =
-                    new UserEmailReminderInfo(
+                    new UserEmailNotificationInfo(
                         SUBJECT,
                         eventName,
                         user.UserName,
-                        user.Email,
-                        totalMinutes: 0);
+                        user.Email);
 
-                await _sender.SendSMTPNotificationAsync(emailMessage, token);
+                await _sender.SendNotificationAsync(emailMessage, token);
             }
 
             _logger.LogInformation(

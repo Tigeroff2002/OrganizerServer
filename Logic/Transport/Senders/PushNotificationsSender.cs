@@ -3,7 +3,7 @@ using AdsPush.Abstraction;
 using FirebaseAdmin.Messaging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Models.UserActionModels;
+using Models.UserActionModels.NotificationModels;
 using System.Text;
 
 namespace Logic.Transport.Senders;
@@ -45,7 +45,7 @@ public sealed class PushNotificationsSender
                 $"We are sending you a reminder that your event" +
                 $" will start in less than {numberMinutesOfOffset} minutes.\n");
 
-            body.Append(reminderModel.EventName);
+            body.Append(reminderModel.Description);
 
             await SendNotificationAsync(
                 body.ToString(), reminderModel, reminderModel.FirebaseToken, token);
@@ -56,7 +56,7 @@ public sealed class PushNotificationsSender
             body.Append(
                 $"We are sending you alert message, that you can see below: \n");
 
-            body.Append(contentModel.Content);
+            body.Append(contentModel.Description);
 
             await SendNotificationAsync(
                 body.ToString(), contentModel, contentModel.FirebaseToken, token);

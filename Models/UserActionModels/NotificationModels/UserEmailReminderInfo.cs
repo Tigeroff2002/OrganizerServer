@@ -1,4 +1,4 @@
-﻿namespace Models.UserActionModels;
+﻿namespace Models.UserActionModels.NotificationModels;
 
 public sealed record class UserEmailReminderInfo
     : UserReminderInfo

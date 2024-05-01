@@ -324,7 +324,13 @@ public sealed class RedisEventDeserializer
 
         Debug.Assert(dto is not null);
 
-        return new(dto.Id, dto.IsCommited, dto.UserId, dto.SnapshotId, dto.CreatedMoment);
+        return new(
+            dto.Id,
+            dto.IsCommited,
+            dto.UserId,
+            dto.SnapshotId,
+            dto.AuditType,
+            dto.CreatedMoment);
     }
 
     private TaskAssignedEvent CreateTaskAssignedFromSource(

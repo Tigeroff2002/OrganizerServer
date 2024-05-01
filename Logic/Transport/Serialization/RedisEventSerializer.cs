@@ -300,6 +300,7 @@ public sealed class RedisEventSerializer
                     UserId = snapshotCreated.UserId,
                     EventType = RawEventType.SnapshotCreated,
                     CreatedMoment = snapshotCreated.CreateMoment,
+                    AuditType = snapshotCreated.AuditType,
                     SnapshotId = snapshotCreated.SnapshotId,
                 },
 

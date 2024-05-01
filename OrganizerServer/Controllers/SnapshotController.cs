@@ -107,6 +107,7 @@ public sealed class SnapshotController : ControllerBase
                 IsCommited: false,
                 UserId: userId,
                 SnapshotId: snapshotId,
+                AuditType: SnapshotAuditType.Personal,
                 CreateMoment: dateTimeNow));
 
         var response = new ResponseWithId()
@@ -225,6 +226,7 @@ public sealed class SnapshotController : ControllerBase
                 IsCommited: false,
                 UserId: userId,
                 SnapshotId: snapshotId,
+                AuditType: SnapshotAuditType.Group,
                 CreateMoment: dateTimeNow));
 
         var response = new ResponseWithId()
