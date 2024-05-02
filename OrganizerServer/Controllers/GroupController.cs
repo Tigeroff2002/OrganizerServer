@@ -65,7 +65,7 @@ public sealed class GroupController : ControllerBase
         return response.Result ? Ok(json) : BadRequest(json);
     }
 
-    [Route("delete_group")]
+    [Route("get_group")]
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> GetGroupInfo(CancellationToken token)
     {

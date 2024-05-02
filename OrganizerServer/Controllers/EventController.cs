@@ -66,7 +66,6 @@ public sealed class EventController : ControllerBase
         return response.Result ? Ok(json) : BadRequest(json);
     }
 
-    [HttpDelete]
     [Route("delete_event")]
     [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
     public async Task<IActionResult> DeleteEvent(CancellationToken token)
