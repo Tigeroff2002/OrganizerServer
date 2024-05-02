@@ -191,6 +191,11 @@ public sealed class SnapshotsHandler
 
                 var percent = (tasksDonePercent + tasksInProgressPercent / 2) / 100;
 
+                if (float.IsNaN(percent))
+                {
+                    percent = 0f;
+                }
+
                 var snapshotTasksResult = new SnapshotDescriptionResult
                 {
                     SnapshotType = snapshotType,
@@ -281,6 +286,11 @@ public sealed class SnapshotsHandler
 
                 var percent = (eventsAcceptedPercent + (100 - eventsAcceptedPercent) / 5) / 100;
 
+                if (float.IsNaN(percent))
+                {
+                    percent = 0f;
+                }
+
                 var snapshotEventsResult = new SnapshotDescriptionResult
                 {
                     SnapshotType = snapshotType,
@@ -336,6 +346,11 @@ public sealed class SnapshotsHandler
                 stringBuilder.Append($"Процент выясненных и закрытых проблем - {issuesClosedPercent}%\n");
 
                 var percent = (issuesClosedPercent + issuesInProgressPercent / 2) / 100;
+
+                if (float.IsNaN(percent))
+                {
+                    percent = 0;
+                }
 
                 var snapshotIssuesResult = new SnapshotDescriptionResult
                 {
