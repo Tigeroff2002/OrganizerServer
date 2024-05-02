@@ -12,6 +12,10 @@ using Logic.Abstractions;
 using Contracts.Response.SnapshotsDB;
 using Models.Enums;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Models.StorageModels;
+using Contracts.Request.RequestById;
+using Models.RedisEventModels.SnapshotEvents;
+using Models.UserActionModels;
 
 namespace ToDoCalendarServer.Controllers;
 
@@ -21,21 +25,17 @@ public sealed class SnapshotController : ControllerBase
 {
     public SnapshotController(
         ISnapshotsHandler snapshotsHandler,
-        ISnapshotsRepository snapshotsRepository,
-        IGroupsRepository groupsRepository,
-        IUsersRepository usersRepository)
+        ICommonUsersUnitOfWork commonUsersUnitOfWork,
+        IRedisRepository redisRepository)
     {
         _snapshotsHandler = snapshotsHandler
             ?? throw new ArgumentNullException(nameof(snapshotsHandler));
 
-         _snapshotsRepository = snapshotsRepository
-            ?? throw new ArgumentNullException(nameof(snapshotsRepository));
+        _commonUsersUnitOfWork = commonUsersUnitOfWork
+            ?? throw new ArgumentNullException(nameof(commonUsersUnitOfWork));
 
-        _usersRepository = usersRepository
-            ?? throw new ArgumentNullException(nameof(usersRepository));
-
-        _groupsRepository = groupsRepository
-            ?? throw new ArgumentNullException(nameof(groupsRepository));
+        _redisRepository = redisRepository
+            ?? throw new ArgumentNullException(nameof(redisRepository));
     }
 
     [HttpPost]
@@ -52,7 +52,9 @@ public sealed class SnapshotController : ControllerBase
         var userId = snapshotToCreate.UserId;
         var snapshotType = snapshotToCreate.SnapshotType;
 
-        var user = await _usersRepository.GetUserByIdAsync(userId, token);
+        var user = await _commonUsersUnitOfWork
+            .UsersRepository
+            .GetUserByIdAsync(userId, token);
 
         if (user == null)
         {
@@ -78,6 +80,8 @@ public sealed class SnapshotController : ControllerBase
 
         var description = JsonConvert.SerializeObject(personalSnapshotContent);
 
+        var dateTimeNow = DateTimeOffset.UtcNow;
+
         var snapshot = new Snapshot
         {
             Description = description,
@@ -85,17 +89,32 @@ public sealed class SnapshotController : ControllerBase
             SnapshotAuditType = snapshotToCreate.SnapshotAuditType,
             BeginMoment = snapshotToCreate.BeginMoment,
             EndMoment = snapshotToCreate.EndMoment,
-            CreateMoment = DateTimeOffset.UtcNow,
+            CreateMoment = dateTimeNow,
             UserId = user.Id
         };
 
-        await _snapshotsRepository.AddAsync(snapshot, token);
+        await _commonUsersUnitOfWork
+            .SnapshotsRepository
+            .AddAsync(snapshot, token);
 
-        _snapshotsRepository.SaveChanges();
+        _commonUsersUnitOfWork.SaveChanges();
 
         var snapshotId = snapshot.Id;
 
-        var response = new Response();
+        await _redisRepository.InsertEventAsync(
+            new SnapshotCreatedEvent(
+                Id: Guid.NewGuid().ToString(),
+                IsCommited: false,
+                UserId: userId,
+                SnapshotId: snapshotId,
+                AuditType: SnapshotAuditType.Personal,
+                CreateMoment: dateTimeNow));
+
+        var response = new ResponseWithId()
+        {
+            Id = snapshotId
+        };
+
         response.Result = true;
         response.OutInfo =
             $"New snapshot with id = {snapshotId}" +
@@ -122,7 +141,9 @@ public sealed class SnapshotController : ControllerBase
         var groupId = snapshotToCreate.GroupId;
         var snapshotType = snapshotToCreate.SnapshotType;
 
-        var user = await _usersRepository.GetUserByIdAsync(userId, token);
+        var user = await _commonUsersUnitOfWork
+            .UsersRepository
+            .GetUserByIdAsync(userId, token);
 
         if (user == null)
         {
@@ -135,7 +156,9 @@ public sealed class SnapshotController : ControllerBase
             return BadRequest(JsonConvert.SerializeObject(response1));
         }
 
-        var group = await _groupsRepository.GetGroupByIdAsync(groupId, token);
+        var group = await _commonUsersUnitOfWork
+            .GroupsRepository
+            .GetGroupByIdAsync(groupId, token);
 
         if (group == null)
         {
@@ -176,6 +199,8 @@ public sealed class SnapshotController : ControllerBase
 
         var description = JsonConvert.SerializeObject(groupSnapshotContent);
 
+        var dateTimeNow = DateTimeOffset.UtcNow;
+
         var snapshot = new Snapshot
         {
             Description = description,
@@ -183,17 +208,32 @@ public sealed class SnapshotController : ControllerBase
             SnapshotAuditType = snapshotToCreate.SnapshotAuditType,
             BeginMoment = snapshotToCreate.BeginMoment,
             EndMoment = snapshotToCreate.EndMoment,
-            CreateMoment = DateTimeOffset.UtcNow,
+            CreateMoment = dateTimeNow,
             UserId = user.Id
         };
 
-        await _snapshotsRepository.AddAsync(snapshot, token);
+        await _commonUsersUnitOfWork
+            .SnapshotsRepository
+            .AddAsync(snapshot, token);
 
-        _snapshotsRepository.SaveChanges();
+        _commonUsersUnitOfWork.SaveChanges();
 
         var snapshotId = snapshot.Id;
 
-        var response = new Response();
+        await _redisRepository.InsertEventAsync(
+            new SnapshotCreatedEvent(
+                Id: Guid.NewGuid().ToString(),
+                IsCommited: false,
+                UserId: userId,
+                SnapshotId: snapshotId,
+                AuditType: SnapshotAuditType.Group,
+                CreateMoment: dateTimeNow));
+
+        var response = new ResponseWithId()
+        {
+            Id = snapshotId
+        };
+
         response.Result = true;
         response.OutInfo =
             $"New group snapshot with id = {snapshotId}" +
@@ -218,7 +258,9 @@ public sealed class SnapshotController : ControllerBase
 
         var snapshotId = snapshotToDelete.SnapshotId;
 
-        var existedSnapshot = await _snapshotsRepository.GetSnapshotByIdAsync(snapshotId, token);
+        var existedSnapshot = await _commonUsersUnitOfWork
+            .SnapshotsRepository
+            .GetSnapshotByIdAsync(snapshotId, token);
 
         if (existedSnapshot != null)
         {
@@ -235,9 +277,11 @@ public sealed class SnapshotController : ControllerBase
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
 
-            await _snapshotsRepository.DeleteAsync(snapshotId, token);
+            await _commonUsersUnitOfWork
+                .SnapshotsRepository
+                .DeleteAsync(snapshotId, token);
 
-            _snapshotsRepository.SaveChanges();
+            _commonUsersUnitOfWork.SaveChanges();
 
             var response = new Response();
             response.Result = true;
@@ -265,13 +309,17 @@ public sealed class SnapshotController : ControllerBase
 
         var snapshotId = snapshotWithIdRequest.SnapshotId;
 
-        var existedSnapshot = await _snapshotsRepository.GetSnapshotByIdAsync(snapshotId, token);
+        var existedSnapshot = await _commonUsersUnitOfWork
+            .SnapshotsRepository
+            .GetSnapshotByIdAsync(snapshotId, token);
 
         if (existedSnapshot != null)
         {
             var userId = existedSnapshot!.UserId;
 
-            var creator = await _usersRepository.GetUserByIdAsync(userId, token);
+            var creator = await _commonUsersUnitOfWork
+                .UsersRepository
+                .GetUserByIdAsync(userId, token);
 
             if (creator == null)
             {
@@ -290,7 +338,8 @@ public sealed class SnapshotController : ControllerBase
                 response1.Result = false;
                 response1.OutInfo = 
                     $"Cant take info about snapshot cause" +
-                    $" user with id {snapshotWithIdRequest.UserId} is not its creator";
+                    $" user with id {snapshotWithIdRequest.UserId}" +
+                    $" is not its creator";
 
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
@@ -309,6 +358,7 @@ public sealed class SnapshotController : ControllerBase
 
                 var personalSnapshotInfo = new PersonalSnapshotInfoResponse
                 {
+                    SnapshotId = existedSnapshot.Id,
                     BeginMoment = existedSnapshot.BeginMoment,
                     EndMoment = existedSnapshot.EndMoment,
                     SnapshotType = existedSnapshot.SnapshotType,
@@ -321,7 +371,7 @@ public sealed class SnapshotController : ControllerBase
                 getResponse.OutInfo =
                     $"Info about personal snapshot with id {snapshotId}" +
                     $" for user with id {userId} was received";
-                getResponse.RequestedInfo = personalSnapshotInfo;
+                getResponse.RequestedInfo = JsonConvert.SerializeObject(personalSnapshotInfo);
             }
             else if (existedSnapshot.SnapshotAuditType == SnapshotAuditType.Group)
             {
@@ -332,6 +382,7 @@ public sealed class SnapshotController : ControllerBase
 
                 var groupSnapshotInfo = new GroupSnapshotInfoResponse
                 {
+                    SnapshotId = existedSnapshot.Id,
                     BeginMoment = existedSnapshot.BeginMoment,
                     EndMoment = existedSnapshot.EndMoment,
                     SnapshotType = existedSnapshot.SnapshotType,
@@ -347,7 +398,7 @@ public sealed class SnapshotController : ControllerBase
                     $"Info about group snapshot with id {snapshotId}" +
                     $" by user with id {userId} for group with id" +
                     $" {groupSnapshotInfo.GroupId} was received";
-                getResponse.RequestedInfo = groupSnapshotInfo;
+                getResponse.RequestedInfo = JsonConvert.SerializeObject(groupSnapshotInfo);
             }
 
             var json = JsonConvert.SerializeObject(getResponse);
@@ -374,13 +425,17 @@ public sealed class SnapshotController : ControllerBase
 
         var groupId = groupSnapshotsRequest.GroupId;
 
-        var existedGroup = await _groupsRepository.GetGroupByIdAsync(groupId, token);
+        var existedGroup = await _commonUsersUnitOfWork
+            .GroupsRepository
+            .GetGroupByIdAsync(groupId, token);
 
         if (existedGroup != null)
         {
             var userId = groupSnapshotsRequest.UserId;
 
-            var user = await _usersRepository.GetUserByIdAsync(userId, token);
+            var user = await _commonUsersUnitOfWork
+                .UsersRepository
+                .GetUserByIdAsync(userId, token);
 
             if (user == null)
             {
@@ -404,7 +459,9 @@ public sealed class SnapshotController : ControllerBase
                 return BadRequest(JsonConvert.SerializeObject(response1));
             }
 
-            var allSnapshots = await _snapshotsRepository.GetAllSnapshotsAsync(token);
+            var allSnapshots = await _commonUsersUnitOfWork
+                .SnapshotsRepository
+                .GetAllSnapshotsAsync(token);
 
             var groupSnapshots = allSnapshots
                 .Where(x => x.UserId == userId
@@ -423,6 +480,7 @@ public sealed class SnapshotController : ControllerBase
 
                 var groupSnapshotInfo = new GroupSnapshotInfoResponse
                 {
+                    SnapshotId = groupSnapshot.Id,
                     BeginMoment = groupSnapshot.BeginMoment,
                     EndMoment = groupSnapshot.EndMoment,
                     SnapshotType = groupSnapshot.SnapshotType,
@@ -449,7 +507,7 @@ public sealed class SnapshotController : ControllerBase
                 $"Info about group snapshots with id" +
                 $" by user with id {userId} for group with id" +
                 $" {groupId} was received";
-            getResponse.RequestedInfo = groupSnapshotsResponseModel;
+            getResponse.RequestedInfo = JsonConvert.SerializeObject(groupSnapshotsResponseModel);
 
             var json = JsonConvert.SerializeObject(getResponse);
 
@@ -464,8 +522,7 @@ public sealed class SnapshotController : ControllerBase
     }
 
     private readonly ISnapshotsHandler _snapshotsHandler;
-    private readonly ISnapshotsRepository _snapshotsRepository;
-    private readonly IUsersRepository _usersRepository;
-    private readonly IGroupsRepository _groupsRepository;
+    private readonly ICommonUsersUnitOfWork _commonUsersUnitOfWork;
+    private readonly IRedisRepository _redisRepository;
 }
 

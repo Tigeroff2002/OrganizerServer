@@ -14,30 +14,10 @@ namespace ToDoCalendarServer.Controllers;
 [Route("users")]
 public sealed class UserController : ControllerBase
 {
-    public UserController(
-        ILogger<UserController> logger,
-        IUsersDataHandler usersDataHandler,
-        IDeserializer<UserRegistrationData> usersRegistrationDataDeserializer,
-        IDeserializer<UserLoginData> usersLoginDataDeserializer,
-        IDeserializer<UserInfoById> userInfoByIdDeserializer,
-        IDeserializer<UserLogoutDeviceById> userLogoutByIdDeserializer) 
+    public UserController(IUsersDataHandler usersDataHandler) 
     {
-        _logger = logger 
-            ?? throw new ArgumentNullException(nameof(logger));
-
         _usersDataHandler = usersDataHandler 
             ?? throw new ArgumentNullException(nameof(usersDataHandler));
-
-        _usersRegistrationDataDeserializer = usersRegistrationDataDeserializer
-            ?? throw new ArgumentNullException(nameof(usersRegistrationDataDeserializer));
-        _usersLoginDataDeserializer = usersLoginDataDeserializer
-            ?? throw new ArgumentNullException(nameof(usersLoginDataDeserializer));
-
-        _userInfoByIdDeserializer = userInfoByIdDeserializer
-            ?? throw new ArgumentNullException(nameof(userInfoByIdDeserializer));
-
-        _userLogoutByIdDeserializer = userLogoutByIdDeserializer
-            ?? throw new ArgumentNullException(nameof(userLogoutByIdDeserializer));
     }
 
     [HttpPost]
@@ -46,11 +26,8 @@ public sealed class UserController : ControllerBase
     {
         var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
-        var userRegistrationData = 
-            _usersRegistrationDataDeserializer.Deserialize(body);
-
         var result = 
-            await _usersDataHandler.TryRegisterUser(userRegistrationData, token);
+            await _usersDataHandler.TryRegisterUser(body, token);
 
         var json = JsonConvert.SerializeObject(result);
 
@@ -63,10 +40,8 @@ public sealed class UserController : ControllerBase
     {
         var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
-        var userLoginData = _usersLoginDataDeserializer.Deserialize(body);
-
         var result =
-            await _usersDataHandler.TryLoginUser(userLoginData, token);
+            await _usersDataHandler.TryLoginUser(body, token);
 
         var json = JsonConvert.SerializeObject(result);
 
@@ -79,30 +54,11 @@ public sealed class UserController : ControllerBase
     {
         var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
-        var logoutData = _userLogoutByIdDeserializer.Deserialize(body);
-
-        var result = await _usersDataHandler.TryLogoutUser(logoutData, token);
+        var result = await _usersDataHandler.TryLogoutUser(body, token);
 
         var json = JsonConvert.SerializeObject(result);
 
         return result.Result ? Ok(json) : BadRequest(json);
-    }
-
-    [Route("get_info")]
-    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
-    public async Task<IActionResult> GetInfoAsync(CancellationToken token)
-    {
-        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
-
-        var userInfoByIdRequest = _userInfoByIdDeserializer.Deserialize(body);
-        
-        var userInfoResponse = await _usersDataHandler.GetUserInfo(userInfoByIdRequest, token);
-
-        Debug.Assert(userInfoResponse != null);
-
-        var get_json = JsonConvert.SerializeObject(userInfoResponse);
-
-        return Ok(get_json);
     }
 
     [Route("update_user_info")]
@@ -111,11 +67,7 @@ public sealed class UserController : ControllerBase
     {
         var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
-        var updateUserInfo = JsonConvert.DeserializeObject<UserUpdateInfoDTO>(body);
-
-        Debug.Assert(updateUserInfo != null);
-
-        var response = await _usersDataHandler.UpdateUserInfo(updateUserInfo, token);
+        var response = await _usersDataHandler.UpdateUserInfo(body, token);
 
         var json = JsonConvert.SerializeObject(response);
 
@@ -128,21 +80,102 @@ public sealed class UserController : ControllerBase
     {
         var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
-        var updateUserRole = JsonConvert.DeserializeObject<UserUpdateRoleDTO>(body);
-
-        Debug.Assert(updateUserRole != null);
-
-        var response = await _usersDataHandler.UpdateUserRoleAsync(updateUserRole, token);
+        var response = await _usersDataHandler.UpdateUserRoleAsync(body, token);
 
         var json = JsonConvert.SerializeObject(response);
 
         return Ok(json);
     }
 
-    private readonly ILogger<UserController> _logger;
+    [Route("get_info")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
+    public async Task<IActionResult> GetUserInfoAsync(CancellationToken token)
+    {
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
+
+        var userInfoResponse = await _usersDataHandler.GetUserInfo(body, token);
+
+        Debug.Assert(userInfoResponse != null);
+
+        var get_json = JsonConvert.SerializeObject(userInfoResponse);
+
+        return Ok(get_json);
+    }
+
+    [Route("get_all_users")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
+    public async Task<IActionResult> GetAllUsersAsync(CancellationToken token)
+    {
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
+
+        var usersResponse = await _usersDataHandler.GetAllUsers(body, token);
+
+        Debug.Assert(usersResponse != null);
+
+        var get_json = JsonConvert.SerializeObject(usersResponse);
+
+        return Ok(get_json);
+    }
+
+    [Route("get_admins")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
+    public async Task<IActionResult> GetAdminsAsync(CancellationToken token)
+    {
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
+
+        var usersResponse = await _usersDataHandler.GetAdmins(body, token);
+
+        Debug.Assert(usersResponse != null);
+
+        var get_json = JsonConvert.SerializeObject(usersResponse);
+
+        return Ok(get_json);
+    }
+
+    [Route("get_group_users")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
+    public async Task<IActionResult> GetGroupUsersAsync(CancellationToken token)
+    {
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
+
+        var usersResponse = await _usersDataHandler.GetUsersFromGroup(body, token);
+
+        Debug.Assert(usersResponse != null);
+
+        var get_json = JsonConvert.SerializeObject(usersResponse);
+
+        return Ok(get_json);
+    }
+
+    [Route("get_not_group_users")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
+    public async Task<IActionResult> GetNotGroupUsersAsync(CancellationToken token)
+    {
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
+
+        var usersResponse = await _usersDataHandler.GetAllUsersNotInGroup(body, token);
+
+        Debug.Assert(usersResponse != null);
+
+        var get_json = JsonConvert.SerializeObject(usersResponse);
+
+        return Ok(get_json);
+    }
+
+    [Route("get_group_users_not_in_event")]
+    [Authorize(AuthenticationSchemes = AuthentificationSchemesNamesConst.TokenAuthenticationDefaultScheme)]
+    public async Task<IActionResult> GetAllGroupUsersNotInEventAsync(CancellationToken token)
+    {
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
+
+        var usersResponse = await _usersDataHandler.GetGroupUsersNotInEvent(body, token);
+
+        Debug.Assert(usersResponse != null);
+
+        var get_json = JsonConvert.SerializeObject(usersResponse);
+
+        return Ok(get_json);
+    }
+
     private readonly IUsersDataHandler _usersDataHandler;
-    private readonly IDeserializer<UserRegistrationData> _usersRegistrationDataDeserializer;
-    private readonly IDeserializer<UserLoginData> _usersLoginDataDeserializer;
-    private readonly IDeserializer<UserInfoById> _userInfoByIdDeserializer;
-    private readonly IDeserializer<UserLogoutDeviceById> _userLogoutByIdDeserializer;
 }

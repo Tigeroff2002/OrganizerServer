@@ -6,6 +6,9 @@ namespace Contracts.Response;
 
 public class SnapshotInfoResponse
 {
+    [JsonProperty("snapshot_id", Required = Required.Always)]
+    public required int SnapshotId { get; init; }
+
     [JsonProperty("begin_moment", Required = Required.Always)]
     public required DateTimeOffset BeginMoment { get; init; }
 

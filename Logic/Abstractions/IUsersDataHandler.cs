@@ -7,26 +7,46 @@ namespace Logic.Abstractions;
 public interface IUsersDataHandler
 {
     public Task<Response> TryRegisterUser(
-        UserRegistrationData registrationData,
+        string registrationData,
         CancellationToken token);
 
     public Task<Response> TryLoginUser(
-        UserLoginData loginData,
+        string loginData,
         CancellationToken token);
 
     public Task<Response> TryLogoutUser(
-        UserLogoutDeviceById logoutData,
+        string logoutData,
         CancellationToken token);
 
     public Task<GetResponse> GetUserInfo(
-        UserInfoById userInfoById,
+        string userInfoById,
         CancellationToken token);
 
     public Task<Response> UpdateUserInfo(
-        UserUpdateInfoDTO userUpdateInfo,
+        string userUpdateInfo,
         CancellationToken token);
 
     public Task<Response> UpdateUserRoleAsync(
-        UserUpdateRoleDTO userUpdateRoleDTO,
+        string userUpdateRoleDTO,
+        CancellationToken token);
+
+    public Task<GetResponse> GetAllUsers(
+        string getAllUsersDTO,
+        CancellationToken token);
+
+    public Task<GetResponse> GetAllUsersNotInGroup(
+        string getAllUsersNotInGroupDTO,
+        CancellationToken token);
+
+    public Task<GetResponse> GetAdmins(
+        string getAdminsDTO,
+        CancellationToken token);
+
+    public Task<GetResponse> GetUsersFromGroup(
+        string getGroupUsersDTO,
+        CancellationToken token);
+
+    public Task<GetResponse> GetGroupUsersNotInEvent(
+        string getgroupUsersNotInEventDTO,
         CancellationToken token);
 }

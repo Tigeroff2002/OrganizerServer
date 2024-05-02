@@ -37,15 +37,28 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: root
-      POSTGRES_DB: CalendarDatabase
+      POSTGRES_DB: OrganizerDatabase
       POSTGRES_HOST: postgres
     ports:
         - 5432:5432
     volumes:
       - ./Database/Migrations/:/docker-entrypoint-initdb.d/
     networks:
-      - postgres
+      - internal
     restart: always
+
+  redis:
+    container_name: redis_container  
+    image: redis:6.2-alpine
+    environment:
+        REDIS_HOST: redis
+    ports:
+        - '6379:6379'
+    volumes: 
+      - ./Database/Cache/:/data
+    networks:
+        - internal
+    restart: on-failure
 
   organizer-app:
     build:
@@ -54,14 +67,15 @@ services:
     container_name: organizer-app
     image: organizer
     ports:
-       - 3500:80
+       - 3500:8080
     depends_on:
      - postgres
+     - redis 
     networks:
-      - postgres
+      - internal
     restart: always
 
 
 networks:
-  postgres:
+  internal:
     driver: bridge

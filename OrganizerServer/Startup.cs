@@ -32,7 +32,6 @@ public class Startup
         _ = services.AddHttpClient();
         _ = services
             .AddLogging()
-            .AddHostedServices()
             .AddLogic(Configuration)
             .AddSerialization()
             .AddStorage(Configuration)

@@ -1,5 +1,6 @@
 ﻿using Contracts.Request;
 using Contracts.Response;
+using Logic.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Models.BusinessModels;
@@ -11,6 +12,7 @@ using PostgreSQL.Abstractions;
 using System.Diagnostics;
 using ToDoCalendarServer;
 using ToDoCalendarServer.Controllers;
+using static Google.Apis.Requests.BatchRequest;
 
 namespace OrganizerServer.Controllers;
 
@@ -19,14 +21,10 @@ namespace OrganizerServer.Controllers;
 public sealed class AlertController : ControllerBase
 {
     public AlertController(
-        IAlertsRepository alertsRepository,
-        IUsersRepository usersRepository)
+        IAlertsReceiverHandler alertsReceiverHandler)
     {
-        _alertsRepository = alertsRepository
-            ?? throw new ArgumentNullException(nameof(alertsRepository));
-
-        _usersRepository = usersRepository
-            ?? throw new ArgumentNullException(nameof(usersRepository));
+        _alertsReceiverHandler = alertsReceiverHandler
+            ?? throw new ArgumentNullException(nameof(alertsReceiverHandler));
     }
 
     [Route("get_all_alerts")]
@@ -35,67 +33,12 @@ public sealed class AlertController : ControllerBase
     {
         var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
 
-        var requestDTO = JsonConvert.DeserializeObject<RequestWithToken>(body);
+        var response = await _alertsReceiverHandler.GetAllAlerts(body, token);
 
-        Debug.Assert(requestDTO != null);
+        var json = JsonConvert.SerializeObject(response);
 
-        var userId = requestDTO.UserId;
-
-        var existedUser = await _usersRepository.GetUserByIdAsync(userId, token);
-
-        if (existedUser == null)
-        {
-            var response1 = new Response();
-            response1.Result = false;
-            response1.OutInfo =
-                $"Cant take info about system alerts cause " +
-                $"user with id {userId} is not found in db";
-
-            return BadRequest(JsonConvert.SerializeObject(response1));
-        }
-
-        if (existedUser.Role != UserRole.Admin)
-        {
-            var response1 = new Response();
-            response1.Result = false;
-            response1.OutInfo =
-                $"Cant take info about system alerts cause " +
-                $"user with id {userId} is not system administrator";
-
-            return Forbid(JsonConvert.SerializeObject(response1));
-        }
-
-        var allIAlerts =
-            _alertsRepository
-                .GetAllAlertsAsync(token)
-                .GetAwaiter().GetResult()
-                .Select(x => new AlertInfoResponse
-                {
-                    Id = x.Id,
-                    Title = x.Title,
-                    Description = x.Description,
-                    IsAlerted = x.IsAlerted,
-                    Moment = x.Moment
-                })
-                .ToList();
-
-        var systemAlertsResponseModel = new SystemAlertsResponse
-        {
-            Alerts = allIAlerts
-        };
-
-        var getResponse = new GetResponse();
-        getResponse.Result = true;
-        getResponse.OutInfo =
-            $"Info about all system alerts" +
-            $" for admin with id {userId} was received";
-        getResponse.RequestedInfo = systemAlertsResponseModel;
-
-        var json = JsonConvert.SerializeObject(getResponse);
-
-        return Ok(json);
+        return response.Result ? Ok(json) : BadRequest(json);
     }
 
-    private readonly IAlertsRepository _alertsRepository;
-    private readonly IUsersRepository _usersRepository;
+    private readonly IAlertsReceiverHandler _alertsReceiverHandler;
 }

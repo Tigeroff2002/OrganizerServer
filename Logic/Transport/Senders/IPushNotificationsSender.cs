@@ -1,4 +1,4 @@
-﻿using Models.UserActionModels;
+﻿using Models.UserActionModels.NotificationModels;
 
 namespace Logic.Transport.Senders;
 
