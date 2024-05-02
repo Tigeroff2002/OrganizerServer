@@ -176,7 +176,9 @@ public sealed class SMTPSender
         body.Append($"{description} \n");
 
         var mailMessage = new MailMessage(
-            new MailAddress(_smtpConfiguration.FromAdress),
+            new MailAddress(
+                _smtpConfiguration.FromAdress,
+                _smtpConfiguration.FromTitle),
             new MailAddress(email))
         {
             Subject = subject,

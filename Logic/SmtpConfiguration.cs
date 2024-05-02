@@ -10,5 +10,7 @@ public sealed class SmtpConfiguration
 
     public required string FromAdress { get; init; }
 
+    public required string FromTitle { get; init; }
+
     public required string FromPassword { get; init; }
 }
