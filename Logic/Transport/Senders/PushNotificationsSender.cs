@@ -1,9 +1,13 @@
 ﻿using AdsPush;
 using AdsPush.Abstraction;
+using AdsPush.Abstraction.Settings;
+using AdsPush.Firebase;
+using AdsPush.Firebase.Settings;
 using FirebaseAdmin.Messaging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Models.UserActionModels.NotificationModels;
+using System.Reflection;
 using System.Text;
 
 namespace Logic.Transport.Senders;
@@ -12,22 +16,35 @@ public sealed class PushNotificationsSender
     : IPushNotificationsSender
 {
     public PushNotificationsSender(
-        IAdsPushSenderFactory adsPushSenderFactory,
-        IOptions<AdsPushConfiguration> options,
+        IOptions<AdsPushFirebaseSettingsConfiguration> options,
         ILogger<PushNotificationsSender> logger)
     {
-        ArgumentNullException.ThrowIfNull(adsPushSenderFactory);
         ArgumentNullException.ThrowIfNull(options);
 
-        _adsPushSender = adsPushSenderFactory.GetSender("MyApp");
-        _adsPushConfiguration = options.Value;
+        _configuration = options.Value;
+
+        var settings = new AdsPushFirebaseSettings
+        {
+            Type = _configuration.Type,
+            ProjectId = _configuration.ProjectId,
+            PrivateKey = _configuration.PrivateKey,
+            PrivateKeyId = _configuration.PrivateKeyId,
+            ClientId = _configuration.ClientId,
+            ClientEmail = _configuration.ClientEmail,
+            AuthUri = _configuration.AuthUri,
+            AuthProviderX509CertUrl = _configuration.AuthProviderX509CertUrl,
+            TokenUri = _configuration.TokenUri,
+            ClientX509CertUrl = _configuration.ClientX509CertUrl
+        };
+
+        _adsPushSender = new FirebasePushNotificationSender(settings);
 
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
-
+    
 
     public async Task SendAdsPushNotificationAsync(
-        UserNotificationInfo model,
+        UserAdsPushContentInfo model,
         CancellationToken token)
     {
         ArgumentNullException.ThrowIfNull(model);
@@ -36,37 +53,14 @@ public sealed class PushNotificationsSender
 
         var body = new StringBuilder();
 
-        if (model is UserAdsPushReminderInfo reminderModel)
-        {
-            var numberMinutesOfOffset = reminderModel.TotalMinutes;
+        body.Append($"Hello, {model.UserName}!\n");
+        body.Append(
+            $"We are sending you reminder message, that you can see below: \n");
 
-            body.Append($"Hello, {model.UserName}!\n");
-            body.Append(
-                $"We are sending you a reminder that your event" +
-                $" will start in less than {numberMinutesOfOffset} minutes.\n");
+        body.Append(model.Description);
 
-            body.Append(reminderModel.Description);
-
-            await SendNotificationAsync(
-                body.ToString(), reminderModel, reminderModel.FirebaseToken, token);
-        }
-        else if (model is UserAdsPushContentInfo contentModel)
-        {
-            body.Append($"Hello, {model.UserName}!\n");
-            body.Append(
-                $"We are sending you alert message, that you can see below: \n");
-
-            body.Append(contentModel.Description);
-
-            await SendNotificationAsync(
-                body.ToString(), contentModel, contentModel.FirebaseToken, token);
-        }
-        else
-        {
-            throw new InvalidOperationException(
-                $"Model type: {model.GetType().Name} is not supported" +
-                $" for sending push notifications messages.");
-        }
+        await SendNotificationAsync(
+            body.ToString(), model, model.FirebaseToken, token);
     }
 
     private async Task SendNotificationAsync(
@@ -93,8 +87,11 @@ public sealed class PushNotificationsSender
         {
             var firebaseResult =
                 await _adsPushSender
-                    .GetFirebaseSender()
                     .SendToSingleAsync(message, token);
+
+            _logger.LogInformation(
+                "Trying to send new notification message to user {UserName}",
+                model.UserName);
 
             if (firebaseResult != null)
             {
@@ -102,8 +99,9 @@ public sealed class PushNotificationsSender
                 {
                     _logger.LogInformation(
                         "New notification message with id {MessageId}" +
-                        " was sended succesfully",
-                        firebaseResult.MessageId);
+                        " was sended succesfully for user {UserName}",
+                        firebaseResult.MessageId,
+                        model.UserName);
                 }
             }
         }
@@ -114,7 +112,7 @@ public sealed class PushNotificationsSender
         }
     }
 
-    private readonly IAdsPushSender _adsPushSender;
-    private readonly AdsPushConfiguration _adsPushConfiguration;
+    private readonly FirebasePushNotificationSender _adsPushSender;
+    private readonly AdsPushFirebaseSettingsConfiguration _configuration;
     private readonly ILogger<PushNotificationsSender> _logger;
 }

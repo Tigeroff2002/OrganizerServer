@@ -1,4 +1,6 @@
-﻿using AdsPush.Extensions;
+﻿using AdsPush.Abstraction.Settings;
+using AdsPush.Extensions;
+using AdsPush.Firebase.Extensions;
 using ToDoCalendarServer.Controllers;
 
 namespace ToDoCalendarServer;
@@ -38,8 +40,6 @@ public class Startup
             .AddHealthChecks();
 
         _ = services.AddAuthBuilder();
-
-        _ = services.AddAdsPush(Configuration);
 
         _ = services.AddHostedServices();
     }

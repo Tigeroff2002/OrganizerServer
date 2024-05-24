@@ -138,11 +138,10 @@ public static class Registrations
                 configuration.GetSection(nameof(RootConfiguration)))
             .Configure<StartDelayConfiguration>(
                 configuration.GetSection(nameof(StartDelayConfiguration)))
-            .Configure<AdsPushConfiguration>(
+            .Configure<AdsPushFirebaseSettingsConfiguration>(
                 configuration
-                    .GetSection("AdsPush")
-                    .GetSection("MyApp")
-                    .GetSection("FirebaseCloudMessaging"));
+                    .GetSection("FirebaseCloudMessaging")
+                    .GetSection("DefaultFirebaseSender"));
 
     public static AuthenticationBuilder AddAuthBuilder(
         this IServiceCollection services)

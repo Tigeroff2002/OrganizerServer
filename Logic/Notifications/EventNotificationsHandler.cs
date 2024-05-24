@@ -320,11 +320,13 @@ public sealed class EventNotificationsHandler
                     " with email {Email} has been succesfully sent",
                     email);
 
+                /*
                 await Task.WhenAll(
                     adsPushReminderMessages.Select(
                         ads => Task.Run(
                             async () => await _pushNotificationsSender
                                 .SendAdsPushNotificationAsync(ads, token))));
+                */
 
                 // продумать логику комита созданных доменных событий
                 Logger.LogInformation(

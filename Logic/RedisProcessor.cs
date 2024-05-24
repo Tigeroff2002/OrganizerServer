@@ -14,7 +14,8 @@ public sealed class RedisProcessor : IRedisProcessor
     public RedisProcessor(
         ILogger<RedisProcessor> logger, 
         IRedisMessagesReceiver receiver, 
-        ISMTPSender sender,
+        ISMTPSender smtpSender,
+        IPushNotificationsSender adsSender,
         ICommonUsersUnitOfWork commonUnitOfWork,
         IRedisEventsAliaser aliaser,
         IOptions<RedisReadingConfiguration> options)
@@ -25,7 +26,9 @@ public sealed class RedisProcessor : IRedisProcessor
 
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-        _sender = sender ?? throw new ArgumentNullException(nameof(sender));
+        _smtpSender = smtpSender ?? throw new ArgumentNullException(nameof(smtpSender));
+
+        _adsSender = adsSender ?? throw new ArgumentNullException(nameof(adsSender));
 
         _receiver = receiver ?? throw new ArgumentNullException(nameof(receiver));
 
@@ -65,7 +68,20 @@ public sealed class RedisProcessor : IRedisProcessor
                         user.UserName,
                         user.Email);
 
-                await _sender.SendNotificationAsync(emailMessage, token);
+                await _smtpSender.SendNotificationAsync(emailMessage, token);
+
+                var userTokens = _commonUnitOfWork
+                    .UserDevicesRepository
+                    .GetAllDevicesMapsAsync(token)
+                    .GetAwaiter()
+                    .GetResult()
+                    .Where(x => x.UserId == userId && x.IsActive == true);
+
+                await Task.WhenAll(
+                    userTokens.Select(
+                        device => Task.Run(
+                            async () => await _adsSender.SendAdsPushNotificationAsync(
+                                new(SUBJECT, user.UserName, eventName, device.FirebaseToken), token))));
             }
 
             _logger.LogInformation(
@@ -80,7 +96,8 @@ public sealed class RedisProcessor : IRedisProcessor
 
     private readonly RedisReadingConfiguration _configuration;
     private readonly ICommonUsersUnitOfWork _commonUnitOfWork;
-    private readonly ISMTPSender _sender;
+    private readonly ISMTPSender _smtpSender;
+    private readonly IPushNotificationsSender _adsSender;
     private readonly IRedisMessagesReceiver _receiver;
     private readonly IRedisEventsAliaser _eventsAliaser;
     private readonly ILogger<RedisProcessor> _logger; 

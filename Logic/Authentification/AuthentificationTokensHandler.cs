@@ -22,11 +22,11 @@ public sealed class AuthentificationTokensHandler
         ILoggerFactory logger,
         UrlEncoder encoder,
         ISystemClock systemClock,
-        IUsersRepository usersRepository)
+        ICommonUsersUnitOfWork commonUnitOfWork)
         : base(options, logger, encoder, systemClock)
     {
-        _usersRepository = usersRepository 
-            ?? throw new ArgumentNullException(nameof(usersRepository));
+        _commonUnitOfWork = commonUnitOfWork
+            ?? throw new ArgumentNullException(nameof(commonUnitOfWork));
     }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -97,9 +97,11 @@ public sealed class AuthentificationTokensHandler
 
     private async Task<Response> ValidateUserToken(int userId, string token)
     {
-        var existedUser = await _usersRepository.GetUserByIdAsync(
-            userId,
-            CancellationToken.None);
+        var existedUser = await _commonUnitOfWork
+            .UsersRepository
+            .GetUserByIdAsync(
+                userId,
+                CancellationToken.None);
 
         if (existedUser == null)
         {
@@ -111,24 +113,36 @@ public sealed class AuthentificationTokensHandler
             return await Task.FromResult(response1);
         }
 
-        if (existedUser.AuthToken != token) 
-        {
-            var response2 = new Response();
-            response2.Result = false;
-            response2.OutInfo = 
-                $"Cant authentificate user" +
-                $" with id {userId} cause token {token}" +
-                $" does not compare with real token {existedUser.AuthToken}";
+        var userTokens = _commonUnitOfWork
+            .UserDevicesRepository
+            .GetAllDevicesMapsAsync(CancellationToken.None)
+            .GetAwaiter()
+            .GetResult()
+            .Where(x => x.UserId == userId && x.IsActive == true)
+            .Select(x => x.FirebaseToken)
+            .ToList();
 
-            return await Task.FromResult(response2);
+        foreach (var userToken in userTokens)
+        {
+            if (userToken == token)
+            {
+                var response = new Response();
+                response.Result = true;
+                response.OutInfo = $"Authentification for user with id {userId} is succeeded";
+
+                return await Task.FromResult(response);
+            }
         }
 
-        var response = new Response();
-        response.Result = true;
-        response.OutInfo = $"Authentification for user with id {userId} is succeeded";
+        var response2 = new Response();
+        response2.Result = false;
+        response2.OutInfo =
+            $"Cant authentificate user" +
+            $" with id {userId} cause token {token}" +
+            $" is not present for this user";
 
-        return await Task.FromResult(response);
+        return await Task.FromResult(response2);
     }
 
-    private readonly IUsersRepository _usersRepository;
+    private readonly ICommonUsersUnitOfWork _commonUnitOfWork;
 }

@@ -6,6 +6,6 @@ public interface IPushNotificationsSender
     : INotificationsSender
 {
     Task SendAdsPushNotificationAsync(
-        UserNotificationInfo model,
+        UserAdsPushContentInfo model,
         CancellationToken token);
 }
