@@ -33,6 +33,8 @@ public sealed class CustomExceptionsHandler : DataHandlerBase
         catch (Exception ex)
         {
             await HandleExceptionAsync(httpContext, ex);
+
+            throw;
         }
     }
 

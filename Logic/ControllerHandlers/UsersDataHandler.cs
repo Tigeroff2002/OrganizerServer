@@ -101,7 +101,10 @@ public sealed class UsersDataHandler
         };
 
         var confirmResponse =
-            await _usersCodeConfirmer.ConfirmAsync(shortUserInfo, token);
+            _usersCodeConfirmer
+                .ConfirmAsync(shortUserInfo, token)
+                .GetAwaiter()
+                .GetResult();
 
         var builder = new StringBuilder();
         builder.Append(confirmResponse.OutInfo);
@@ -115,7 +118,7 @@ public sealed class UsersDataHandler
                 "User account link confirmation was not succesfull");
 
             var response2 = new RegistrationResponse();
-            response2.Result = true;
+            response2.Result = false;
             response2.RegistrationCase = RegistrationCase.ConfirmationFailed;
 
             builder.Append(
@@ -931,7 +934,7 @@ public sealed class UsersDataHandler
         };
 
         var response1 = new GetResponse();
-        response1.Result = false;
+        response1.Result = true;
         response1.OutInfo = $"Info about all users was received";
         response1.RequestedInfo = JsonConvert.SerializeObject(usersListResponse);
 
@@ -990,7 +993,7 @@ public sealed class UsersDataHandler
         };
 
         var response1 = new GetResponse();
-        response1.Result = false;
+        response1.Result = true;
         response1.OutInfo = $"Info about all admins was received";
         response1.RequestedInfo = JsonConvert.SerializeObject(usersListResponse);
 
@@ -1035,7 +1038,7 @@ public sealed class UsersDataHandler
         if (existedGroup == null)
         {
             var response2 = new GetResponse();
-            response2.Result = false;
+            response2.Result = true;
             response2.OutInfo = $"No such group with id {groupId} found in db";
 
             return await Task.FromResult(response2);
@@ -1078,7 +1081,7 @@ public sealed class UsersDataHandler
         };
 
         var response1 = new GetResponse();
-        response1.Result = false;
+        response1.Result = true;
         response1.OutInfo = $"Info about all users not in group {groupId} was received";
         response1.RequestedInfo = JsonConvert.SerializeObject(usersListResponse);
 
@@ -1165,7 +1168,7 @@ public sealed class UsersDataHandler
         };
 
         var response1 = new GetResponse();
-        response1.Result = false;
+        response1.Result = true;
         response1.OutInfo = $"Info about all users in group {groupId} was received";
         response1.RequestedInfo = JsonConvert.SerializeObject(usersListResponse);
 
@@ -1291,7 +1294,7 @@ public sealed class UsersDataHandler
         };
 
         var response1 = new GetResponse();
-        response1.Result = false;
+        response1.Result = true;
         response1.OutInfo = 
             $"Info about all users in group {groupId}" +
             $" not guests of event {eventId} - was received";
