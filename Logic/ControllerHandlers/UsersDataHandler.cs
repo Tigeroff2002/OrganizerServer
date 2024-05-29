@@ -35,6 +35,7 @@ public sealed class UsersDataHandler
         IDeserializer<UserLogoutDeviceById> userLogoutByIdDeserializer,
         ICommonUsersUnitOfWork commonUnitOfWork,
         IRedisRepository redisRepository,
+        IUserConfirmationCache confirmationCache,
         ILogger<UsersDataHandler> logger)
         : base(commonUnitOfWork, redisRepository, logger)
     {
@@ -59,9 +60,12 @@ public sealed class UsersDataHandler
 
         _userLogoutByIdDeserializer = userLogoutByIdDeserializer
             ?? throw new ArgumentNullException(nameof(userLogoutByIdDeserializer));
+
+        _confirmationCache = confirmationCache 
+            ?? throw new ArgumentNullException(nameof(confirmationCache));
     }
 
-    public async Task<Response> TryRegisterUser(
+    public async Task<PreRegistrationResponse> TryRegisterUser(
         string registrationData,
         CancellationToken token)
     {
@@ -85,7 +89,7 @@ public sealed class UsersDataHandler
                 "User with email {Email} was already in DB",
                 email);
 
-            var response1 = new RegistrationResponse();
+            var response1 = new PreRegistrationResponse();
             response1.Result = true;
             response1.OutInfo = $"User with email {email} was already in DB";
             response1.RegistrationCase = RegistrationCase.SuchUserExisted;
@@ -101,10 +105,8 @@ public sealed class UsersDataHandler
         };
 
         var confirmResponse =
-            _usersCodeConfirmer
-                .ConfirmAsync(shortUserInfo, token)
-                .GetAwaiter()
-                .GetResult();
+            await _usersCodeConfirmer
+                .ConfirmAsync(shortUserInfo, token);
 
         var builder = new StringBuilder();
         builder.Append(confirmResponse.OutInfo);
@@ -115,19 +117,82 @@ public sealed class UsersDataHandler
         if (!confirmResult)
         {
             Logger.LogInformation(
-                "User account link confirmation was not succesfull");
+                "User account confirmation failed before real actions");
 
-            var response2 = new RegistrationResponse();
+            var response2 = new PreRegistrationResponse();
             response2.Result = false;
             response2.RegistrationCase = RegistrationCase.ConfirmationFailed;
 
             builder.Append(
-                $"User account link confirmation was not succesfull" +
+                $"User account failed before real actions" +
                 $" for user with email {email}.");
             response2.OutInfo = builder.ToString();
 
             return await Task.FromResult(response2);
         }
+
+        var confirmationData =
+            new UserConfirmationData(
+                userRegistrationData.Email,
+                userRegistrationData.UserName,
+                userRegistrationData.Password,
+                userRegistrationData.PhoneNumber,
+                userRegistrationData.FirebaseToken,
+                confirmResponse.Code);
+
+        _confirmationCache.AddDataForConfirmation(confirmationData);
+
+        var response = new PreRegistrationResponse();
+
+        response.Result = true;
+        response.OutInfo = builder.ToString();
+        response.FirebaseToken = userRegistrationData.FirebaseToken;
+        response.UserName = userRegistrationData.UserName;
+        response.RegistrationCase = RegistrationCase.ConfirmationAwaited;
+
+        return await Task.FromResult(response);
+    }
+
+    public async Task<RegistrationResponse> ConfirmUser(
+        string confirmationData,
+        CancellationToken token)
+    {
+        ArgumentNullException.ThrowIfNull(confirmationData);
+
+        token.ThrowIfCancellationRequested();
+
+        var data = JsonConvert.DeserializeObject<
+            UserConfirmationEmailDTO>(confirmationData);
+
+        Debug.Assert(data != null);
+
+        if (!_confirmationCache.TryGetValue(data.Email, out var existedData))
+        {
+            var response1 = new RegistrationResponse();
+
+            response1.Result = false;
+            response1.UserName = "user";
+            response1.RegistrationCase = RegistrationCase.ConfirmationExpired;
+            response1.Token = "token";
+            response1.OutInfo = "Confirmation was failed cause confirmation time was expired";
+
+            return await Task.FromResult(response1);
+        }
+
+        if (existedData.Code != data.Code)
+        {
+            var response1 = new RegistrationResponse();
+
+            response1.Result = false;
+            response1.UserName = existedData.UserName;
+            response1.RegistrationCase = RegistrationCase.CodeNotEqualsConfirmation;
+            response1.Token = "token";
+            response1.OutInfo = "Confirmation was failed cause code not equals";
+
+            return await Task.FromResult(response1);
+        }
+
+        _confirmationCache.RemoveData(data.Email);
 
         var user = new User();
 
@@ -135,10 +200,10 @@ public sealed class UsersDataHandler
 
         user.Role = DEFAULT_USER_ROLE;
         user.AccountCreation = registrationTime;
-        user.Email = email;
-        user.UserName = userRegistrationData.UserName;
-        user.Password = userRegistrationData.Password;
-        user.PhoneNumber = userRegistrationData.PhoneNumber;
+        user.Email = existedData.Email;
+        user.UserName = existedData.UserName;
+        user.Password = existedData.Password;
+        user.PhoneNumber = existedData.PhoneNumber;
         user.GroupingMaps = new List<GroupingUsersMap>();
         user.TasksForImplementation = new List<UserTask>();
         user.EventMaps = new List<EventsUsersMap>();
@@ -155,7 +220,7 @@ public sealed class UsersDataHandler
 
         CommonUnitOfWork.SaveChanges();
 
-        var firebaseToken = userRegistrationData.FirebaseToken;
+        var firebaseToken = existedData.FirebaseToken;
 
         var userDeviceMap = new UserDeviceMap();
 
@@ -181,9 +246,11 @@ public sealed class UsersDataHandler
         var response = new RegistrationResponse();
         response.Result = true;
 
+        var builder = new StringBuilder();
+
         builder.Append(
             $"Registrating new user {user.Email} with id {user.Id}" +
-            $" with creating new auth token {authToken}");
+            " with creating new auth token {authToken}");
 
         response.Result = true;
         response.OutInfo = builder.ToString();
@@ -192,6 +259,48 @@ public sealed class UsersDataHandler
         response.FirebaseToken = firebaseToken;
         response.UserName = user.UserName;
         response.RegistrationCase = RegistrationCase.ConfirmationSucceeded;
+
+        return await Task.FromResult(response);
+    }
+
+    public async Task<Response> CheckIfTimeExpired(
+        string requestData,
+        CancellationToken token)
+    {
+        ArgumentNullException.ThrowIfNull(requestData);
+
+        token.ThrowIfCancellationRequested();
+
+        var requestedEmail = 
+            JsonConvert.DeserializeObject<
+                CheckIfConfirmationExpiredDTO>(requestData)!.Email;
+
+        if (!_confirmationCache.TryGetValue(requestedEmail, out var existedData))
+        {
+            var response1 = new Response();
+
+            response1.Result = false;
+            response1.OutInfo = $"Such email as {requestedEmail} was not found on cache";
+
+            return await Task.FromResult(response1);
+        }
+
+        if (existedData.IsActual())
+        {
+            var response2 = new Response();
+
+            response2.Result = false;
+            response2.OutInfo = $"Confirmation for email {requestedEmail} was not expired";
+
+            return await Task.FromResult(response2);
+        }
+
+        _confirmationCache.RemoveData(requestedEmail);
+
+        var response = new Response();
+
+        response.Result = true;
+        response.OutInfo = $"Confirmation for email {requestedEmail} was expired";
 
         return await Task.FromResult(response);
     }
@@ -1306,9 +1415,12 @@ public sealed class UsersDataHandler
     private const UserRole DEFAULT_USER_ROLE = UserRole.User;
 
     private readonly ISMTPSender _usersCodeConfirmer;
-    private readonly ISerializer<UserInfoContent> _userInfoSerializer;
+
     private readonly RootConfiguration _rootConfiguration;
 
+    private readonly IUserConfirmationCache _confirmationCache;
+
+    private readonly ISerializer<UserInfoContent> _userInfoSerializer;
     private readonly IDeserializer<UserRegistrationData> _usersRegistrationDataDeserializer;
     private readonly IDeserializer<UserLoginData> _usersLoginDataDeserializer;
     private readonly IDeserializer<UserInfoById> _userInfoByIdDeserializer;

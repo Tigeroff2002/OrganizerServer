@@ -40,10 +40,10 @@ public sealed class RedisProcessor : IRedisProcessor
 
     public async Task ProcessAsync(CancellationToken token)
     {
-        var allUsers = await _commonUnitOfWork.UsersRepository.GetAllUsersAsync(token);
-
         while (!token.IsCancellationRequested)
         {
+            var allUsers = await _commonUnitOfWork.UsersRepository.GetAllUsersAsync(token);
+
             _logger.LogInformation("Beginning next iteration of processing redis messages");
 
             var messages = await _receiver.GetMessages(token);

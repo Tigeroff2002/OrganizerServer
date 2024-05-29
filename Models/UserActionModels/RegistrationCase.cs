@@ -6,5 +6,11 @@ public enum RegistrationCase
 
     ConfirmationFailed,
 
+    ConfirmationAwaited,
+
+    ConfirmationExpired,
+
+    CodeNotEqualsConfirmation,
+
     ConfirmationSucceeded
 }

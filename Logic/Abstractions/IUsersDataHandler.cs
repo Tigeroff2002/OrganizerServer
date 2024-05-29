@@ -6,8 +6,16 @@ namespace Logic.Abstractions;
 
 public interface IUsersDataHandler
 {
-    public Task<Response> TryRegisterUser(
+    public Task<PreRegistrationResponse> TryRegisterUser(
         string registrationData,
+        CancellationToken token);
+
+    public Task<RegistrationResponse> ConfirmUser(
+        string confirmationData,
+        CancellationToken token);
+
+    public Task<Response> CheckIfTimeExpired(
+        string requestData,
         CancellationToken token);
 
     public Task<Response> TryLoginUser(

@@ -35,6 +35,34 @@ public sealed class UserController : ControllerBase
     }
 
     [HttpPost]
+    [Route("confirm")]
+    public async Task<IActionResult> ConfirmUserAsyns(CancellationToken token)
+    {
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
+
+        var result =
+            await _usersDataHandler.ConfirmUser(body, token);
+
+        var json = JsonConvert.SerializeObject(result);
+
+        return result.Result ? Ok(json) : BadRequest(json);
+    }
+
+    [HttpPost]
+    [Route("check_if_time_expired")]
+    public async Task<IActionResult> CheckIfTimeExpiredAsyns(CancellationToken token)
+    {
+        var body = await RequestExtensions.ReadRequestBodyAsync(Request.Body);
+
+        var result =
+            await _usersDataHandler.CheckIfTimeExpired(body, token);
+
+        var json = JsonConvert.SerializeObject(result);
+
+        return result.Result ? Ok(json) : BadRequest(json);
+    }
+
+    [HttpPost]
     [Route("login")]
     public async Task<IActionResult> LoginUserAsyns(CancellationToken token)
     {

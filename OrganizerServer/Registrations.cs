@@ -52,6 +52,9 @@ public static class Registrations
             .AddSingleton<IRedisMessagesReceiver, RedisMessagesReceiver>()
             .AddSingleton<IRedisEventsAliaser, RedisEventsAliaser>()
 
+            .AddSingleton<ICodeConfirmationsActualizer, CodeConfirmationsActualizer>()
+            .AddSingleton<IUserConfirmationCache, UserConfirmationCache>()
+
             .AddRedisCache(configuration)
             .AddConfigurations(configuration);
 
