@@ -12,16 +12,16 @@ using System.Text.Json;
 
 namespace Logic;
 
-public sealed class CustomExceptionsHandler : DataHandlerBase
+public sealed class CustomExceptionsHandler
 {
     public CustomExceptionsHandler(
         RequestDelegate next,
-        ILogger<CustomExceptionsHandler> logger,
-        ICommonUsersUnitOfWork commomUnitOfWork,
-        IRedisRepository redisRepository)
-        : base(commomUnitOfWork, redisRepository, logger)
+        IExceptionHandler exceptionHandler)
     {
         _next = next ?? throw new ArgumentNullException(nameof(next));
+
+        _exceptionHandler = exceptionHandler 
+            ?? throw new ArgumentNullException(nameof(exceptionHandler));
     }
 
     public async Task InvokeAsync(HttpContext httpContext)
@@ -42,67 +42,16 @@ public sealed class CustomExceptionsHandler : DataHandlerBase
     {
         context.Response.ContentType = "application/json";
 
-        var errorResponse = new Response
-        {
-            Result = false,
-            OutInfo = "Server error occured. "
-        };
-
         context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-        errorResponse.OutInfo += $"Exception: {exception.Message}";
 
-        var (alertId, alertMoment) = 
-            await CreateBagAlert(errorResponse, CancellationToken.None);
-
-        Logger.LogError(errorResponse.OutInfo);
-
-        var resultJson = JsonSerializer.Serialize(errorResponse);
-
-        var admins =
-            CommonUnitOfWork
-                .UsersRepository
-                .GetAllUsersAsync(CancellationToken.None)
-                .GetAwaiter()
-                .GetResult()
-                .Where(x => x.Role == UserRole.Admin);
-
-        foreach (var user in admins)
-        {
-            await SendEventForCacheAsync(
-                new AlertCreatedEvent(
-                    Id: Guid.NewGuid().ToString(),
-                    IsCommited: false,
-                    UserId: user.Id,
-                    AlertId: alertId,
-                    CreateMoment: alertMoment,
-                    Json: resultJson));
-        }
+        var resultJson = 
+            await _exceptionHandler.HandleExceptionsAsync(
+                exception, 
+                CancellationToken.None);
 
         await context.Response.WriteAsync(resultJson);
     }
 
-    private async Task<(int, DateTimeOffset)> CreateBagAlert(Response message, CancellationToken token)
-    {
-        var alertMoment = DateTimeOffset.UtcNow;
-
-        var title = "Server internal error 500";
-
-        var alert = new Alert
-        {
-            Title = title,
-            Description = message.OutInfo!,
-            Moment = alertMoment,
-            IsAlerted = false
-        };
-
-        await CommonUnitOfWork
-            .AlertsRepository
-            .AddAsync(alert, token);
-
-        CommonUnitOfWork.SaveChanges();
-
-        return await Task.FromResult((alert.Id, alertMoment));
-    }
-
+    private readonly IExceptionHandler _exceptionHandler;
     private readonly RequestDelegate _next;
 }

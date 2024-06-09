@@ -9,6 +9,7 @@ public sealed class ActualizerHandler : IActualizerHandler
     public ActualizerHandler(
         IUserDevicesTokensActualizer tokensActualizer,
         ICodeConfirmationsActualizer codesActualizer,
+        IExceptionHandler exceptionHandler,
         ILogger<ActualizerHandler> logger) 
     {
         _tokensActualizer = tokensActualizer
@@ -16,6 +17,9 @@ public sealed class ActualizerHandler : IActualizerHandler
 
         _codesActualizer = codesActualizer
             ?? throw new ArgumentNullException(nameof(codesActualizer));
+
+        _exceptionHandler = exceptionHandler
+            ?? throw new ArgumentNullException(nameof(exceptionHandler));
 
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -31,12 +35,23 @@ public sealed class ActualizerHandler : IActualizerHandler
             _codesActualizer.ActualizeEmailConfirmationsAsync(token)
         };
 
-        await Task.WhenAll(
-            notificationsTasks.Select(
-                task => Task.Run(async () => await task)));
+        try
+        {
+
+            await Task.WhenAll(
+                notificationsTasks.Select(
+                    task => Task.Run(async () => await task)));
+        }
+        catch (Exception ex)
+        {
+            await _exceptionHandler.HandleExceptionsAsync(ex, token);
+
+            throw;
+        }
     }
 
     private readonly IUserDevicesTokensActualizer _tokensActualizer;
     private readonly ICodeConfirmationsActualizer _codesActualizer;
+    private readonly IExceptionHandler _exceptionHandler;
     private readonly ILogger _logger;
 }

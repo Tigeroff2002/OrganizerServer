@@ -40,6 +40,7 @@ public static class Registrations
         => services
             .AddNotificationLogic()
             .AddNotificationsTransport()
+            .AddSingleton<IExceptionHandler, ExceptionHandler>()
 
             .AddSingleton<IUsersDataHandler, UsersDataHandler>()
             .AddSingleton<IGroupsHandler, GroupsHandler>()
