@@ -103,6 +103,11 @@ public sealed class RedisRepository : IRedisRepository
     {
         ArgumentNullException.ThrowIfNull(eventsIds);
 
+        if (!eventsIds.Any())
+        {
+            return;
+        }
+
         var database = _connectionMultiplexer.GetDatabase(); 
 
         var transaction = database.CreateTransaction();

@@ -18,6 +18,7 @@ public sealed class RedisProcessor : IRedisProcessor
         IPushNotificationsSender adsSender,
         ICommonUsersUnitOfWork commonUnitOfWork,
         IRedisEventsAliaser aliaser,
+        IExceptionHandler exceptionHandler,
         IOptions<RedisReadingConfiguration> options)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -36,14 +37,31 @@ public sealed class RedisProcessor : IRedisProcessor
             ?? throw new ArgumentNullException(nameof(commonUnitOfWork));
 
         _eventsAliaser = aliaser ?? throw new ArgumentNullException(nameof(aliaser));
+
+        _exceptionHandler = exceptionHandler 
+            ?? throw new ArgumentNullException(nameof(exceptionHandler));
     }
 
     public async Task ProcessAsync(CancellationToken token)
     {
-        var allUsers = await _commonUnitOfWork.UsersRepository.GetAllUsersAsync(token);
+        try
+        {
+            await ProcessRedisMessagesAsync(token);
+        }
+        catch (Exception ex)
+        {
+            await _exceptionHandler.HandleExceptionsAsync(ex, token);
 
+            throw;
+        }
+    }
+
+    private async Task ProcessRedisMessagesAsync(CancellationToken token)
+    {
         while (!token.IsCancellationRequested)
         {
+            var allUsers = await _commonUnitOfWork.UsersRepository.GetAllUsersAsync(token);
+
             _logger.LogInformation("Beginning next iteration of processing redis messages");
 
             var messages = await _receiver.GetMessages(token);
@@ -95,6 +113,7 @@ public sealed class RedisProcessor : IRedisProcessor
     private const string SUBJECT = "System events synchronization";
 
     private readonly RedisReadingConfiguration _configuration;
+    private readonly IExceptionHandler _exceptionHandler;
     private readonly ICommonUsersUnitOfWork _commonUnitOfWork;
     private readonly ISMTPSender _smtpSender;
     private readonly IPushNotificationsSender _adsSender;

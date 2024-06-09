@@ -9,6 +9,7 @@ public sealed class NotificationsHandler
     public NotificationsHandler(
         IEventNotificationsHandler eventNotificationsHandler,
         IAlertsNotificationsHandler alertsNotificationsHandler,
+        IExceptionHandler exceptionHandler,
         ILogger<NotificationsHandler> logger)
     {
         _eventNotificationsHandler = eventNotificationsHandler
@@ -16,6 +17,9 @@ public sealed class NotificationsHandler
 
         _alertsNotificationsHandler = alertsNotificationsHandler
             ?? throw new ArgumentNullException(nameof(alertsNotificationsHandler));
+
+        _exceptionHandler = exceptionHandler 
+            ?? throw new ArgumentNullException(nameof(exceptionHandler));
 
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -31,12 +35,22 @@ public sealed class NotificationsHandler
             _alertsNotificationsHandler.HandleAlersAsync(token)
         };
 
-        await Task.WhenAll(
-            notificationsTasks.Select(
-                task => Task.Run(async () => await task)));
+        try
+        {
+            await Task.WhenAll(
+                notificationsTasks.Select(
+                    task => Task.Run(async () => await task)));
+        }
+        catch (Exception ex) 
+        {
+            await _exceptionHandler.HandleExceptionsAsync(ex, token);
+
+            throw;
+        }
     }
 
     private readonly IEventNotificationsHandler _eventNotificationsHandler;
     private readonly IAlertsNotificationsHandler _alertsNotificationsHandler;
+    private readonly IExceptionHandler _exceptionHandler;
     private readonly ILogger<NotificationsHandler> _logger;
 }

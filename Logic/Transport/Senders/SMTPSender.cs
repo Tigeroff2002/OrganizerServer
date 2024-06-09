@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MimeKit;
 using Models.BusinessModels;
+using Models.UserActionModels;
 using Models.UserActionModels.NotificationModels;
 using System.Net.Mail;
 using System.Text;
@@ -22,7 +23,9 @@ public sealed class SMTPSender
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<Response> ConfirmAsync(ShortUserInfo shortUserInfo, CancellationToken token)
+    public async Task<ResponseWithConfirmCode> ConfirmAsync(
+        ShortUserInfo shortUserInfo,
+        CancellationToken token)
     {
         ArgumentNullException.ThrowIfNull(shortUserInfo);
 
@@ -32,7 +35,7 @@ public sealed class SMTPSender
 
         if (string.IsNullOrWhiteSpace(email))
         {
-            var response1 = new Response();
+            var response1 = new ResponseWithConfirmCode();
             response1.Result = false;
             response1.OutInfo = "Provided user email is null, or empty, or consist from whitespaces";
 
@@ -41,7 +44,7 @@ public sealed class SMTPSender
 
         if (!IsValidEmail(email))
         {
-            var response1 = new Response();
+            var response1 = new ResponseWithConfirmCode();
             response1.Result = false;
             response1.OutInfo = "Provided user email does not match email string requirment";
 
@@ -62,16 +65,14 @@ public sealed class SMTPSender
 
         _logger.LogInformation("Connected to smtp server");
 
-        var randomLink = RandomURLGenerator.GenerateURL();
+        var randomCode = Guid.NewGuid().ToString().Substring(0, 6);
 
-        var subject = "Registration new calendar app account";
+        var subject = "Registration new organizer app account";
 
         var body = new StringBuilder();
 
         body.Append($"Hello, {shortUserInfo.UserName}!\n");
-        body.Append("Bellow is your account confirmation link. You need to open it in your browser page...\n");
-        body.Append($"Or maybe we can call your to your phone number: {shortUserInfo.UserPhone}\n");
-        body.Append($"Your confirmation link is here: {randomLink}.");
+        body.Append($"Your confirmation code is here: {randomCode!}.");
 
         var mailMessage = new MailMessage(
             new MailAddress(_smtpConfiguration.FromAdress),
@@ -88,13 +89,12 @@ public sealed class SMTPSender
 
         await smtpClient.DisconnectAsync(quit: true, token);
 
-        var confirmationResponse = new Response();
+        var confirmationResponse = new ResponseWithConfirmCode();
+        confirmationResponse.Code = randomCode!;
         confirmationResponse.Result = true;
         confirmationResponse.OutInfo =
-            $"Link confirmation was performed for user" +
-            $" with email {email} with link: {randomLink}";
-
-        Task.Delay(REGISTRATION_EMAIL_DELAY_SECONDS).GetAwaiter().GetResult();
+            $"Confirmation code {randomCode} was created for user" +
+            $" with email {email}";
 
         return confirmationResponse;
     }
