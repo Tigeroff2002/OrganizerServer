@@ -31,6 +31,7 @@ public static class Registrations
         this IServiceCollection services)
         => services
             .AddHostedService<EventNotifyService>()
+            .AddHostedService<ActualizerService>()
             .AddHostedService<RedisProcessorService>();
 
     public static IServiceCollection AddLogic(
@@ -51,7 +52,9 @@ public static class Registrations
             .AddSingleton<IRedisProcessor, RedisProcessor>()
             .AddSingleton<IRedisMessagesReceiver, RedisMessagesReceiver>()
             .AddSingleton<IRedisEventsAliaser, RedisEventsAliaser>()
-
+            
+            .AddSingleton<IActualizerHandler, ActualizerHandler>()
+            .AddSingleton<IUserDevicesTokensActualizer, UserDevicesTokensActualizer>()
             .AddSingleton<ICodeConfirmationsActualizer, CodeConfirmationsActualizer>()
             .AddSingleton<IUserConfirmationCache, UserConfirmationCache>()
 
