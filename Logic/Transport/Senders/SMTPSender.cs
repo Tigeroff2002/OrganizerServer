@@ -65,7 +65,7 @@ public sealed class SMTPSender
 
         _logger.LogInformation("Connected to smtp server");
 
-        var randomCode = Guid.NewGuid().ToString().Take(6).ToString();
+        var randomCode = Guid.NewGuid().ToString().Substring(0, 6);
 
         var subject = "Registration new organizer app account";
 
